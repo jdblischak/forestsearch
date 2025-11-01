@@ -3,3 +3,4 @@ vignettes/results/
 dev/private/
 *_files/
 vignettes/working/
+.DS_Store
