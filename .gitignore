@@ -1,6 +1,6 @@
 .Rproj.user
 vignettes/results/
 dev/private/
-dev/public/
 *_files/
 vignettes/working/
+.DS_Store
