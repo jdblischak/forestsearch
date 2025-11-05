@@ -65,19 +65,14 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
   # SECTION 2: BASIC STATISTICS TABLE
   # =========================================================================
 
-  # Create basic stats with safe extraction
-  basic_stats_list <- list(
-    Metric = character(),
-    Value = character()
-  )
-
-  # Add basic counts
-  basic_stats_list$Metric <- c(
+  # Initialize vectors with basic counts
+  metric_vec <- c(
     "Total bootstrap iterations",
     "Subgroups identified",
     "Success rate (%)"
   )
-  basic_stats_list$Value <- c(
+
+  value_vec <- c(
     as.character(nb_boots),
     as.character(n_found),
     sprintf("%.1f%%", pct_found)
@@ -85,58 +80,83 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
 
   # Add Pcons statistics if available
   if ("Pcons" %in% names(sg_found) && sum(!is.na(sg_found$Pcons)) > 0) {
-    basic_stats_list$Metric <- c(basic_stats_list$Metric,
-                                 "",
-                                 "Consistency (Pcons)",
-                                 "  Mean",
-                                 "  Median",
-                                 "  SD",
-                                 "  Min",
-                                 "  Max",
-                                 "  Q25",
-                                 "  Q75"
+
+    pcons_metrics <- c(
+      "",
+      "Consistency (Pcons)",
+      "  Mean",
+      "  Median",
+      "  SD",
+      "  Min",
+      "  Max",
+      "  Q25",
+      "  Q75"
     )
-    basic_stats_list$Value <- c(basic_stats_list$Value,
-                                "",
-                                "",
-                                sprintf("%.3f", mean(sg_found$Pcons, na.rm = TRUE)),
-                                sprintf("%.3f", median(sg_found$Pcons, na.rm = TRUE)),
-                                sprintf("%.3f", sd(sg_found$Pcons, na.rm = TRUE)),
-                                sprintf("%.3f", min(sg_found$Pcons, na.rm = TRUE)),
-                                sprintf("%.3f", max(sg_found$Pcons, na.rm = TRUE)),
-                                sprintf("%.3f", quantile(sg_found$Pcons, 0.25, na.rm = TRUE)),
-                                sprintf("%.3f", quantile(sg_found$Pcons, 0.75, na.rm = TRUE))
+
+    pcons_values <- c(
+      "",
+      "",
+      sprintf("%.3f", mean(sg_found$Pcons, na.rm = TRUE)),
+      sprintf("%.3f", median(sg_found$Pcons, na.rm = TRUE)),
+      sprintf("%.3f", sd(sg_found$Pcons, na.rm = TRUE)),
+      sprintf("%.3f", min(sg_found$Pcons, na.rm = TRUE)),
+      sprintf("%.3f", max(sg_found$Pcons, na.rm = TRUE)),
+      sprintf("%.3f", quantile(sg_found$Pcons, 0.25, na.rm = TRUE)),
+      sprintf("%.3f", quantile(sg_found$Pcons, 0.75, na.rm = TRUE))
     )
+
+    metric_vec <- c(metric_vec, pcons_metrics)
+    value_vec <- c(value_vec, pcons_values)
   }
 
   # Add hr_sg statistics if available
   if ("hr_sg" %in% names(sg_found) && sum(!is.na(sg_found$hr_sg)) > 0) {
-    basic_stats_list$Metric <- c(basic_stats_list$Metric,
-                                 "",
-                                 "Hazard Ratio (hr_sg)",
-                                 "  Mean",
-                                 "  Median",
-                                 "  SD",
-                                 "  Min",
-                                 "  Max",
-                                 "  Q25",
-                                 "  Q75"
+
+    hr_metrics <- c(
+      "",
+      "Hazard Ratio (hr_sg)",
+      "  Mean",
+      "  Median",
+      "  SD",
+      "  Min",
+      "  Max",
+      "  Q25",
+      "  Q75"
     )
-    basic_stats_list$Value <- c(basic_stats_list$Value,
-                                "",
-                                "",
-                                sprintf("%.2f", mean(sg_found$hr_sg, na.rm = TRUE)),
-                                sprintf("%.2f", median(sg_found$hr_sg, na.rm = TRUE)),
-                                sprintf("%.2f", sd(sg_found$hr_sg, na.rm = TRUE)),
-                                sprintf("%.2f", min(sg_found$hr_sg, na.rm = TRUE)),
-                                sprintf("%.2f", max(sg_found$hr_sg, na.rm = TRUE)),
-                                sprintf("%.2f", quantile(sg_found$hr_sg, 0.25, na.rm = TRUE)),
-                                sprintf("%.2f", quantile(sg_found$hr_sg, 0.75, na.rm = TRUE))
+
+    hr_values <- c(
+      "",
+      "",
+      sprintf("%.2f", mean(sg_found$hr_sg, na.rm = TRUE)),
+      sprintf("%.2f", median(sg_found$hr_sg, na.rm = TRUE)),
+      sprintf("%.2f", sd(sg_found$hr_sg, na.rm = TRUE)),
+      sprintf("%.2f", min(sg_found$hr_sg, na.rm = TRUE)),
+      sprintf("%.2f", max(sg_found$hr_sg, na.rm = TRUE)),
+      sprintf("%.2f", quantile(sg_found$hr_sg, 0.25, na.rm = TRUE)),
+      sprintf("%.2f", quantile(sg_found$hr_sg, 0.75, na.rm = TRUE))
     )
+
+    metric_vec <- c(metric_vec, hr_metrics)
+    value_vec <- c(value_vec, hr_values)
   }
 
+  # Verify equal lengths (safety check)
+  if (length(metric_vec) != length(value_vec)) {
+    stop(sprintf(
+      "Internal error: Metric has %d elements but Value has %d elements",
+      length(metric_vec), length(value_vec)
+    ))
+  }
+
+  # Create data.frame first, then convert to data.table
+  basic_stats <- data.frame(
+    Metric = metric_vec,
+    Value = value_vec,
+    stringsAsFactors = FALSE
+  )
+
   # Convert to data.table
-  basic_stats <- data.table::data.table(basic_stats_list)
+  basic_stats <- data.table::as.data.table(basic_stats)
 
   # =========================================================================
   # SECTION 3: FACTOR FREQUENCY TABLE - FIXED
@@ -155,13 +175,13 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
         # Create frequency table
         factor_vals <- sg_found[[col]][valid_rows]
         freq_table <- table(factor_vals)
-
+        n_position <- sum(valid_rows)
         # Convert to data.table
         freq <- data.table::data.table(
           Factor = names(freq_table),
           N = as.integer(freq_table),
           Position = paste0("M.", i),
-          Percent = 100 * as.integer(freq_table) / n_found
+          Percent = 100 * as.integer(freq_table) / n_position
         )
 
         # Sort by N
@@ -242,8 +262,8 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
     # Create bins
     sg_found$Pcons_bin <- cut(
       sg_found$Pcons,
-      breaks = c(0, 0.5, 0.7, 0.8, 0.9, 0.95, 1.0),
-      labels = c("<0.5", "0.5-0.7", "0.7-0.8", "0.8-0.9", "0.9-0.95", "≥0.95"),
+      breaks = c(0, 0.5, 0.7, 0.8, 0.89,  0.95, 1.0),
+      labels = c("<0.5", "0.5-0.7", "0.7-0.8", "0.8-0.89", "0.89-0.95", "≥0.95"),
       include.lowest = TRUE
     )
 
@@ -288,7 +308,7 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
   }
 
   # =========================================================================
-  # SECTION 7: FACTOR PRESENCE - FIXED
+  # SECTION 7: FACTOR PRESENCE
   # =========================================================================
 
   factor_presence_results <- NULL
@@ -296,7 +316,7 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
   if (n_found > 0) {
     # Try to summarize factor presence
     tryCatch({
-      factor_presence_results <- summarize_factor_presence_robust(sg_found, maxk = maxk, threshold = 20)
+      factor_presence_results <- summarize_factor_presence_robust(sg_found, maxk = maxk, threshold = 10, as_gt = FALSE)
     }, error = function(e) {
       warning("Could not summarize factor presence: ", e$message)
       NULL

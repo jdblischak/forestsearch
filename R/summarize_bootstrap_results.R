@@ -461,12 +461,43 @@ summarize_bootstrap_results <- function(sgharm, boot_results, create_plots = FAL
       # This assumes the subgroup definition is available
     }
 
-    subgroup_summary <- summarize_bootstrap_subgroups(
-      results = results,
-      nb_boots = nb_boots,
-      original_sg = sgharm,
-      maxk = 2  # Or extract from boot_results if stored
-    )
+
+    # Validate sgharm before use
+    if (!is.null(sgharm)) {
+      if (is.character(sgharm) || is.factor(sgharm)) {
+        original_sg <- sgharm
+      } else if (is.list(sgharm) && !is.null(sgharm$sgharm)) {
+        original_sg <- sgharm$sgharm
+      } else {
+        warning("sgharm format not recognized. Original agreement will not be calculated.")
+        original_sg <- NULL
+      }
+    } else {
+      original_sg <- NULL
+    }
+
+    # Extract maxk from boot_results attributes or arguments
+    maxk <- attr(boot_results, "maxk")
+    if (is.null(maxk)) {
+      # Fallback: detect from column names
+      maxk <- sum(c("M.1", "M.2", "M.3") %in% names(results))
+      if (maxk == 0) maxk <- 2  # Conservative default
+    }
+
+
+    subgroup_summary <- tryCatch({
+      summarize_bootstrap_subgroups(
+        results = results,
+        nb_boots = nb_boots,
+        original_sg = original_sg,
+        maxk = maxk
+      )
+    }, error = function(e) {
+      warning("Failed to create subgroup summary: ", e$message)
+      NULL
+    })
+
+
   }
 
 

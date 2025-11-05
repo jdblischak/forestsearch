@@ -7,7 +7,7 @@
 summarize_factor_presence_robust(
   results,
   maxk = 2,
-  threshold = 20,
+  threshold = 10,
   as_gt = TRUE
 )
 }
