@@ -568,7 +568,7 @@ if (save_results) {
 
 load("~/Documents/GitHub/forestsearch/vignettes/results/gbsg_results_B=1000.RData")
 
-summaries <- summarize_bootstrap_results(
+summaries <- summarize_bootstrap_results_themed(
       sgharm = fs$sg.harm,
       boot_results = fs_bc,
       create_plots = TRUE,
