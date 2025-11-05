@@ -1,14 +1,7 @@
-# Based on sim_functions_v4 from "Study F/working"
+# Remove stratification
 
-get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,0.75)),details=FALSE,strata_tte=NULL,masked=TRUE){
+get_dgm_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,0.75)),details=FALSE){
 
-  if(masked){
-    df <- subset(df,mflag==1)
-    df <- within(df,{
-      event <- event-en
-      tte <- tte-yn
-    })
-  }
   # Spline at 1 knot
   dfa2<-within(df,{
     z.treat <- z*treat
@@ -16,16 +9,7 @@ get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,
     z.k.treat <- z.k*treat
   })
 
-  # strata
-  if(!is.null(strata_tte)){
-    aa <- paste("strata(",eval(strata_tte),")")
-    bb <- c("Surv(tte,event) ~ treat + z + z.treat + z.k + z.k.treat +")
-    weib.formula <- as.formula(paste(bb,aa))
-  }
-
-  if(is.null(strata_tte)){
     weib.formula <- as.formula("Surv(tte,event) ~ treat + z + z.treat + z.k + z.k.treat")
-  }
 
   fit.weibk <- survreg(weib.formula, dist='weibull', data=dfa2)
 
@@ -43,28 +27,6 @@ get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,
   gamma <- c(coef(fit.weibk)[c(-1)])
   tau <- c(fit.weibk$scale)
 
-  # Return as strataO --> outcome stratification
-  # As opposed to randomization stratification which
-  # will be included in sim() function below
-
-  if(!is.null(strata_tte)){
-    # Outcome stratificaton
-    strataO <- dfa2[,c(strata_tte)]
-    # Extract scales corresponding to strataO
-    aa <- names(tau)
-    tau_ids <- unlist(lapply(strataO,function(x){grep(x,aa)}))
-    tau.strataO <- tau[tau_ids]
-    if(length(tau.strataO)!=nrow(dfa2)) stop("strata_tte not uniquely identified via matching")
-    tau.approx <- median(tau.strataO)
-    dfa2$tau.strataO <- tau.strataO
-  }
-
-  if(is.null(strata_tte)){
-    strataO <- "All"
-    tau.strataO <- tau
-    tau.approx <- tau
-    dfa2$tau.strataO <- tau
-    }
 
   # Re-define to satisfy log(hrs) pattern
 
@@ -74,7 +36,7 @@ get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,
 
   # At the change-point
   # Weibull hazard-ratio parameters
-  b0 <- c(-gamma)/tau.approx
+  b0 <- c(-gamma)/tau
   # solve for b1,b3,b5
   b0[1] <- loghr.0
   b0[3] <- (loghr.knot-b0[1])/knot
@@ -99,7 +61,7 @@ get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,
   abline(h=0,lwd=0.25,col="red",lty=1)
       }
 
-  return(list(df_super=dfp,gamma.true=gamma.true,mu=mu,tau=tau,muC=muC,tauC=tauC,strata_tte=strata_tte,tau.approx=tau.approx))
+  return(list(df_super=dfp,gamma.true=gamma.true,mu=mu,tau=tau,muC=muC,tauC=tauC))
 }
 
 # Include single covariate W (Eg; "ecogbl", "prior_line12")
@@ -109,12 +71,12 @@ get_dgm_stratified_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,
 # Add hrz_crit (=log(1.2)) to set biomarker HR threshold that is "acceptable"
 # For example biomarkers for which the true log(hrs) are < 1.2 allowing for at most 20% increase
 
-draw_sim_stratified <- function(dgm,ss=1,details=FALSE,Ndraw=nrow(dgm$df_super),strata_rand=c("strataNew"),wname=c("ecogbl"),bw=0,checking=FALSE,
+draw_sim_spline <- function(dgm,ss=1,details=FALSE,Ndraw=nrow(dgm$df_super), wname=c("ecogbl"),bw=0,checking=FALSE,
                                 hrz_crit=log(1.2), return_df=TRUE){
 
 df_super <- dgm$df_super
 
-var_names <- c(strata_rand,wname)
+var_names <- c(wname)
 if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname variables not in dgm$df_super")
 
   # Outcomes
@@ -129,8 +91,6 @@ if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname vari
   # Define gamma_w such that on hazard scale: -gamma_w/tau = bw
   gamma_w <- -bw*dgm$tau.approx
 
-  strata_tte <- dgm$strata_tte
-
   set.seed(8316951+ss*1000)
 
   # Sampling from df_super if Ndraw differs from size of df_super
@@ -141,8 +101,6 @@ if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname vari
     df_super <- dfNew[id_sample,]
   }
 
-  # These are outcome taus for each subject
-  tau.strataO <- df_super$tau.strataO
 
   N <- nrow(df_super)
 
@@ -153,14 +111,6 @@ if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname vari
   # Initiate as population with covariates
   # Outcomes and treatment assignment appended below
   dfsim <- df_super
-
-  # Randomization stratification
-  strataR <- df_super[,c(strata_rand)]
-
-  # Outcome stratification
-  if(!is.null(strata_tte)) strataO <- df_super[,c(strata_tte)]
-
-  if(is.null(strata_tte))  strataO <- "All"
 
   # Set treatment to 1
   zmat.1 <- zmat
@@ -212,6 +162,8 @@ if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname vari
   # Potential outcome log(hr) difference
   loghr.po <- phi1-phi0
 
+  strataR <- "All"
+
   # Randomize per strataR
    blocks <- strataR
 
@@ -253,34 +205,6 @@ if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname vari
   dfsim$theta0_w0.po <- theta0.w0
 
   if(details & ss <= 10) cat("% censored =",mean(1-dfsim$event.sim),"\n")
-
-  # If checking compare simulated estimates with super-population
-
-  if(checking){
-    cat("Stratification parm (taus) df_super",c(tau),"\n")
-    # strata
-    aa <- paste("strata(",eval("strata.simO"),")")
-    bb <- c("Surv(y.sim,event.sim) ~ treat.sim + z + z.treat + z.k + z.k.treat + w +")
-    weib.formula <- as.formula(paste(bb,aa))
-    fitit <- survreg(weib.formula, dist='weibull', data=dfsim)
-    fittau <- c(fitit$scale)
-    cat("Stratification parm (taus) simulated=",c(fittau),"\n")
-    # Check loghr.po = (log.Y1-log.Y0)/tau.strata0
-    dcheck <- loghr.po - (log.Y0-log.Y1)/tau.strataO
-    cat("Max |loghr.po - (log.Y0-log.Y1)/tau| = ",c(max(abs(round(dcheck,12)))),"\n")
-    bhat.weib <- -(1)*coef(fitit)[c(-1)]/fittau
-    # Compare to Cox
-    fit.cox <- coxph(weib.formula, data=dfsim)
-    fits <- cbind(bhat.weib,coef(fit.cox))
-
-    rownames(fits) <- c("treat","z","z.treat","z.k","z.k.treat","w")
-    colnames(fits) <- c("Weibull","Cox")
-
-    fits <- data.table::data.table(fits,keep.rownames=TRUE)
-
-    #print(fits)
-
-            }
 
 # Return sorted by biomarker z
 dfs <- data.table::setorder(dfsim,z)

@@ -1081,6 +1081,329 @@ simulate_from_dgm <- function(dgm,
 # Spline models
 
 
+get_dgm_spline <- function(df,knot=5,zeta=10,log.hrs=log(c(0.75,0.75,0.75)),details=FALSE){
+
+  # Spline at 1 knot
+  dfa2<-within(df,{
+    z.treat <- z*treat
+    z.k <- (z-knot)*ifelse(z>knot,1,0)
+    z.k.treat <- z.k*treat
+  })
+
+  weib.formula <- as.formula("Surv(tte,event) ~ treat + z + z.treat + z.k + z.k.treat")
+
+  fit.weibk <- survreg(weib.formula, dist='weibull', data=dfa2)
+
+  # Censoring model independent of covariates
+
+  fitC.weib <- survreg(Surv(tte,1-event) ~ 1, dist='weibull', data=dfa2)
+  tauC <- c(fitC.weib$scale)
+  muC <- c(coef(fitC.weib)[1])
+
+  # Relative log(hr) scale
+  # With stratification the hr's will depend on the stratum (scale)
+  # To simplify we will take median ("tau_approx" below)
+
+  mu <- c(coef(fit.weibk)[1])
+  gamma <- c(coef(fit.weibk)[c(-1)])
+  tau <- c(fit.weibk$scale)
+
+
+  # Re-define to satisfy log(hrs) pattern
+
+  loghr.0 <- log.hrs[1]
+  loghr.knot <- log.hrs[2]
+  loghr.zeta <- log.hrs[3]
+
+  # At the change-point
+  # Weibull hazard-ratio parameters
+  b0 <- c(-gamma)/tau
+  # solve for b1,b3,b5
+  b0[1] <- loghr.0
+  b0[3] <- (loghr.knot-b0[1])/knot
+  b0[5] <- (loghr.zeta-b0[1]-zeta*b0[3])/(zeta-knot)
+
+  # Re-define gamma on AFT (log(T)) parameterization
+
+  gamma.true <- -b0*tau.approx
+
+  # predictions log(hr)
+
+  dfp <- data.table::setorder(dfa2,z)
+
+  if(details){
+    # Plot across range of z
+    zz <- seq(0,max(dfp$z),by=1)
+    # psi(z)
+    loghr.zz <- b0[1]+b0[3]*zz+b0[5]*(zz-knot)*ifelse(zz>knot,1,0)
+    plot(zz,loghr.zz,type="s",lty=1,xlab="z",ylab="psi(z)")
+    abline(h=c(log.hrs))
+    abline(v=c(0,knot,zeta),lwd=0.5,col="blue",lty=2)
+    abline(h=0,lwd=0.25,col="red",lty=1)
+  }
+
+  return(list(df_super=dfp,gamma.true=gamma.true,mu=mu,tau=tau,muC=muC,tauC=tauC))
+}
+
+# Include single covariate W (Eg; "ecogbl", "prior_line12")
+# strata_tte
+# strata_rand
+
+# Add hrz_crit (=log(1.2)) to set biomarker HR threshold that is "acceptable"
+# For example biomarkers for which the true log(hrs) are < 1.2 allowing for at most 20% increase
+
+draw_sim_spline <- function(dgm,ss=1,details=FALSE,Ndraw=nrow(dgm$df_super), wname=c("ecogbl"),bw=0,checking=FALSE,
+                            hrz_crit=log(1.2), return_df=TRUE){
+
+  df_super <- dgm$df_super
+
+  var_names <- c(wname)
+  if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and wname variables not in dgm$df_super")
+
+  # Outcomes
+  # Regression parameters on AFT scale (gamma)
+  gamma.true <- dgm$gamma.true
+  mu <- dgm$mu
+  tau <- dgm$tau
+  # Censoring
+  muC <- dgm$muC
+  tauC <- dgm$tauC
+
+  # Define gamma_w such that on hazard scale: -gamma_w/tau = bw
+  gamma_w <- -bw*dgm$tau.approx
+
+  set.seed(8316951+ss*1000)
+
+  # Sampling from df_super if Ndraw differs from size of df_super
+  # Otherwise simulated dataset dfsim is initiated as df_super
+  if(Ndraw!=nrow(df_super)){
+    dfNew <- data.table::copy(df_super)
+    id_sample <- sample(c(1:nrow(dfNew)),size=Ndraw,replace=TRUE)
+    df_super <- dfNew[id_sample,]
+  }
+
+
+  N <- nrow(df_super)
+
+  # "treat" is a placeholder
+  zmat <- as.matrix(df_super[,c("treat","z","z.treat","z.k","z.k.treat")])
+  w <- df_super[,c(wname)]
+
+  # Initiate as population with covariates
+  # Outcomes and treatment assignment appended below
+  dfsim <- df_super
+
+  # Set treatment to 1
+  zmat.1 <- zmat
+  zmat.1[,"treat"] <- 1.0
+  zmat.1[,"z.treat"] <- zmat.1[,"z"]
+  zmat.1[,"z.k"] <- zmat.1[,"z.k"]
+  zmat.1[,"z.k.treat"] <- zmat.1[,"z.k"]
+
+  # Set treatment to 0
+  zmat.0 <- zmat
+  zmat.0[,"treat"] <- 0.0
+  zmat.0[,"z.treat"] <- 0.0
+  zmat.0[,"z.k"] <- zmat.0[,"z.k"]
+  zmat.0[,"z.k.treat"] <- 0.0
+
+  # error term (log-scale [linear predictor scale])
+  epsilon <- log(rexp(N))
+
+  # linear predictor (setting treat=1)
+  z.1 <- zmat.1[,"z"]
+  # log(Y) AFT parameterization
+  # psi.true are AFT parameters
+  eta1 <- mu + c(zmat.1%*%gamma.true)+w*gamma_w
+  # Weibull log(hazard ratio) setting treat=1
+  # and excluding mu and w*bw (since taking difference below)
+  phi1 <- (-1)*c(zmat.1%*%gamma.true)/tau.strataO
+  log.Y1 <- eta1 + tau.strataO*epsilon
+
+  # Setting treat=0
+  z.0 <- zmat.0[,"z"]
+  eta0 <- mu + c(zmat.0%*%gamma.true)+w*gamma_w
+  log.Y0 <- eta0 + tau.strataO*epsilon
+  phi0 <- (-1)*c(zmat.0%*%gamma.true)/tau.strataO
+
+  # PO hazards excluding baseline
+  # Used for calculating empirical version of CDEs (controlled direct effects)
+  # theta0 = exp(L0'beta)
+  theta0 <- -c(zmat.0%*%gamma.true + w*gamma_w)/tau.strataO
+  # theta1 = exp(L1'beta)
+  theta1 <- -c(zmat.1%*%gamma.true + w*gamma_w)/tau.strataO
+
+  # Set w=1
+  theta0.w1 <- -c(zmat.0%*%gamma.true + 1*gamma_w)/tau.strataO
+  theta1.w1 <- -c(zmat.1%*%gamma.true + 1*gamma_w)/tau.strataO
+  # Set w=0
+  theta0.w0 <- -c(zmat.0%*%gamma.true + 0*gamma_w)/tau.strataO
+  theta1.w0 <- -c(zmat.1%*%gamma.true + 0*gamma_w)/tau.strataO
+
+  # Potential outcome log(hr) difference
+  loghr.po <- phi1-phi0
+
+  strataR <- "All"
+
+  # Randomize per strataR
+  blocks <- strataR
+
+  # Randomize treatment
+  Zr <- block_ra(blocks=blocks)
+
+  log.Yr <- Zr*log.Y1 + (1-Zr)*log.Y0
+
+  Yr <- exp(log.Yr)
+
+  # At this point censoring is completely independent
+  epsilonC <- log(rexp(N))
+  log.YC <- muC + tauC*epsilonC
+
+  log.YrC <- Zr*log.YC+(1-Zr)*log.YC
+
+  YrC <- exp(log.YrC)
+
+  # Observed censored outcomes
+
+  dfsim$event.sim <- ifelse(Yr<=YrC,1,0)
+  dfsim$y.sim <- pmin(Yr,YrC)
+  dfsim$treat.sim <- Zr
+  dfsim$strata.simR <- strataR
+  dfsim$strata.simO <- strataO
+
+  dfsim$w <- w
+
+  dfsim$loghr.po <- loghr.po
+  dfsim$log.Y1 <- log.Y1
+  dfsim$log.Y0 <- log.Y0
+  dfsim$theta1.po <- theta1
+  dfsim$theta0.po <- theta0
+
+  dfsim$theta1_w1.po <- theta1.w1
+  dfsim$theta0_w1.po <- theta0.w1
+
+  dfsim$theta1_w0.po <- theta1.w0
+  dfsim$theta0_w0.po <- theta0.w0
+
+  if(details & ss <= 10) cat("% censored =",mean(1-dfsim$event.sim),"\n")
+
+  # Return sorted by biomarker z
+  dfs <- data.table::setorder(dfsim,z)
+
+  if(!return_df){
+    res <- list()
+    res$loghr.po <- loghr.po
+    res$theta1.po <- theta1
+    res$theta0.po <- theta0
+    ahr_empirical <- with(dfs,exp(mean(loghr.po)))
+    res$AHR <- ahr_empirical
+    # AHR by W (W=0, and W=1)
+    dfs_w1 <- subset(dfs,w==1)
+    ahr_w1 <- with(dfs_w1,exp(mean(loghr.po)))
+    res$AHR_W1 <- ahr_w1
+    dfs_w0 <- subset(dfs,w==0)
+    ahr_w0 <- with(dfs_w0,exp(mean(loghr.po)))
+    res$AHR_W0 <- ahr_w0
+    # CDE versions
+
+    aa <- with(dfs,mean(exp(theta1.po)))
+    bb <- with(dfs,mean(exp(theta0.po)))
+    cde_empirical <- aa/bb
+
+    aa <- with(dfs_w1,mean(exp(theta1_w1.po)))
+    bb <- with(dfs_w1,mean(exp(theta0_w1.po)))
+    cde.w1_empirical <- aa/bb
+    aa <- with(dfs_w0,mean(exp(theta1_w0.po)))
+    bb <- with(dfs_w0,mean(exp(theta0_w0.po)))
+    cde.w0_empirical <- aa/bb
+
+
+    if(details){
+      cat("Overall empirical AHR, CDE=",c(ahr_empirical,cde_empirical),"\n")
+      cat("AHR W=1, W=0",c(ahr_w1,ahr_w0),"\n")
+      cat("CDE W=1, W=0",c(cde.w1_empirical,cde.w0_empirical),"\n")
+    }
+
+    # Three analyses: Standard ITT un-adjusted, Strata by R, Include wname
+    aa <- paste("strata(",eval("strata.simR"),")")
+    bb <- c("Surv(y.sim,event.sim) ~ treat.sim")
+    coxmod1 <- as.formula(bb)
+    bb <- c("Surv(y.sim,event.sim) ~ treat.sim +")
+    coxmod2 <- as.formula(paste(bb,aa))
+    bb <- c("Surv(y.sim,event.sim) ~ treat.sim + w")
+    coxmod3 <- as.formula(bb)
+    bb <- c("Surv(y.sim,event.sim) ~ treat.sim + w +")
+    coxmod4 <- as.formula(paste(bb,aa))
+    fit1 <- summary(coxph(coxmod1, data=dfs))$conf.int
+    fit2 <- summary(coxph(coxmod2, data=dfs))$conf.int
+    fit3 <- summary(coxph(coxmod3, data=dfs))$conf.int
+    if(details) cat("Cox ITT: Un-adjusted, sR, W",c(fit1[1],fit2[1],fit3[1]),"\n")
+    res$ITT_unadj <- fit1[1]
+    res$ITT_sR <- fit2[1]
+    res$ITT_sRw <- fit3[1]
+    fit <- summary(coxph(as.formula(coxmod1), data=dfs_w1))$conf.int
+    if(details) cat("Cox W=1 Sub-population",c(fit[1]),"\n")
+    res$W_1 <- fit[1]
+    fit <- summary(coxph(as.formula(coxmod1), data=dfs_w0))$conf.int
+    if(details) cat("Cox W=0 Sub-population",c(fit[1]),"\n")
+    res$W_0 <- fit[1]
+
+    cut.zero <- with(dfs,min(z[which(loghr.po < hrz_crit)]))
+    # consider "optimal"
+    dfs_opt <- subset(dfs,z>=cut.zero)
+    res$AHR_opt <- with(dfs_opt,exp(mean(loghr.po)))
+
+    # For zpoints calculates AHR for z > zpoints
+    # Eg, for z=2 calculate AHR for population z>2
+    #zpoints <- seq(min(dfs$z),quantile(dfs$z,0.75),by=1)
+    zpoints <- seq(min(dfs$z),max(dfs$z),by=1)
+    HR_zpoints <- rep(NA,length(zpoints))
+    HRminus_zpoints <- rep(NA,length(zpoints))
+
+    HR2_zpoints <- rep(NA,length(zpoints))
+    HRminus2_zpoints <- rep(NA,length(zpoints))
+
+
+    for(zindex in 1:length(zpoints)){
+      zz <- zpoints[zindex]
+      dfz <- subset(dfs,z>=zz)
+      HR_zpoints[zindex] <- with(dfz,exp(mean(loghr.po)))
+      dfz_minus <- subset(dfs,z<=zz)
+      HRminus_zpoints[zindex] <- with(dfz_minus,exp(mean(loghr.po)))
+
+      aa <- with(dfz,mean(exp(theta1.po)))
+      bb <- with(dfz,mean(exp(theta0.po)))
+      HR2_zpoints[zindex] <- aa/bb
+
+      aa <- with(dfz_minus,mean(exp(theta1.po)))
+      bb <- with(dfz_minus,mean(exp(theta0.po)))
+      HRminus2_zpoints[zindex] <- aa/bb
+
+
+
+    }
+    res$zpoints <- zpoints
+
+    res$HR.zpoints <- HR_zpoints
+    res$HRminus.zpoints <- HRminus_zpoints
+
+    res$HR2.zpoints <- HR2_zpoints
+    res$HRminus2.zpoints <- HRminus2_zpoints
+
+
+    if(details){
+      par(mfrow=c(1,2))
+      with(dfs,plot(z,loghr.po,type="s",lty=1,xlab="z",ylab="psi0(z)"))
+      with(dfs,rug(z))
+      abline(h=c(log.hrs))
+      abline(h=c(log(ahr_empirical)),lwd=2,col="orange",lty=1)
+      abline(v=c(cut.zero),lwd=1,col="blue",lty=2)
+      plot(zpoints,HR_zpoints,type="s",xlab="z",ylab="AHR(z+)",lty=1,col="grey",lwd=3)
+    }
+  }
+  if(!return_df) return(res)
+  if(return_df)  return(dfs)
+}
 
 
 
