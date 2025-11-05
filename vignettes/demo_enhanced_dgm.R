@@ -532,3 +532,459 @@ cat("Example Complete\n")
 cat("========================================\n")
 
 
+
+## NEW Refactored
+
+
+
+
+# Load example data
+data(cancer)  # Loads gbsg dataset
+
+# ==============================================================================
+# EXAMPLE 1: THRESHOLD-BASED SUBGROUPS (Original Approach)
+# ==============================================================================
+
+cat("\n=== EXAMPLE 1: Threshold-based Subgroups ===\n\n")
+
+# Method A: Using the convenience wrapper (easiest)
+dgm_threshold_simple <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("er", "pgr"),
+  subgroup_cuts = list(
+    er = list(type = "quantile", value = 0.25),   # er <= 25th percentile
+    pgr = list(type = "function", fun = median)   # pgr <= median
+  ),
+  model = "alt",
+  k_treat = 0.9,
+  k_inter = 1.5,
+  n_super = 5000,
+  verbose = TRUE
+)
+
+print(dgm_threshold_simple)
+
+# Method B: Using explicit SubgroupDefinition object (more flexible)
+subgroup_def_threshold <- ThresholdSubgroup(
+  vars = c("er", "meno"),
+  cuts = list(
+    er = 20,  # Simple fixed cutpoint
+    meno = 0  # meno == 0
+  )
+)
+
+dgm_threshold_explicit <- generate_aft_dgm_refactored(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_def = subgroup_def_threshold,
+  model = "alt",
+  n_super = 5000,
+  verbose = TRUE
+)
+
+# Simulate data from the threshold DGM
+sim_threshold <- simulate_from_dgm_refactored(
+  dgm = dgm_threshold_simple,
+  n = 700,
+  rand_ratio = 1,
+  max_follow = 84,
+  seed = 123
+)
+
+cat("\nSimulated data dimensions:", dim(sim_threshold), "\n")
+cat("Event rate:", mean(sim_threshold$event_sim), "\n")
+
+# ==============================================================================
+# EXAMPLE 2: SPLINE-BASED SUBGROUPS (New Capability)
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 2: Spline-based Subgroups ===\n\n")
+
+# Method A: Using the convenience wrapper with automatic knots
+dgm_spline_auto <- generate_aft_dgm_spline(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  spline_var = "er",           # Use ER as spline variable
+  knots = NULL,                # Automatic knot selection
+  degree = 3,                  # Cubic spline
+  model = "alt",
+  k_treat = 0.9,
+  k_inter = 1.0,
+  n_super = 5000,
+  verbose = TRUE
+)
+
+print(dgm_spline_auto)
+
+# Method B: Using explicit SplineSubgroup with custom knots
+subgroup_def_spline <- SplineSubgroup(
+  var = "er",
+  knots = c(10, 30, 100),     # Custom knot positions
+  degree = 3,
+  boundary_knots = c(0, 300)
+)
+
+dgm_spline_custom <- generate_aft_dgm_refactored(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_def = subgroup_def_spline,
+  model = "alt",
+  n_super = 5000,
+  verbose = TRUE
+)
+
+# Simulate data from the spline DGM
+sim_spline <- simulate_from_dgm(
+  dgm = dgm_spline_auto,
+  n = 700,
+  rand_ratio = 1,
+  max_follow = 84,
+  seed = 456
+)
+
+cat("\nSimulated spline data dimensions:", dim(sim_spline), "\n")
+cat("Event rate:", mean(sim_spline$event_sim), "\n")
+
+# ==============================================================================
+# EXAMPLE 3: ADVANCED THRESHOLD SPECIFICATIONS
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 3: Advanced Threshold Specifications ===\n\n")
+
+# Demonstrate various cutpoint types
+dgm_advanced <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("age", "nodes", "grade"),
+  subgroup_cuts = list(
+    age = list(type = "range", min = 40, max = 60),      # Age between 40-60
+    nodes = list(type = "greater", quantile = 0.75),     # High node count
+    grade = list(type = "multiple", values = c(2, 3))    # Grade 2 or 3
+  ),
+  model = "alt",
+  k_inter = 2.0,  # Strong interaction
+  verbose = TRUE
+)
+
+sim_advanced <- simulate_from_dgm(dgm_advanced, n = 1000, seed = 789)
+
+# ==============================================================================
+# EXAMPLE 4: NULL MODEL (No Subgroup Effects)
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 4: Null Model (No Subgroup Effects) ===\n\n")
+
+dgm_null <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = NULL,  # No subgroups
+  model = "null",        # Null model
+  k_treat = 0.85,
+  verbose = TRUE
+)
+
+sim_null <- simulate_from_dgm(dgm_null, n = 700, seed = 999)
+
+# ==============================================================================
+# EXAMPLE 5: COMPARING THRESHOLD VS SPLINE MODELS
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 5: Comparing Threshold vs Spline ===\n\n")
+
+# Threshold model: ER <= 25th percentile
+dgm_er_threshold <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(er = list(type = "quantile", value = 0.25)),
+  model = "alt",
+  k_inter = 1.5,
+  seed = 111,
+  verbose = FALSE
+)
+
+# Spline model: Smooth treatment effect across ER
+dgm_er_spline <- generate_aft_dgm_spline(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  spline_var = "er",
+  degree = 3,
+  model = "alt",
+  k_inter = 1.5,
+  seed = 111,
+  verbose = FALSE
+)
+
+cat("Threshold model hazard ratios:\n")
+print(dgm_er_threshold$hazard_ratios)
+
+cat("\nSpline model hazard ratios:\n")
+print(dgm_er_spline$hazard_ratios)
+
+# Simulate from both
+sim_threshold_er <- simulate_from_dgm(dgm_er_threshold, n = 1000, seed = 222)
+sim_spline_er <- simulate_from_dgm(dgm_er_spline, n = 1000, seed = 222)
+
+# Compare event rates
+cat("\nThreshold model event rate:", mean(sim_threshold_er$event_sim), "\n")
+cat("Spline model event rate:", mean(sim_spline_er$event_sim), "\n")
+
+# ==============================================================================
+# EXAMPLE 6: CUSTOM CUTPOINT FUNCTION
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 6: Custom Cutpoint Function ===\n\n")
+
+# Define a custom function for complex subgroup definition
+# Example: Patients with both low ER OR high PGR
+dgm_custom <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(
+    er = list(
+      type = "custom",
+      fun = function(x) {
+        # Complex condition: lowest 30% OR highest 10%
+        x <= quantile(x, 0.30) | x >= quantile(x, 0.90)
+      }
+    )
+  ),
+  model = "alt",
+  verbose = TRUE
+)
+
+# ==============================================================================
+# EXAMPLE 7: FLEXIBLE CENSORING
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 7: Different Censoring Mechanisms ===\n\n")
+
+# Weibull censoring (default - fitted from data)
+dgm_weibull_cens <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(er = 20),
+  cens_type = "weibull",
+  model = "alt",
+  verbose = FALSE
+)
+
+# Uniform censoring
+dgm_uniform_cens <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(er = 20),
+  cens_type = "uniform",
+  cens_params = list(min = 12, max = 100),
+  model = "alt",
+  verbose = FALSE
+)
+
+# Simulate with different censoring adjustments
+sim_light_cens <- simulate_from_dgm(dgm_weibull_cens, n = 700,
+                                    cens_adjust = -0.5, seed = 333)
+sim_heavy_cens <- simulate_from_dgm(dgm_weibull_cens, n = 700,
+                                    cens_adjust = 0.5, seed = 333)
+
+cat("Light censoring event rate:", mean(sim_light_cens$event_sim), "\n")
+cat("Heavy censoring event rate:", mean(sim_heavy_cens$event_sim), "\n")
+
+# ==============================================================================
+# EXAMPLE 8: WORKING WITH CUSTOM DATA
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 8: Custom Dataset ===\n\n")
+
+# Create synthetic custom dataset
+set.seed(42)
+custom_data <- data.frame(
+  patient_id = 1:500,
+  time = rexp(500, rate = 0.01),
+  status = rbinom(500, 1, 0.7),
+  age = rnorm(500, 50, 10),
+  biomarker = rgamma(500, 2, 1),
+  stage = sample(1:4, 500, replace = TRUE),
+  sex = sample(c("M", "F"), 500, replace = TRUE),
+  treatment = rbinom(500, 1, 0.5)
+)
+
+# Generate DGM with spline on biomarker
+dgm_custom <- generate_aft_dgm_spline(
+  data = custom_data,
+  continuous_vars = c("age", "biomarker"),
+  factor_vars = c("stage", "sex"),
+  outcome_var = "time",
+  event_var = "status",
+  treatment_var = "treatment",
+  spline_var = "biomarker",
+  degree = 3,
+  model = "alt",
+  n_super = 2000,
+  verbose = TRUE
+)
+
+sim_custom <- simulate_from_dgm(dgm_custom, n = 800, seed = 444)
+
+# ==============================================================================
+# EXAMPLE 9: EFFECT MODIFICATION
+# ==============================================================================
+
+cat("\n\n=== EXAMPLE 9: Effect Modification ===\n\n")
+
+# Different treatment effect strengths
+dgm_weak_effect <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(er = 20),
+  model = "alt",
+  k_treat = 0.5,   # Weak main effect
+  k_inter = 3.0,   # Strong interaction
+  verbose = FALSE
+)
+
+dgm_strong_effect <- generate_aft_dgm_threshold(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "er",
+  subgroup_cuts = list(er = 20),
+  model = "alt",
+  k_treat = 2.0,   # Strong main effect
+  k_inter = 0.5,   # Weak interaction
+  verbose = FALSE
+)
+
+cat("Weak treatment, strong interaction HRs:\n")
+print(dgm_weak_effect$hazard_ratios)
+
+cat("\nStrong treatment, weak interaction HRs:\n")
+print(dgm_strong_effect$hazard_ratios)
+
+# ==============================================================================
+# SUMMARY
+# ==============================================================================
+
+cat("\n\n" ,rep("=", 70), "\n", sep = "")
+cat("SUMMARY OF EXAMPLES\n")
+cat(rep("=", 70), "\n", sep = "")
+cat("\n")
+cat("1. Threshold subgroups      - Traditional binary/categorical subgroups\n")
+cat("2. Spline subgroups         - Smooth treatment effect variation\n")
+cat("3. Advanced thresholds      - Multiple complex cutpoint types\n")
+cat("4. Null model               - No subgroup effects\n")
+cat("5. Model comparison         - Threshold vs Spline\n")
+cat("6. Custom functions         - User-defined subgroup criteria\n")
+cat("7. Censoring mechanisms     - Weibull vs Uniform censoring\n")
+cat("8. Custom data              - Non-GBSG datasets\n")
+cat("9. Effect modification      - Varying treatment and interaction effects\n")
+cat("\n")
+cat("Key Benefits of Refactored Code:\n")
+cat("  ✓ Modular design with clear separation of concerns\n")
+cat("  ✓ Support for both threshold and spline subgroups\n")
+cat("  ✓ Flexible cutpoint specifications\n")
+cat("  ✓ Improved code reusability and maintainability\n")
+cat("  ✓ Backward compatible with original functions\n")
+cat("  ✓ Extensive documentation and examples\n")
+cat("\n")
+
+# ==============================================================================
+# PERFORMANCE COMPARISON (Optional)
+# ==============================================================================
+
+if (FALSE) {  # Set to TRUE to run benchmarking
+
+  cat("\n\n=== PERFORMANCE COMPARISON ===\n\n")
+
+  library(microbenchmark)
+
+  mb_result <- microbenchmark(
+    threshold = generate_aft_dgm_threshold(
+      data = gbsg,
+      continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+      factor_vars = c("meno", "grade"),
+      outcome_var = "rfstime",
+      event_var = "status",
+      treatment_var = "hormon",
+      subgroup_vars = "er",
+      subgroup_cuts = list(er = 20),
+      model = "alt",
+      verbose = FALSE
+    ),
+
+    spline = generate_aft_dgm_spline(
+      data = gbsg,
+      continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+      factor_vars = c("meno", "grade"),
+      outcome_var = "rfstime",
+      event_var = "status",
+      treatment_var = "hormon",
+      spline_var = "er",
+      model = "alt",
+      verbose = FALSE
+    ),
+
+    times = 10
+  )
+
+  print(mb_result)
+}
+
+
+
+

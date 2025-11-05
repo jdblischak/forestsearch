@@ -279,6 +279,7 @@ ggplot(sens_long, aes(x = k_inter, y = HR, color = Group)) +
 ## Null Scenario (No Interaction)
 
 ```{r}
+
 # Generate DGM with no interaction
 dgm_null <- generate_aft_dgm_flex(
   data = df_gbsg,
