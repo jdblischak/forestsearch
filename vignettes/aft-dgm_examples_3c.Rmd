@@ -343,6 +343,38 @@ title(main = "Null Scenario: No Treatment-Subgroup Interaction")
 ## Alternative Scenario (With Interaction)
 
 ```{r}
+
+
+# Example: Spline treatment effect on ER with subgroup interaction on meno
+dgm_spline <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr","er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = "meno",  # Subgroup on meno
+  subgroup_cuts = list(meno = 0),
+  model = "alt",
+  spline_spec = list(
+    var = "z_er",  # Use original variable name (or "z_er" if transformed)
+    knot = 20,
+    zeta = 50,
+    log_hrs = log(c(1, 1, 1))  # HR varies with ER
+  ),
+  k_inter = 0.0,  # Amplify meno subgroup effect
+  verbose = TRUE
+)
+
+# Plot the spline effect
+plot_spline_treatment_effect(dgm_spline)
+
+dgm_spline$model_params$b0
+
+dgm_spline$model_params$censoring$gamma 
+
+
+
 # Generate DGM with calibrated interaction
 dgm_alt <- generate_aft_dgm_flex(
   data = df_gbsg,
