@@ -53,6 +53,7 @@
 #'   n = 150,
 #'   seed = 456
 #' )
+#' @export
 
 generate_bootstrap_synthetic <- function(data,
                                          continuous_vars,
@@ -361,6 +362,8 @@ detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = 
 #' @param noise_level Noise level for perturbation
 #'
 #' @return Synthetic GBSG dataset
+#' @export
+
 generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0.1) {
   library(survival)
   data(cancer)
