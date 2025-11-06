@@ -276,8 +276,8 @@ generate_aft_dgm_flex <- function(data,
   # Step 5: Generate Super Population
   # ============================================================================
   df_super <- generate_super_population(df_work, n_super, draw_treatment,
-                                        gamma, b0, mu, tau, verbose)
-
+                                        gamma, b0, mu, tau, verbose,
+                                        spline_info)  # PASS spline_info
   # ============================================================================
   # Step 6: Calculate Hazard Ratios
   # ============================================================================

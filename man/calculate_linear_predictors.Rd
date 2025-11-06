@@ -5,9 +5,21 @@
 \alias{calculate_linear_predictors}
 \title{Calculate Linear Predictors for Potential Outcomes}
 \usage{
-calculate_linear_predictors(df_super, covariate_cols, gamma, b0)
+calculate_linear_predictors(
+  df_super,
+  covariate_cols,
+  gamma,
+  b0,
+  spline_info = NULL
+)
 
-calculate_linear_predictors(df_super, covariate_cols, gamma, b0)
+calculate_linear_predictors(
+  df_super,
+  covariate_cols,
+  gamma,
+  b0,
+  spline_info = NULL
+)
 }
 \description{
 Calculate Linear Predictors for Potential Outcomes

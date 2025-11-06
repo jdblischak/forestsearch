@@ -149,6 +149,9 @@ cox_cs_fit <- function(df,
   # Extract Variables
   # ==========================================================================
 
+  # Sort by biomarker
+  df <- df[order(df[[z_name]]),]
+
   Y <- df[[tte_name]]
   E <- df[[event_name]]
   Treat <- df[[treat_name]]
@@ -360,7 +363,7 @@ cox_cs_fit <- function(df,
       ylimit = NULL,
       y_pad_zero = 0.01,
       y_delta = 0.25,
-      cex_legend = 1.0,
+      cex_legend = 0.9,
       cex_count = 0.7,
       show_cox_primary = TRUE,
       show_null = TRUE,
@@ -418,7 +421,7 @@ cox_cs_fit <- function(df,
 
     # Add true values if provided
     if (!is.null(beta_true)) {
-      lines(z, beta_true, type = "l", lty = 1, col = "orange", lwd = 2)
+      lines(z, beta_true, type = "l", lty = 1, col = "grey", lwd = 3)
     }
 
     # Add reference lines
@@ -430,9 +433,9 @@ cox_cs_fit <- function(df,
       abline(h = loghr_primary, col = "blue", lty = 2, lwd = 2)
     }
 
-    if (plot_params$show_target) {
-      abline(h = plot_params$target_loghr, col = "red", lty = 1, lwd = 1)
-    }
+    # if (plot_params$show_target) {
+    #   abline(h = plot_params$target_loghr, col = "red", lty = 1, lwd = 1)
+    # }
 
     # Add axes
     axis(2, at = y_ticks, las = 1)
@@ -451,25 +454,25 @@ cox_cs_fit <- function(df,
 
     # Add legends
     ci_level <- paste0(round((1 - alpha) * 100), "%")
-    legend("top",
-           legend = c("log(HR)", paste0(ci_level, " CI")),
-           lty = c(1, 2),
-           lwd = c(3, 1),
-           col = c("black", "black"),
+    legend("topleft", horiz = TRUE,
+           legend = c("log(HR)", paste0(ci_level, " CI"),"True (causal)"),
+           lty = c(1, 2, 1),
+           lwd = c(3, 1, 3),
+           col = c("black", "black","grey"),
            bty = "n",
-           cex = plot_params$cex_legend)
+          cex = plot_params$cex_legend)
 
     legend_items <- character()
     legend_lty <- numeric()
     legend_lwd <- numeric()
     legend_col <- character()
 
-    if (plot_params$show_target) {
-      legend_items <- c(legend_items, "log(0.80)")
-      legend_lty <- c(legend_lty, 1)
-      legend_lwd <- c(legend_lwd, 1)
-      legend_col <- c(legend_col, "red")
-    }
+    # if (plot_params$show_target) {
+    #   legend_items <- c(legend_items, "log(0.80)")
+    #   legend_lty <- c(legend_lty, 1)
+    #   legend_lwd <- c(legend_lwd, 1)
+    #   legend_col <- c(legend_col, "red")
+    # }
 
     if (plot_params$show_cox_primary) {
       legend_items <- c(legend_items, "Cox primary")

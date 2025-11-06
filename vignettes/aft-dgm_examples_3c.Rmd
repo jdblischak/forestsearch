@@ -385,7 +385,7 @@ dgm_spline <- generate_aft_dgm_flex(
     var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
     knot = log(10),
     zeta = log(20),
-    log_hrs = log(c(0.9, 0.7, 0.6))  # HR varies with ER
+    log_hrs = log(c(1.2, 0.9, 0.6))  # HR varies with ER
   ),
   k_inter = 0.0,  # Amplify meno subgroup effect
   verbose = TRUE
@@ -415,7 +415,7 @@ draw_spline <- simulate_from_dgm(
 result <- cox_cs_fit(
   df = draw_spline, tte_name = "y_sim", event_name ="event_sim", treat_name = "treat_sim",
   truebeta_name = "loghr_po",
-  z_name = "z_erlog",
+  z_name = "z_erlog", z_by = 0.25, z_window = 0.125,
   alpha = 0.20,
   plot_params = list(
     xlab = "Biomarker Level",
@@ -423,6 +423,8 @@ result <- cox_cs_fit(
   )
 )
 
+# dfp <- data.table::setorder(draw_spline,z_erlog)
+# with(dfp, plot(z_erlog, loghr_po, type="l", lty=1))
 
 
 

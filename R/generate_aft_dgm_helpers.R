@@ -432,7 +432,8 @@ format_continuous_definition <- function(var_data, cut_spec, var_name) {
 #' Generate Super Population and Calculate Linear Predictors
 #' @keywords internal
 generate_super_population <- function(df_work, n_super, draw_treatment,
-                                      gamma, b0, mu, tau, verbose) {
+                                      gamma, b0, mu, tau, verbose,
+                                      spline_info = NULL) {  # ADD spline_info
 
   # Sample with replacement to create super population
   idx_sample <- sample(1:nrow(df_work), size = n_super, replace = TRUE)
@@ -450,6 +451,19 @@ generate_super_population <- function(df_work, n_super, draw_treatment,
     n_control <- n_super - n_treat
     df_super$treat[1:n_treat] <- 1
     df_super$treat[(n_treat + 1):n_super] <- 0
+
+    # If spline is present, need to recalculate spline interaction terms
+    if (!is.null(spline_info)) {
+      spline_var <- spline_info$var
+      knot <- spline_info$knot
+
+      # Recreate spline terms with new treatment assignment
+      df_super[[paste0(spline_var, "_treat")]] <-
+        df_super[[spline_var]] * df_super$treat
+
+      df_super[[paste0(spline_var, "_k_treat")]] <-
+        df_super[[paste0(spline_var, "_k")]] * df_super$treat
+    }
   }
 
   # Reset IDs
@@ -457,55 +471,174 @@ generate_super_population <- function(df_work, n_super, draw_treatment,
 
   # Calculate linear predictors for potential outcomes
   covariate_cols <- grep("^z_", names(df_super), value = TRUE)
-  df_super <- calculate_linear_predictors(df_super, covariate_cols, gamma, b0)
+  df_super <- calculate_linear_predictors(df_super, covariate_cols, gamma, b0,
+                                          spline_info)  # PASS spline_info
 
   return(df_super)
 }
 
 
+
 #' Calculate Linear Predictors for Potential Outcomes
 #' @keywords internal
-calculate_linear_predictors <- function(df_super, covariate_cols, gamma, b0) {
+calculate_linear_predictors <- function(df_super, covariate_cols, gamma, b0,
+                                        spline_info = NULL) {
 
-  X_super <- as.matrix(df_super[, c("treat", covariate_cols)])
+  # Separate spline interaction terms from regular covariates
+  if (!is.null(spline_info)) {
+    spline_var <- spline_info$var
+    spline_interaction_terms <- c(
+      paste0(spline_var, "_treat"),
+      paste0(spline_var, "_k"),
+      paste0(spline_var, "_k_treat")
+    )
+    # Base covariates (excluding spline interactions)
+    base_covariate_cols <- setdiff(covariate_cols, spline_interaction_terms)
+  } else {
+    base_covariate_cols <- covariate_cols
+    spline_interaction_terms <- character(0)
+  }
 
-  # Check if interaction term exists
+  # Check if subgroup interaction term exists
   has_interaction <- "treat_harm" %in% names(gamma)
 
   if (has_interaction) {
     # Recalculate interaction for super population
     df_super$treat_harm <- df_super$treat * df_super$flag_harm
+  }
+
+  # ==========================================================================
+  # Build Design Matrices for Observed Data
+  # ==========================================================================
+
+  # Start with base covariates and treatment
+  X_super <- as.matrix(df_super[, c("treat", base_covariate_cols)])
+
+  # Add spline terms if present (these were created in df_super already)
+  if (!is.null(spline_info)) {
+    for (spline_term in spline_interaction_terms) {
+      if (spline_term %in% names(df_super)) {
+        X_super <- cbind(X_super, df_super[[spline_term]])
+        colnames(X_super)[ncol(X_super)] <- spline_term
+      }
+    }
+  }
+
+  # Add subgroup interaction if present
+  if (has_interaction) {
     X_super <- cbind(X_super, treat_harm = df_super$treat_harm)
   }
 
-  # Potential outcomes under treatment
-  X_treat <- X_super
-  X_treat[, "treat"] <- 1
-  if (has_interaction) {
-    X_treat[, "treat_harm"] <- df_super$flag_harm
+  # ==========================================================================
+  # Build Design Matrices for Potential Outcomes Under Treatment (A=1)
+  # ==========================================================================
+
+  X_treat <- as.matrix(df_super[, c("treat", base_covariate_cols)])
+  X_treat[, "treat"] <- 1  # Set treatment to 1
+
+  # Add spline terms for treatment arm
+  if (!is.null(spline_info)) {
+    spline_var <- spline_info$var
+
+    # For A=1: spline_var_treat = spline_var * 1 = spline_var
+    if (paste0(spline_var, "_treat") %in% names(df_super)) {
+      X_treat <- cbind(X_treat,
+                       df_super[[spline_var]])  # spline_var * treat where treat=1
+      colnames(X_treat)[ncol(X_treat)] <- paste0(spline_var, "_treat")
+    }
+
+    # spline_var_k stays the same (doesn't depend on treatment)
+    if (paste0(spline_var, "_k") %in% names(df_super)) {
+      X_treat <- cbind(X_treat,
+                       df_super[[paste0(spline_var, "_k")]])
+      colnames(X_treat)[ncol(X_treat)] <- paste0(spline_var, "_k")
+    }
+
+    # For A=1: spline_var_k_treat = spline_var_k * 1 = spline_var_k
+    if (paste0(spline_var, "_k_treat") %in% names(df_super)) {
+      X_treat <- cbind(X_treat,
+                       df_super[[paste0(spline_var, "_k")]])  # spline_var_k * treat where treat=1
+      colnames(X_treat)[ncol(X_treat)] <- paste0(spline_var, "_k_treat")
+    }
   }
 
-  # Potential outcomes under control
-  X_control <- X_super
-  X_control[, "treat"] <- 0
+  # Add subgroup interaction for treatment arm
   if (has_interaction) {
-    X_control[, "treat_harm"] <- 0
+    X_treat <- cbind(X_treat, treat_harm = df_super$flag_harm)  # treat=1 * flag_harm
   }
 
-  # Linear predictors per AFT
-  df_super$lin_pred_1 <- X_treat %*% gamma
-  df_super$lin_pred_0 <- X_control %*% gamma
-  df_super$lin_pred_obs <- X_super %*% gamma
+  # ==========================================================================
+  # Build Design Matrices for Potential Outcomes Under Control (A=0)
+  # ==========================================================================
 
-  # PO log-hazards excluding baseline
+  X_control <- as.matrix(df_super[, c("treat", base_covariate_cols)])
+  X_control[, "treat"] <- 0  # Set treatment to 0
+
+  # Add spline terms for control arm
+  if (!is.null(spline_info)) {
+    spline_var <- spline_info$var
+
+    # For A=0: spline_var_treat = spline_var * 0 = 0
+    if (paste0(spline_var, "_treat") %in% names(df_super)) {
+      X_control <- cbind(X_control,
+                         rep(0, nrow(df_super)))  # spline_var * treat where treat=0
+      colnames(X_control)[ncol(X_control)] <- paste0(spline_var, "_treat")
+    }
+
+    # spline_var_k stays the same (doesn't depend on treatment)
+    if (paste0(spline_var, "_k") %in% names(df_super)) {
+      X_control <- cbind(X_control,
+                         df_super[[paste0(spline_var, "_k")]])
+      colnames(X_control)[ncol(X_control)] <- paste0(spline_var, "_k")
+    }
+
+    # For A=0: spline_var_k_treat = spline_var_k * 0 = 0
+    if (paste0(spline_var, "_k_treat") %in% names(df_super)) {
+      X_control <- cbind(X_control,
+                         rep(0, nrow(df_super)))  # spline_var_k * treat where treat=0
+      colnames(X_control)[ncol(X_control)] <- paste0(spline_var, "_k_treat")
+    }
+  }
+
+  # Add subgroup interaction for control arm
+  if (has_interaction) {
+    X_control <- cbind(X_control, treat_harm = 0)  # treat=0 * flag_harm = 0
+  }
+
+  # ==========================================================================
+  # Verify Column Alignment
+  # ==========================================================================
+
+  # Ensure all matrices have the same columns in the same order
+  expected_cols <- names(gamma)
+
+  if (!all(colnames(X_super) == expected_cols)) {
+    stop("Column mismatch in X_super")
+  }
+  if (!all(colnames(X_treat) == expected_cols)) {
+    stop("Column mismatch in X_treat")
+  }
+  if (!all(colnames(X_control) == expected_cols)) {
+    stop("Column mismatch in X_control")
+  }
+
+  # ==========================================================================
+  # Calculate Linear Predictors
+  # ==========================================================================
+
+  # Linear predictors per AFT (log-time scale)
+  df_super$lin_pred_1 <- as.vector(X_treat %*% gamma)
+  df_super$lin_pred_0 <- as.vector(X_control %*% gamma)
+  df_super$lin_pred_obs <- as.vector(X_super %*% gamma)
+
+  # PO log-hazards (excluding baseline hazard)
   # Used for calculating empirical version of CDEs (controlled direct effects)
-  df_super$theta_0 <- X_control %*% b0
-  df_super$theta_1 <- X_treat %*% b0
-  df_super$loghr_po <- with(df_super, theta_1 - theta_0)
+  df_super$theta_0 <- as.vector(X_control %*% b0)
+  df_super$theta_1 <- as.vector(X_treat %*% b0)
+  df_super$loghr_po <- df_super$theta_1 - df_super$theta_0
 
   return(df_super)
 }
-
 
 #' Calculate Hazard Ratios from Potential Outcomes
 #' @keywords internal
