@@ -345,26 +345,51 @@ title(main = "Null Scenario: No Treatment-Subgroup Interaction")
 ```{r}
 
 
+df_gbsg$erlog <- log(df_gbsg$er+1)
+
 # Example: Spline treatment effect on ER with subgroup interaction on meno
+# dgm_spline <- generate_aft_dgm_flex(
+#   data = df_gbsg,
+#   continuous_vars = c("age", "size", "pgr","erlog"),
+#   factor_vars = c("meno", "grade"),
+#   outcome_var = "tte",
+#   event_var = "status",
+#   treatment_var = "hormon",
+#   subgroup_vars = "meno",  # Subgroup on meno
+#   subgroup_cuts = list(meno = 0),
+#   model = "alt",
+#   spline_spec = list(
+#     var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
+#     knot = log(10),
+#     zeta = log(20),
+#     log_hrs = log(c(0.9, 0.7, 0.6))  # HR varies with ER
+#   ),
+#   k_inter = 0.0,  # Amplify meno subgroup effect
+#   verbose = TRUE
+# )
+
+
 dgm_spline <- generate_aft_dgm_flex(
-  data = gbsg,
-  continuous_vars = c("age", "size", "nodes", "pgr","er"),
+  data = df_gbsg,
+  continuous_vars = c("age", "size", "pgr","erlog"),
   factor_vars = c("meno", "grade"),
-  outcome_var = "rfstime",
+  set_beta_spec = list(set_var = c("z_meno"), beta_var = -log(4)),
+  outcome_var = "tte",
   event_var = "status",
   treatment_var = "hormon",
-  subgroup_vars = "meno",  # Subgroup on meno
-  subgroup_cuts = list(meno = 0),
+  subgroup_vars = NULL, 
+  subgroup_cuts = NULL,
   model = "alt",
   spline_spec = list(
-    var = "z_er",  # Use original variable name (or "z_er" if transformed)
-    knot = 20,
-    zeta = 50,
-    log_hrs = log(c(1, 1, 1))  # HR varies with ER
+    var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
+    knot = log(5),
+    zeta = log(20),
+    log_hrs = log(c(1.5, 0.9, 0.6))  # HR varies with ER
   ),
   k_inter = 0.0,  # Amplify meno subgroup effect
   verbose = TRUE
 )
+
 
 # Plot the spline effect
 plot_spline_treatment_effect(dgm_spline)
@@ -372,6 +397,36 @@ plot_spline_treatment_effect(dgm_spline)
 dgm_spline$model_params$b0
 
 dgm_spline$model_params$censoring$gamma 
+
+names(dgm_spline$df_super)
+
+# Simulate data
+set.seed(123)
+draw_spline <- simulate_from_dgm(
+  dgm = dgm_spline, 
+  n = 700, 
+  rand_ratio = 1, 
+  draw_treatment = TRUE, 
+  max_follow = Inf, 
+  seed = 123
+)
+
+result <- cox_cs_fit(
+  df = draw_spline, tte_name = "y_sim", event_name ="event_sim", treat_name = "treat_sim",
+  truebeta_name = "loghr_po",
+  z_name = "z_erlog", z_by = 0.25, z_window = 0.125,
+  alpha = 0.20,
+  plot_params = list(
+    xlab = "Biomarker Level",
+    main_title = "Treatment Effect Heterogeneity"
+  )
+)
+
+# dfp <- data.table::setorder(draw_spline,z_erlog)
+# with(dfp, plot(z_erlog, loghr_po, type="l", lty=1))
+
+# Specify critical HR threshold
+results <- plot_subgroup_effects(dgm_spline$df_super, z ="z_erlog", hrz_crit = 0)
 
 
 

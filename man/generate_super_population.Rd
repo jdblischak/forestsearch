@@ -13,7 +13,8 @@ generate_super_population(
   b0,
   mu,
   tau,
-  verbose
+  verbose,
+  spline_info = NULL
 )
 
 generate_super_population(
@@ -24,7 +25,8 @@ generate_super_population(
   b0,
   mu,
   tau,
-  verbose
+  verbose,
+  spline_info = NULL
 )
 }
 \description{

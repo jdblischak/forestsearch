@@ -2,7 +2,7 @@
 #' Fit AFT Model with Optional Spline Treatment Effect
 #' @keywords internal
 fit_aft_model <- function(df_work, interaction_term, k_treat, k_inter,
-                          verbose, spline_spec = NULL) {
+                          verbose, spline_spec = NULL, set_var = NULL, beta_var = NULL) {
 
   # Prepare model matrix
   covariate_cols <- grep("^z_", names(df_work), value = TRUE)
@@ -17,11 +17,11 @@ fit_aft_model <- function(df_work, interaction_term, k_treat, k_inter,
   if (!is.null(spline_spec)) {
     # Use spline-based treatment effect
     result <- fit_aft_model_spline(df_work, covariate_cols, interaction_term,
-                                   k_treat, k_inter, spline_spec, verbose)
+                                   k_treat, k_inter, spline_spec, verbose, set_var, beta_var)
   } else {
     # Use standard (non-spline) model
     result <- fit_aft_model_standard(df_work, covariate_cols, interaction_term,
-                                     k_treat, k_inter, verbose)
+                                     k_treat, k_inter, verbose, set_var, beta_var)
   }
 
   return(result)
@@ -31,7 +31,7 @@ fit_aft_model <- function(df_work, interaction_term, k_treat, k_inter,
 #' Fit Standard AFT Model (Non-Spline)
 #' @keywords internal
 fit_aft_model_standard <- function(df_work, covariate_cols, interaction_term,
-                                   k_treat, k_inter, verbose) {
+                                   k_treat, k_inter, verbose, set_var = NULL, beta_var = NULL) {
 
   # Prepare model matrix
   X <- as.matrix(df_work[, c("treat", covariate_cols)])
@@ -67,6 +67,11 @@ fit_aft_model_standard <- function(df_work, covariate_cols, interaction_term,
     b0["treat_harm"] <- k_inter * b0["treat_harm"]
   }
 
+  if(!is.null(set_var)){
+  b0[set_var] <- beta_var
+  }
+
+
   # Transform back to corresponding revised gamma
   gamma <- -b0 * tau
 
@@ -93,7 +98,7 @@ fit_aft_model_standard <- function(df_work, covariate_cols, interaction_term,
 #' Fit AFT Model with Spline Treatment Effect
 #' @keywords internal
 fit_aft_model_spline <- function(df_work, covariate_cols, interaction_term,
-                                 k_treat, k_inter, spline_spec, verbose) {
+                                 k_treat, k_inter, spline_spec, verbose, set_var = NULL, beta_var = NULL) {
 
   # Validate spline specification
   spline_spec <- validate_spline_spec(spline_spec, df_work)
@@ -145,6 +150,11 @@ fit_aft_model_spline <- function(df_work, covariate_cols, interaction_term,
   if ("treat_harm" %in% names(b0)) {
     b0["treat_harm"] <- k_inter * b0["treat_harm"]
   }
+
+  if(!is.null(set_var)){
+    b0[set_var] <- beta_var
+  }
+
 
   # Convert back to AFT parameterization
   gamma <- -b0 * tau
@@ -346,7 +356,7 @@ plot_spline_treatment_effect <- function(dgm_result, add_points = TRUE) {
                     "Knot & Zeta", "Null effect"),
          lty = c(1, 2, 2, 1),
          lwd = c(2, 1, 1, 0.5),
-         col = c("black", "gray60", "blue", "red"))
+         col = c("black", "gray60", "blue", "red"), bty = "n")
 
   # Add labels for key points
   text(knot, par("usr")[3] + 0.05 * diff(par("usr")[3:4]),

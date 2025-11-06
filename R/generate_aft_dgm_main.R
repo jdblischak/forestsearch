@@ -211,6 +211,7 @@
 generate_aft_dgm_flex <- function(data,
                                   continuous_vars,
                                   factor_vars,
+                                  set_beta_spec = list(set_var = NULL, beta_var = NULL),
                                   outcome_var,
                                   event_var,
                                   treatment_var = NULL,
@@ -257,8 +258,11 @@ generate_aft_dgm_flex <- function(data,
   # ============================================================================
   # Step 4: Fit AFT Model (Weibull) - with optional spline
   # ============================================================================
+  set_var <- set_beta_spec$set_var
+  beta_var <- set_beta_spec$beta_var
+
   aft_params <- fit_aft_model(df_work, interaction_term, k_treat,
-                              k_inter, verbose, spline_spec)
+                              k_inter, verbose, spline_spec, set_var, beta_var)
   mu <- aft_params$mu
   tau <- aft_params$tau
   gamma <- aft_params$gamma
@@ -274,8 +278,8 @@ generate_aft_dgm_flex <- function(data,
   # Step 5: Generate Super Population
   # ============================================================================
   df_super <- generate_super_population(df_work, n_super, draw_treatment,
-                                        gamma, b0, mu, tau, verbose)
-
+                                        gamma, b0, mu, tau, verbose,
+                                        spline_info)  # PASS spline_info
   # ============================================================================
   # Step 6: Calculate Hazard Ratios
   # ============================================================================
@@ -286,7 +290,8 @@ generate_aft_dgm_flex <- function(data,
   # Step 7: Prepare Censoring Parameters
   # ============================================================================
   cens_result <- prepare_censoring_model(df_work, cens_type, cens_params,
-                                         df_super, gamma, b0, spline_info, verbose)  # Pass spline_info
+                                         df_super, gamma, b0, spline_info,
+                                         verbose = FALSE)
   cens_model <- cens_result$cens_model
   df_super <- cens_result$df_super
 

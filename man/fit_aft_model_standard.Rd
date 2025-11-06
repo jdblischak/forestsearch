@@ -10,7 +10,9 @@ fit_aft_model_standard(
   interaction_term,
   k_treat,
   k_inter,
-  verbose
+  verbose,
+  set_var = NULL,
+  beta_var = NULL
 )
 }
 \description{
