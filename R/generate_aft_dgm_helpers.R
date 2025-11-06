@@ -594,7 +594,19 @@ prepare_censoring_model <- function(df_work, cens_type, cens_params,
       paste0(spline_var, "_k"),
       paste0(spline_var, "_k_treat")
     )
+
     covariate_cols <- setdiff(covariate_cols, spline_terms_to_exclude)
+
+
+    # # Exclude spline terms if spline was used
+    # if (!is.null(spline_info)) {
+    #   spline_var <- spline_info$var
+    #   # Match any column that contains the spline variable followed by interaction terms
+    #   spline_pattern <- paste0("^", spline_var, "_(treat|k|k_treat)$")
+    #   spline_cols <- grep(spline_pattern, covariate_cols, value = TRUE)
+    #   covariate_cols <- setdiff(covariate_cols, spline_cols)
+    # }
+
 
     if (verbose) {
       cat("\nExcluded spline interaction terms from censoring model:\n")

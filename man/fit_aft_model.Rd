@@ -10,7 +10,9 @@ fit_aft_model(
   k_treat,
   k_inter,
   verbose,
-  spline_spec = NULL
+  spline_spec = NULL,
+  set_var = NULL,
+  beta_var = NULL
 )
 }
 \description{

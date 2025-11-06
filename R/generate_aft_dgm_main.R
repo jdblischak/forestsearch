@@ -211,6 +211,8 @@
 generate_aft_dgm_flex <- function(data,
                                   continuous_vars,
                                   factor_vars,
+                                  set_var = NULL,
+                                  beta_var = 0,
                                   outcome_var,
                                   event_var,
                                   treatment_var = NULL,
@@ -258,7 +260,7 @@ generate_aft_dgm_flex <- function(data,
   # Step 4: Fit AFT Model (Weibull) - with optional spline
   # ============================================================================
   aft_params <- fit_aft_model(df_work, interaction_term, k_treat,
-                              k_inter, verbose, spline_spec)
+                              k_inter, verbose, spline_spec, set_var, beta_var)
   mu <- aft_params$mu
   tau <- aft_params$tau
   gamma <- aft_params$gamma
@@ -286,7 +288,8 @@ generate_aft_dgm_flex <- function(data,
   # Step 7: Prepare Censoring Parameters
   # ============================================================================
   cens_result <- prepare_censoring_model(df_work, cens_type, cens_params,
-                                         df_super, gamma, b0, spline_info, verbose)  # Pass spline_info
+                                         df_super, gamma, b0, spline_info,
+                                         verbose = FALSE)
   cens_model <- cens_result$cens_model
   df_super <- cens_result$df_super
 

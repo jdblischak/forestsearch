@@ -11,7 +11,9 @@ fit_aft_model_spline(
   k_treat,
   k_inter,
   spline_spec,
-  verbose
+  verbose,
+  set_var = NULL,
+  beta_var = NULL
 )
 }
 \description{
