@@ -576,3 +576,257 @@ summary.cox_cs_fit <- function(object, ...) {
 
   invisible(object)
 }
+
+
+
+#' Plot Subgroup Analysis Results
+#'
+#' Creates diagnostic plots for subgroup treatment effects from df_super object
+#'
+#' @param df_super A data frame containing subgroup analysis results with columns:
+#'   loghr_po (log hazard ratios), and optionally theta_1 and theta_0
+#'   (treatment-specific parameters)
+#' @param z Character string specifying the column name to use as the subgroup
+#'   score (e.g., "z_age", "z_size", "subgroup"). Required.
+#' @param hrz_crit Critical hazard ratio threshold for defining optimal subgroup.
+#'   Default is 1 (HR=1 on log scale is 0).
+#' @param log.hrs Optional vector of reference log hazard ratios to display as
+#'   horizontal lines. Default is NULL.
+#' @param ahr_empirical Optional empirical average hazard ratio to display.
+#'   If NULL, calculated from data. Default is NULL.
+#' @param plot_type Character string specifying plot type: "both" (default),
+#'   "profile", or "ahr".
+#' @param add_rug Logical indicating whether to add rug plot of z values.
+#'   Default is TRUE.
+#' @param zpoints_by Step size for z-axis grid when calculating AHR curves.
+#'   Default is 1.
+#' @param ... Additional graphical parameters passed to plot()
+#'
+#' @return A list containing:
+#'   \item{cut.zero}{The minimum z value where loghr_po < hrz_crit}
+#'   \item{AHR_opt}{Average hazard ratio for optimal subgroup (z >= cut.zero)}
+#'   \item{zpoints}{Grid of z values used for AHR calculations}
+#'   \item{HR.zpoints}{AHR for population with z >= zpoints}
+#'   \item{HRminus.zpoints}{AHR for population with z <= zpoints}
+#'   \item{HR2.zpoints}{Alternative AHR calculation for z >= zpoints}
+#'   \item{HRminus2.zpoints}{Alternative AHR calculation for z <= zpoints}
+#'
+#' @details
+#' The function creates up to two plots:
+#' 1. Treatment effect profile: Shows log hazard ratio as function of z
+#' 2. Average hazard ratio curve: Shows AHR for subgroups z >= threshold
+#'
+#' The "optimal" subgroup is defined as patients with z >= cut.zero, where
+#' cut.zero is the minimum z value with favorable treatment effect (loghr < hrz_crit).
+#'
+#' @examples
+#' \dontrun{
+#' # Using z_age as the subgroup score
+#' results <- plot_subgroup_effects(dgm_spline$df_super, z = "z_age", hrz_crit = 0)
+#'
+#' # Using subgroup identifier
+#' results <- plot_subgroup_effects(dgm_spline$df_super, z = "subgroup", hrz_crit = 0)
+#'
+#' # With reference lines
+#' results <- plot_subgroup_effects(dgm_spline$df_super, z = "z_size",
+#'                                   hrz_crit = 0,
+#'                                   log.hrs = c(-0.5, 0, 0.5))
+#'
+#' # Only AHR plot
+#' results <- plot_subgroup_effects(dgm_spline$df_super, z = "z_pgr",
+#'                                   plot_type = "ahr")
+#' }
+#'
+#' @export
+plot_subgroup_effects <- function(df_super,
+                                  z,
+                                  hrz_crit = 0,
+                                  log.hrs = NULL,
+                                  ahr_empirical = NULL,
+                                  plot_type = c("both", "profile", "ahr"),
+                                  add_rug = TRUE,
+                                  zpoints_by = 1,
+                                  ...) {
+
+  # Input validation
+  if (!is.data.frame(df_super)) {
+    stop("df_super must be a data frame")
+  }
+
+  if (missing(z)) {
+    stop("Argument 'z' is required. Please specify the column name to use as subgroup score.")
+  }
+
+  if (!z %in% names(df_super)) {
+    stop("Column '", z, "' not found in df_super. Available columns: ",
+         paste(names(df_super), collapse = ", "))
+  }
+
+  if (!"loghr_po" %in% names(df_super)) {
+    stop("df_super missing required column: loghr_po")
+  }
+
+  plot_type <- match.arg(plot_type)
+
+  # Sort by biomarker
+  df_super <- df_super[order(df_super[[z]]),]
+
+
+  # Extract the z variable
+  z_values <- df_super[[z]]
+  loghr_values <- df_super$loghr_po
+
+  # Remove NA values
+  valid_idx <- !is.na(z_values) & !is.na(loghr_values)
+  if (sum(valid_idx) == 0) {
+    stop("No valid observations after removing NAs")
+  }
+
+  df_work <- df_super[valid_idx, ]
+  z_values <- df_work[[z]]
+  loghr_values <- df_work$loghr_po
+
+  # Calculate optimal cutpoint
+  valid_indices <- which(loghr_values < hrz_crit)
+  if (length(valid_indices) == 0) {
+    warning("No observations with loghr_po < hrz_crit. Using minimum z value.")
+    cut.zero <- min(z_values)
+  } else {
+    cut.zero <- min(z_values[valid_indices])
+  }
+
+  # Calculate AHR for optimal subgroup
+  dfs_opt <- df_work[z_values >= cut.zero, ]
+  if (nrow(dfs_opt) == 0) {
+    stop("No observations in optimal subgroup (z >= cut.zero)")
+  }
+  AHR_opt <- exp(mean(dfs_opt$loghr_po))
+
+  # Calculate empirical AHR if not provided
+  if (is.null(ahr_empirical)) {
+    ahr_empirical <- exp(mean(df_work$loghr_po))
+  }
+
+  # Generate z-axis grid
+  zpoints <- seq(min(z_values), max(z_values), by = zpoints_by)
+
+  # Initialize result vectors
+  HR_zpoints <- rep(NA, length(zpoints))
+  HRminus_zpoints <- rep(NA, length(zpoints))
+  HR2_zpoints <- rep(NA, length(zpoints))
+  HRminus2_zpoints <- rep(NA, length(zpoints))
+
+  # Check if theta columns exist for alternative calculations
+  has_theta <- all(c("theta_1", "theta_0") %in% names(df_work))
+
+  # Calculate AHR for each threshold
+  for (zindex in seq_along(zpoints)) {
+    zz <- zpoints[zindex]
+
+    # Population with z >= zz
+    dfz <- df_work[z_values >= zz, ]
+    if (nrow(dfz) > 0) {
+      HR_zpoints[zindex] <- exp(mean(dfz$loghr_po))
+
+      if (has_theta) {
+        aa <- mean(exp(dfz$theta_1))
+        bb <- mean(exp(dfz$theta_0))
+        HR2_zpoints[zindex] <- aa / bb
+      }
+    }
+
+    # Population with z <= zz
+    dfz_minus <- df_work[z_values <= zz, ]
+    if (nrow(dfz_minus) > 0) {
+      HRminus_zpoints[zindex] <- exp(mean(dfz_minus$loghr_po))
+
+      if (has_theta) {
+        aa <- mean(exp(dfz_minus$theta_1))
+        bb <- mean(exp(dfz_minus$theta_0))
+        HRminus2_zpoints[zindex] <- aa / bb
+      }
+    }
+  }
+
+  # Set up plotting layout
+  if (plot_type == "both") {
+    par(mfrow = c(1, 2))
+  } else {
+    par(mfrow = c(1, 1))
+  }
+
+  # Plot 1: Treatment effect profile
+  if (plot_type %in% c("both", "profile")) {
+    plot(z_values, loghr_values,
+         type = "s",
+         lty = 1,
+         xlab = paste("Subgroup Score (", z, ")", sep = ""),
+         ylab = expression(paste("Log Hazard Ratio ", psi[0], "(z)")),
+         main = "Treatment Effect Profile",
+         ...)
+
+    if (add_rug) {
+      rug(z_values)
+    }
+
+    # Add reference lines
+    if (!is.null(log.hrs)) {
+      abline(h = log.hrs, col = "gray", lty = 2)
+    }
+
+    abline(h = log(ahr_empirical), lwd = 2, col = "orange", lty = 1)
+    abline(h = hrz_crit, lwd = 2, col = "red", lty = 2)
+    abline(v = cut.zero, lwd = 2, col = "blue", lty = 2)
+
+    legend("topright",
+           legend = c("Empirical AHR", "HR threshold", "Optimal cutpoint"),
+           col = c("orange", "red", "blue"),
+           lty = c(1, 2, 2),
+           lwd = c(2, 2, 2),
+           cex = 0.8)
+  }
+
+  # Plot 2: Average hazard ratio curve
+  if (plot_type %in% c("both", "ahr")) {
+    plot(zpoints, HR_zpoints,
+         type = "s",
+         xlab = paste("Threshold (", z, ")", sep = ""),
+         ylab = "Average Hazard Ratio",
+         main = paste("AHR for Subgroups", z, "≥ Threshold"),
+         lty = 1,
+         col = "darkblue",
+         lwd = 2,
+         ...)
+
+    abline(h = 1, col = "red", lty = 2)
+    abline(h = exp(hrz_crit), col = "red", lty = 2, lwd = 2)
+    abline(v = cut.zero, col = "blue", lty = 2, lwd = 2)
+
+    legend("topright",
+           legend = c("AHR(z+)", "HR = 1", "Optimal cutpoint"),
+           col = c("darkblue", "red", "blue"),
+           lty = c(1, 2, 2),
+           lwd = c(2, 1, 2),
+           cex = 0.8)
+  }
+
+  # Reset plotting parameters
+  par(mfrow = c(1, 1))
+
+  # Return results
+  results <- list(
+    z_variable = z,
+    cut.zero = cut.zero,
+    AHR_opt = AHR_opt,
+    zpoints = zpoints,
+    HR.zpoints = HR_zpoints,
+    HRminus.zpoints = HRminus_zpoints
+  )
+
+  if (has_theta) {
+    results$HR2.zpoints <- HR2_zpoints
+    results$HRminus2.zpoints <- HRminus2_zpoints
+  }
+
+  invisible(results)
+}

@@ -373,8 +373,7 @@ dgm_spline <- generate_aft_dgm_flex(
   data = df_gbsg,
   continuous_vars = c("age", "size", "pgr","erlog"),
   factor_vars = c("meno", "grade"),
-  set_var = c("z_meno"),
-  beta_var = -log(4),
+  set_beta_spec = list(set_var = c("z_meno"), beta_var = -log(4)),
   outcome_var = "tte",
   event_var = "status",
   treatment_var = "hormon",
@@ -383,9 +382,9 @@ dgm_spline <- generate_aft_dgm_flex(
   model = "alt",
   spline_spec = list(
     var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
-    knot = log(10),
+    knot = log(5),
     zeta = log(20),
-    log_hrs = log(c(1.2, 0.9, 0.6))  # HR varies with ER
+    log_hrs = log(c(1.5, 0.9, 0.6))  # HR varies with ER
   ),
   k_inter = 0.0,  # Amplify meno subgroup effect
   verbose = TRUE
@@ -425,6 +424,9 @@ result <- cox_cs_fit(
 
 # dfp <- data.table::setorder(draw_spline,z_erlog)
 # with(dfp, plot(z_erlog, loghr_po, type="l", lty=1))
+
+# Specify critical HR threshold
+results <- plot_subgroup_effects(dgm_spline$df_super, z ="z_erlog", hrz_crit = 0)
 
 
 

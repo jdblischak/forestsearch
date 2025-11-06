@@ -211,8 +211,7 @@
 generate_aft_dgm_flex <- function(data,
                                   continuous_vars,
                                   factor_vars,
-                                  set_var = NULL,
-                                  beta_var = 0,
+                                  set_beta_spec = list(set_var = NULL, beta_var = NULL),
                                   outcome_var,
                                   event_var,
                                   treatment_var = NULL,
@@ -259,6 +258,9 @@ generate_aft_dgm_flex <- function(data,
   # ============================================================================
   # Step 4: Fit AFT Model (Weibull) - with optional spline
   # ============================================================================
+  set_var <- set_beta_spec$set_var
+  beta_var <- set_beta_spec$beta_var
+
   aft_params <- fit_aft_model(df_work, interaction_term, k_treat,
                               k_inter, verbose, spline_spec, set_var, beta_var)
   mu <- aft_params$mu
