@@ -54,7 +54,6 @@
 #'   seed = 456
 #' )
 #' @export
-
 generate_bootstrap_synthetic <- function(data,
                                          continuous_vars,
                                          cat_vars,
@@ -289,6 +288,7 @@ generate_bootstrap_synthetic <- function(data,
 #' names(result$data_subset)  # c("age", "grade", "status", "score")
 #'
 #' @export
+
 detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = NULL) {
 
   # Input validation
