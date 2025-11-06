@@ -760,7 +760,7 @@ plot_subgroup_effects <- function(df_super,
     plot(z_values, loghr_values,
          type = "s",
          lty = 1,
-         xlab = paste("Subgroup Score (", z, ")", sep = ""),
+         xlab = paste("Biomarker (", z, ")", sep = ""),
          ylab = expression(paste("Log Hazard Ratio ", psi[0], "(z)")),
          main = "Treatment Effect Profile",
          ...)
@@ -783,16 +783,16 @@ plot_subgroup_effects <- function(df_super,
            col = c("orange", "red", "blue"),
            lty = c(1, 2, 2),
            lwd = c(2, 2, 2),
-           cex = 0.8)
+           cex = 0.8, bty = "n")
   }
 
   # Plot 2: Average hazard ratio curve
   if (plot_type %in% c("both", "ahr")) {
     plot(zpoints, HR_zpoints,
          type = "s",
-         xlab = paste("Threshold (", z, ")", sep = ""),
+         xlab = paste("BM (", z, ")", sep = ""),
          ylab = "Average Hazard Ratio",
-         main = paste("AHR for Subgroups", z, "≥ Threshold"),
+         main = paste("AHR for BM:", z, "≥ z"),
          lty = 1,
          col = "darkblue",
          lwd = 2,
@@ -807,7 +807,7 @@ plot_subgroup_effects <- function(df_super,
            col = c("darkblue", "red", "blue"),
            lty = c(1, 2, 2),
            lwd = c(2, 1, 2),
-           cex = 0.8)
+           cex = 0.8, bty = "n")
   }
 
   # Reset plotting parameters
@@ -819,13 +819,13 @@ plot_subgroup_effects <- function(df_super,
     cut.zero = cut.zero,
     AHR_opt = AHR_opt,
     zpoints = zpoints,
-    HR.zpoints = HR_zpoints,
-    HRminus.zpoints = HRminus_zpoints
+    AHR_zpos = HR_zpoints,
+    AHR_zneg = HRminus_zpoints
   )
 
   if (has_theta) {
-    results$HR2.zpoints <- HR2_zpoints
-    results$HRminus2.zpoints <- HRminus2_zpoints
+    results$CDE_zpos <- HR2_zpoints
+    results$CDE_zneg <- HRminus2_zpoints
   }
 
   invisible(results)
