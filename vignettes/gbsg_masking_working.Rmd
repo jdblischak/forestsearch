@@ -138,6 +138,27 @@ title(main = "Synthetic GBSG")
 # title(main = "Synthetic GBSG 2")
 
 
+# package/
+# ├── data/           # Processed .rda files (what users access)
+# ├── data-raw/       # Raw data and processing scripts
+# ├── R/              # Package functions
+# ├── man/            # Documentation
+# └── inst/extdata/   # External data files (CSV, etc.)
+
+  
+# In data-raw/prepare_data.R
+library(usethis)
+
+# Load and prepare your data
+gbsg <- read.csv("data-raw/gbsg_raw.csv")
+# ... data cleaning steps ...
+
+# Save to data/ folder
+usethis::use_data(gbsg, overwrite = TRUE)
+
+# For multiple datasets
+usethis::use_data(gbsg, another_dataset, overwrite = TRUE)  
+  
 # Create data-raw directory
 usethis::use_data_raw("gbsg")
 
