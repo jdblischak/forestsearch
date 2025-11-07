@@ -11,6 +11,7 @@ RoxygenNote: 7.3.3
 Imports: 
     data.table,
     doFuture,
+    dplyr,
     foreach,
     future,
     future.apply,

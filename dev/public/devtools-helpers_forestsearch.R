@@ -36,7 +36,7 @@ usethis::use_package("DiagrammeR", type = "Suggests")
 
 usethis::use_package("rlang")
 
-#usethis::use_package("ggplot2")
+usethis::use_package("dplyr")
 
 # Step 5: Generate documentation
 # Also, run this if revising R files such as @importFrom

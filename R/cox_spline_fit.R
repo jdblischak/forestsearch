@@ -102,6 +102,7 @@
 #' @export
 #' @importFrom survival coxph Surv
 #' @importFrom splines ns
+
 cox_cs_fit <- function(df,
                        tte_name = "os_time",
                        event_name = "os_event",
@@ -516,66 +517,6 @@ cox_cs_fit <- function(df,
 }
 
 
-#' Print Method for cox_cs_fit Objects
-#' @export
-print.cox_cs_fit <- function(x, ...) {
-  cat("Cox Model with Cubic Spline Treatment Effect\n")
-  cat("=============================================\n\n")
-
-  cat("Prediction grid:\n")
-  cat("  Number of points:", length(x$z_profile), "\n")
-  cat("  Range:", round(range(x$z_profile), 2), "\n\n")
-
-  cat("Treatment effect summary:\n")
-  cat("  Primary Cox log(HR):", round(x$cox_primary, 3), "\n")
-  cat("  Spline log(HR) range:",
-      round(range(x$loghr_est), 3), "\n")
-  cat("  Confidence level:", paste0(x$ci_level * 100, "%"), "\n\n")
-
-  cat("Model fit:\n")
-  cat("  Number of parameters:", length(coef(x$model_fit)), "\n")
-  cat("  Log-likelihood:", round(x$model_fit$loglik[2], 2), "\n")
-
-  invisible(x)
-}
-
-
-#' Summary Method for cox_cs_fit Objects
-#' @export
-summary.cox_cs_fit <- function(object, ...) {
-  print(object)
-
-  cat("\n=== Treatment Effect at Key Points ===\n")
-
-  # Find key points
-  idx_min <- which.min(object$loghr_est)
-  idx_max <- which.max(object$loghr_est)
-  idx_median <- which.min(abs(object$z_profile -
-                                median(object$z_profile)))
-
-  key_points <- data.frame(
-    Location = c("Minimum", "Median", "Maximum"),
-    z = c(object$z_profile[idx_min],
-          object$z_profile[idx_median],
-          object$z_profile[idx_max]),
-    logHR = c(object$loghr_est[idx_min],
-              object$loghr_est[idx_median],
-              object$loghr_est[idx_max]),
-    HR = exp(c(object$loghr_est[idx_min],
-               object$loghr_est[idx_median],
-               object$loghr_est[idx_max])),
-    Lower = c(object$loghr_lower[idx_min],
-              object$loghr_lower[idx_median],
-              object$loghr_lower[idx_max]),
-    Upper = c(object$loghr_upper[idx_min],
-              object$loghr_upper[idx_median],
-              object$loghr_upper[idx_max])
-  )
-
-  print(round(key_points, 3), row.names = FALSE)
-
-  invisible(object)
-}
 
 
 

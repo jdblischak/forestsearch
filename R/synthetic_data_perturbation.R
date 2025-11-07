@@ -1,6 +1,3 @@
-# Generalized Bootstrap with Perturbation Function for Synthetic Data Generation
-# This function can work with any dataset, not just GBSG
-
 #' Generate Synthetic Data using Bootstrap with Perturbation
 #'
 #' @param data Original dataset to bootstrap from
@@ -54,6 +51,7 @@
 #'   seed = 456
 #' )
 #' @export
+
 generate_bootstrap_synthetic <- function(data,
                                          continuous_vars,
                                          cat_vars,
