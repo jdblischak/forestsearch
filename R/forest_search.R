@@ -1,139 +1,280 @@
-
-# List of required packages for ForestSearch analysis
-
-required_packages <- c("grf","policytree","data.table","randomForest","survival","weightedsurv","future.apply")
-missing <- required_packages[!sapply(required_packages, requireNamespace, quietly = TRUE)]
-if(length(missing) > 0) stop("Missing required packages: ", paste(missing, collapse = ", "))
-
-
-#' Add ID Column to Data Frame
+#' Forest Search for Subgroup Identification in Survival Analysis
 #'
-#' Ensures that a data frame has a unique ID column. If \code{id.name} is not provided,
-#' a column named "id" is added. If \code{id.name} is provided but does not exist in the data frame,
-#' it is created with unique integer values.
+#' @description
+#' Implements a comprehensive statistical framework for identifying subgroups with
+#' differential treatment effects in survival analysis. The method combines Generalized
+#' Random Forests (GRF) for variable selection, LASSO regularization for dimension
+#' reduction, exhaustive combinatorial search for subgroup discovery, and bootstrap
+#' bias correction for robust inference. The function employs split-sample validation
+#' to ensure reproducibility and control Type I error.
 #'
-#' @param df.analysis Data frame to which the ID column will be added.
-#' @param id.name Character. Name of the ID column to add (default is \code{NULL}, which uses "id").
+#' @param df.analysis Data frame containing the analysis dataset with required columns:
+#'   \itemize{
+#'     \item \code{Y}: Numeric. Observed survival time or time to event
+#'     \item \code{Event}: Binary (0/1). Event indicator (1 = event occurred)
+#'     \item \code{Treat}: Binary (0/1). Treatment assignment (1 = treatment, 0 = control)
+#'     \item \code{id}: Patient identifier (numeric or character)
+#'     \item Additional covariate columns for subgroup discovery
+#'   }
 #'
-#' @return Data frame with the ID column added if necessary.
+#' @param sg_focus Character. Determines subgroup prioritization strategy when multiple
+#'   candidates meet consistency criteria. Options:
+#'   \describe{
+#'     \item{"hr"}{(Default) Prioritizes most reliable harm signal. Selection order:
+#'       highest consistency (Pcons), largest hazard ratio, fewest factors.
+#'       Best for: regulatory submissions, confirmatory trials, academic publications.}
+#'     \item{"maxSG"}{Prioritizes largest affected population. Selection order:
+#'       largest sample size, highest consistency, fewest factors.
+#'       Best for: public health decisions, treatment guidelines, population protection.}
+#'     \item{"minSG"}{Prioritizes most specific/smallest subgroup. Selection order:
+#'       smallest sample size, highest consistency, fewest factors.
+#'       Best for: precision medicine, biomarker signatures, targeted interventions.}
+#'     \item{"hrMaxSG"}{Among subgroups with HR > hr.threshold, selects largest.
+#'       Two-stage: filter by effect size, then maximize coverage.
+#'       Best for: clinical guidelines balancing effect and impact.}
+#'     \item{"hrMinSG"}{Among subgroups with HR > hr.threshold, selects most specific.
+#'       Two-stage: filter by effect size, then maximize specificity.
+#'       Best for: companion diagnostics, ultra-high-risk identification.}
+#'   }
+#'
+#' @param hr.threshold Numeric. Minimum hazard ratio for initial subgroup consideration.
+#'   Default = 1.25 (25\% increased hazard). Range: 1.0 to 2.0+.
+#'   Lower values (1.1-1.2) for safety surveillance or exploratory studies.
+#'   Higher values (1.4-1.5+) for confirmatory trials or specific signatures.
+#'   Interacts with sg_focus: use lower thresholds with "maxSG", higher with "minSG".
+#'
+#' @param hr.consistency Numeric. Minimum hazard ratio required in split-sample validation.
+#'   Default = 1.0 (any harmful effect). Range: 0.8 to 1.5.
+#'   Controls validation stringency:
+#'   \itemize{
+#'     \item 0.8-0.9: Allows 10-20\% effect attenuation
+#'     \item 1.0: Effect must persist (no attenuation)
+#'     \item 1.1+: Effect must maintain minimum clinical significance
+#'   }
+#'
+#' @param pconsistency.threshold Numeric. Minimum proportion of random splits where both
+#'   halves show HR > hr.consistency. Default = 0.90 (90\% of splits).
+#'   Range: 0.5 to 0.95+. Controls reproducibility:
+#'   \itemize{
+#'     \item 0.70-0.80: Exploratory, hypothesis-generating
+#'     \item 0.85-0.90: Standard confirmatory analysis
+#'     \item 0.95+: Regulatory submission, high confidence required
+#'   }
+#'
+#' @param n.min Integer. Minimum total sample size for valid subgroup. Default = 60.
+#'   Ensures statistical stability and clinical relevance.
+#'   Recommendations by study size:
+#'   \itemize{
+#'     \item Small trials (N<300): 30-50
+#'     \item Medium trials (N=300-1000): 60-80
+#'     \item Large trials (N>1000): 100+
+#'   }
+#'
+#' @param d0.min Integer. Minimum events required in control arm of subgroup.
+#'   Default = 15. Ensures stable baseline hazard estimation.
+#'
+#' @param d1.min Integer. Minimum events required in treatment arm of subgroup.
+#'   Default = 15. Ensures stable treatment effect estimation.
+#'
+#' @param n.splits Integer. Number of random 50/50 splits for consistency evaluation.
+#'   Default = 1000. Range: 500-5000. More splits increase precision but computation time.
+#'
+#' @param stop.threshold Numeric. Early stopping threshold for consistency.
+#'   Default = NULL (no early stopping) or same as pconsistency.threshold.
+#'   If specified, stops evaluation when impossible to achieve pconsistency.threshold.
+#'
+#' @param maxk Integer. Maximum number of factors allowed in a subgroup definition.
+#'   Default = 2. Range: 1-5. Higher values allow more complex interactions but
+#'   increase multiple testing and reduce interpretability.
+#'
+#' @param nmin.grf Integer. Minimum node size for GRF variable importance calculation.
+#'   Default = 60. Smaller values allow more granular splits but may overfit.
+#'
+#' @param details Logical. Print detailed progress messages during execution.
+#'   Default = TRUE. Set FALSE for silent operation or simulation studies.
+#'
+#' @param n_a_s Numeric vector. Sample size allocation for bootstrap samples.
+#'   Default = c(1/3, 1/3, 1/3) for three equal parts.
+#'   Must sum to 1. First element for discovery, second for validation, third for testing.
+#'
+#' @param conf.type Character. Confidence interval type for hazard ratio estimates:
+#'   \describe{
+#'     \item{"approximate"}{Cox model-based Wald confidence intervals (fastest)}
+#'     \item{"bootstrap"}{Bootstrap confidence intervals (most accurate)}
+#'     \item{"biascorrected"}{Bias-corrected bootstrap intervals (recommended)}
+#'   }
+#'
+#' @param n.boot Integer. Number of bootstrap samples for confidence intervals.
+#'   Default = 1000. Only used if conf.type includes "bootstrap".
+#'   Range: 500-10000. Higher values increase precision but computation time.
+#'
+#' @param parallel Logical. Enable parallel processing for bootstrap iterations.
+#'   Default = FALSE. Requires setup of parallel backend (e.g., doParallel).
+#'
+#' @param n.cores Integer. Number of CPU cores for parallel processing.
+#'   Default = NULL (uses all available cores - 1).
+#'   Only used if parallel = TRUE.
+#'
+#' @param seed Integer. Random seed for reproducibility. Default = NULL.
+#'   Set explicit seed for reproducible results across runs.
+#'
+#' @param conf.factor Character vector. Names of factors to force into all models.
+#'   Default = NULL. Use for known important confounders or stratification factors.
+#'
+#' @param LassoCV_method Character. Cross-validation method for LASSO:
+#'   "min" (minimum CV error) or "1se" (one standard error rule).
+#'   Default = "min" for maximum predictive accuracy.
+#'
+#' @return A list of class "forestsearch" containing:
+#'   \describe{
+#'     \item{sg.harm}{Primary selected subgroup based on sg_focus criterion}
+#'     \item{fs.est}{Forest search point estimates and model details}
+#'     \item{grp.consistency}{Consistency evaluation results for all sg_focus options:
+#'       \itemize{
+#'         \item out_hr: Results sorted by statistical reliability
+#'         \item out_maxSG: Results sorted by size (largest first)
+#'         \item out_minSG: Results sorted by size (smallest first)
+#'       }}
+#'     \item{bias_corrected}{Bias-corrected estimates (if conf.type = "biascorrected")}
+#'     \item{bootstrap_results}{Full bootstrap distribution (if n.boot > 0)}
+#'     \item{grf_importance}{Variable importance scores from GRF}
+#'     \item{lasso_selected}{Variables selected by LASSO}
+#'     \item{subgroup_definition}{Character string defining selected subgroup}
+#'     \item{consistency_metrics}{Detailed consistency statistics}
+#'     \item{parameters}{List of all input parameters for reproducibility}
+#'     \item{computation_time}{Elapsed time for major computational steps}
+#'   }
+#'
+#' @details
+#' \strong{Algorithm Overview:}
+#' \enumerate{
+#'   \item \strong{Variable Selection}: GRF identifies variables with potential
+#'     treatment effect heterogeneity
+#'   \item \strong{Dimension Reduction}: LASSO selects most predictive variables
+#'   \item \strong{Subgroup Discovery}: Exhaustive search over combinations up to maxk
+#'   \item \strong{Consistency Validation}: Split-sample validation with n.splits iterations
+#'   \item \strong{Selection}: Choose subgroup based on sg_focus criterion
+#'   \item \strong{Inference}: Bootstrap for bias correction and confidence intervals
+#' }
+#'
+#' \strong{Statistical Considerations:}
+#' \itemize{
+#'   \item Controls Type I error through split-sample validation
+#'   \item Addresses overfitting via consistency requirements
+#'   \item Handles multiple testing through validation framework
+#'   \item Provides bias-corrected estimates for selected subgroups
+#' }
+#'
+#' \strong{Computational Notes:}
+#' \itemize{
+#'   \item Computation scales with: n.splits × n.boot × number of candidate subgroups
+#'   \item Parallel processing recommended for n.boot > 500
+#'   \item Memory usage proportional to data size and maxk
+#'   \item Progress bars available when details = TRUE
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Example 1: Regulatory submission with high reliability focus
+#' result_regulatory <- forestsearch(
+#'   df.analysis = trial_data,
+#'   sg_focus = "hr",                    # Maximum reliability
+#'   hr.threshold = 1.3,                 # Clinically meaningful
+#'   hr.consistency = 1.15,              # Must maintain effect
+#'   pconsistency.threshold = 0.95,      # Very high confidence
+#'   n.min = 100,
+#'   d0.min = 25,
+#'   d1.min = 25,
+#'   n.splits = 2000,                    # Extra validation
+#'   conf.type = "biascorrected",
+#'   n.boot = 1000,
+#'   parallel = TRUE,
+#'   seed = 123
+#' )
+#'
+#' # Example 2: Public health application with population focus
+#' result_public <- forestsearch(
+#'   df.analysis = population_data,
+#'   sg_focus = "maxSG",                 # Maximize coverage
+#'   hr.threshold = 1.15,                # Lower threshold
+#'   hr.consistency = 0.95,              # Some attenuation OK
+#'   pconsistency.threshold = 0.85,      # Moderate confidence
+#'   n.min = 80,
+#'   d0.min = 20,
+#'   d1.min = 20,
+#'   conf.type = "approximate"           # Faster computation
+#' )
+#'
+#' # Example 3: Biomarker discovery with specificity focus
+#' result_biomarker <- forestsearch(
+#'   df.analysis = biomarker_data,
+#'   sg_focus = "hrMinSG",               # Specific + harmful
+#'   hr.threshold = 2.0,                 # High effect required
+#'   hr.consistency = 1.5,               # Strong validation
+#'   pconsistency.threshold = 0.90,
+#'   n.min = 25,                         # Allow small subgroups
+#'   d0.min = 7,
+#'   d1.min = 7,
+#'   maxk = 4,                           # Complex signatures OK
+#'   conf.type = "bootstrap",
+#'   n.boot = 2000
+#' )
+#'
+#' # Example 4: Sensitivity analysis across sg_focus options
+#' sg_options <- c("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG")
+#' sensitivity_results <- lapply(sg_options, function(focus) {
+#'   forestsearch(
+#'     df.analysis = trial_data,
+#'     sg_focus = focus,
+#'     hr.threshold = 1.25,
+#'     details = FALSE
+#'   )
+#' })
+#'
+#' # Compare selected subgroups
+#' comparison <- data.frame(
+#'   sg_focus = sg_options,
+#'   N = sapply(sensitivity_results, function(x) x$sg.harm$N),
+#'   HR = sapply(sensitivity_results, function(x) x$sg.harm$hr),
+#'   Pcons = sapply(sensitivity_results, function(x) x$sg.harm$Pcons)
+#' )
+#' print(comparison)
+#' }
+#'
+#' @references
+#' \itemize{
+#'   \item FDA Guidance for Industry: Enrichment Strategies for Clinical Trials
+#'     to Support Approval of Human Drugs and Biological Products (2019)
+#'   \item EMA Guideline on the investigation of subgroups in confirmatory
+#'     clinical trials (2019)
+#'   \item Lipkovich et al. (2011). Subgroup identification based on differential
+#'     effect search - A recursive partitioning method for establishing response
+#'     to treatment in patient subpopulations. Statistics in Medicine.
+#'   \item Athey & Imbens (2016). Recursive partitioning for heterogeneous
+#'     causal effects. PNAS.
+#'   \item Wager & Athey (2018). Estimation and inference of heterogeneous
+#'     treatment effects using random forests. JASA.
+#' }
+#'
+#' @seealso
+#' \code{\link{subgroup.consistency}} for consistency evaluation details
+#' \code{\link{bootstrap_forestsearch}} for bootstrap inference
+#' \code{\link{summarize_forestsearch}} for results visualization
+#' \code{\link{plot.forestsearch}} for graphical displays
+#'
 #' @export
-
-add_id_column <- function(df.analysis, id.name = NULL) {
-  if (is.null(id.name)) {
-    df.analysis$id <- seq_len(nrow(df.analysis))
-    id.name <- "id"
-  } else if (!(id.name %in% names(df.analysis))) {
-    df.analysis[[id.name]] <- seq_len(nrow(df.analysis))
-  }
-  return(df.analysis)
-}
-
-
-#' Generate Prediction Dataset with Subgroup Treatment Recommendation
-#'
-#' Creates a prediction dataset with a treatment recommendation flag based on subgroup definition.
-#'
-#' @param df.predict Data frame for prediction (test or validation set).
-#' @param sg.harm Character vector of subgroup-defining covariate names.
-#' @param version Integer; 1 uses \code{dummy()}, 2 uses \code{dummy2()} for factor encoding.
-#'
-#' @return Data frame with treatment recommendation flag (\code{treat.recommend}).
-#' @export
-
-get_dfpred <- function(df.predict, sg.harm, version = 1) {
-  if (version == 1) df.pred <- dummy(df.predict)
-  if (version == 2) df.pred <- dummy2(df.predict)
-  df.pred$treat.recommend <- NA
-  id.harm <- paste(sg.harm, collapse = "==1 & ")
-  id.harm <- paste(id.harm, "==1")
-  df.pred.0 <- subset(df.pred, eval(parse(text = id.harm)))
-  if (nrow(df.pred.0) > 0) {
-    df.pred.0$treat.recommend <- 0
-  }
-  id.noharm <- paste(sg.harm, collapse = "!=1 | ")
-  id.noharm <- paste(id.noharm, "!=1")
-  df.pred.1 <- subset(df.pred, eval(parse(text = id.noharm)))
-  if (nrow(df.pred.1) > 0) {
-    df.pred.1$treat.recommend <- 1
-  }
-  if (nrow(df.pred.0) > 0 && nrow(df.pred.1) > 0) df.pred.out <- data.frame(rbind(df.pred.0, df.pred.1))
-  if (nrow(df.pred.0) == 0 && nrow(df.pred.1) > 0) df.pred.out <- data.frame(df.pred.1)
-  if (nrow(df.pred.0) > 0 && nrow(df.pred.1) == 0) df.pred.out <- data.frame(df.pred.0)
-  return(df.pred.out)
-}
-
-#' Get parameter with default fallback
-#' @keywords internal
-get_param <- function(args_list, param_name, default_value) {
-  if (hasName(args_list, param_name) && !is.null(args_list[[param_name]])) {
-    return(args_list[[param_name]])
-  }
-  return(default_value)
-}
-
-
-#' ForestSearch: Subgroup Identification and Consistency Analysis
-#'
-#' Performs subgroup identification and consistency analysis for treatment effect heterogeneity using ForestSearch.
-#' Supports LASSO-based dimension reduction, GRF-based variable selection, and flexible cut strategies.
-#' Returns subgroup definitions, candidate/evaluated confounders, and prediction datasets.
-#'
-#' @param df.analysis Data frame for analysis.
-#' @param outcome.name Character. Name of outcome variable (e.g., time-to-event).
-#' @param event.name Character. Name of event indicator variable (0/1).
-#' @param treat.name Character. Name of treatment group variable (0/1).
-#' @param id.name Character. Name of ID variable.
-#' @param potentialOutcome.name Character. Name of potential outcome variable (optional).
-#' @param confounders.name Character vector of confounder variable names.
-#' @param parallel_args List. Parallelization arguments (plan, workers).
-#' @param df.predict Data frame for prediction (optional).
-#' @param df.test Data frame for test set (optional).
-#' @param is.RCT Logical. Is the data from a randomized controlled trial?
-#' @param seedit Integer. Random seed.
-#' @param est.scale Character. Effect scale (e.g., \"hr\").
-#' @param use_lasso Logical. Use LASSO for dimension reduction.
-#' @param use_grf Logical. Use GRF for variable selection.
-#' @param plot.grf Logical.  Flag to return GRF plot
-#' @param grf_res List. Precomputed GRF results (optional).
-#' @param grf_cuts Character vector of GRF cut expressions (optional).
-#' @param max_n_confounders Integer. Maximum number of confounders to evaluate.
-#' @param grf_depth Integer. Depth for GRF tree.
-#' @param dmin.grf Integer. Minimum subgroup size for GRF.
-#' @param frac.tau Numeric. Fraction of tau for GRF horizon.
-#' @param conf_force Character vector of forced cut expressions.
-#' @param defaultcut_names Character vector of confounders to force default cuts.
-#' @param cut_type Character. \"default\" or \"median\" for cut strategy.
-#' @param exclude_cuts Character vector of cut expressions to exclude.
-#' @param replace_med_grf Logical. Remove median cuts that overlap with GRF cuts.
-#' @param cont.cutoff Integer. Cutoff for continuous variable determination.
-#' @param conf.cont_medians Character vector of continuous confounders to cut at median.
-#' @param conf.cont_medians_force Character vector of additional continuous confounders to force median cut.
-#' @param n.min Integer. Minimum subgroup size.
-#' @param hr.threshold Numeric. Hazard ratio threshold for subgroup selection.
-#' @param hr.consistency Numeric. Hazard ratio threshold for consistency.
-#' @param sg_focus Character. Subgroup focus criterion (\"hr\", \"hrMaxSG\", \"hrMinSG\", \"maxSG\", \"minSG\").
-#' @param fs.splits Integer. Number of splits for consistency analysis.
-#' @param m1.threshold Numeric. Threshold for m1 (default: Inf).
-#' @param pconsistency.threshold Numeric. Consistency threshold for subgroup search.
-#' @param showten_subgroups Logical. Show top ten subgroups.
-#' @param d0.min Integer. Minimum number of events in control.
-#' @param d1.min Integer. Minimum number of events in treatment.
-#' @param max.minutes Numeric. Maximum minutes for search.
-#' @param minp Numeric. Minimum proportion for subgroup.
-#' @param details Logical. Print details during execution.
-#' @param maxk Integer. Maximum number of subgroup factors.
-#' @param by.risk Numeric. Interval for risk table time points.
-#' @param plot.sg Logical. Plot subgroups.
-#' @param max_subgroups_search Integer. Maximum number of subgroups to search.
-#' @param vi.grf.min Numeric. Minimum variable importance for GRF screening.
-#' @importFrom stats complete.cases median quantile
+#' @importFrom survival coxph Surv
 #' @importFrom grf causal_survival_forest variable_importance
-#' @importFrom data.table data.table
+#' @importFrom glmnet cv.glmnet
+#' @importFrom data.table data.table setorder
+#' @importFrom stats quantile sd median
+#' @importFrom foreach foreach %dopar%
+#' @importFrom stats complete.cases
 #' @importFrom future.apply future_lapply
 #' @importFrom randomForest randomForest
-#' @importFrom survival Surv
 #' @importFrom weightedsurv df_counting
 #' @export
+
 forestsearch <- function(df.analysis,
                                 outcome.name = "tte",
                                 event.name = "event",
