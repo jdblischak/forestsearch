@@ -294,7 +294,7 @@ dgm_null <- generate_aft_dgm_flex(
     er = list(type = "quantile", value = er_quantile),
     meno = 0
   ),
-  model = "alt",
+  model = "null",
   k_inter = 0.0,
   verbose = FALSE
 )
@@ -335,7 +335,6 @@ dfcount_null <- df_counting(
 )
 
 # Create KM plot
-par(mfrow=c(1,1))
 plot_weighted_km(dfcount_null, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
 title(main = "Null Scenario: No Treatment-Subgroup Interaction")
 ```
@@ -428,6 +427,24 @@ result <- cox_cs_fit(
 # Specify critical HR threshold
 results <- plot_subgroup_effects(dgm_spline$df_super, z ="z_erlog", hrz_crit = 0)
 
+
+# Find "k" to achieve target HR in subgroup
+result <- forestsearch::find_k_inter_for_target_hr(
+  target_hr_harm = 2.0,
+  data = df_gbsg,
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  continuous_vars = c("age", "er", "pgr"),
+  factor_vars = c("meno", "grade"),
+  subgroup_vars = c("er", "meno"),
+  subgroup_cuts = list(
+    er = list(type = "quantile", value = er_quantile),
+    meno = 0
+  ),
+  k_treat = 1.0,
+  verbose = FALSE
+)
 
 
 # Generate DGM with calibrated interaction
@@ -525,7 +542,7 @@ system.time({fs <- forestsearch(df_null,  confounders.name=confounders.name,
                                 showten_subgroups = FALSE, details=TRUE,
                                 conf_force = c("z_age <= 65", "z_er <= 0", "z_er <= 1", "z_er <= 2","z_er <= 5"),
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
-                                maxk = 2, n.min = 60, d0.min = 12, d1.min = 12,
+                                maxk = 1, n.min = 60, d0.min = 12, d1.min = 12,
                                 plot.sg = TRUE, by.risk = 120,
                                 parallel_args = list(plan="callr", workers = 12, show_message = TRUE)
 )
@@ -557,7 +574,7 @@ system.time({fs <- forestsearch(df_alt,  confounders.name=confounders.name,
                                 showten_subgroups = FALSE, details=TRUE,
                                 conf_force = c("z_age <= 65", "z_er <= 0", "z_er <= 1", "z_er <= 2","z_er <= 5"),
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
-                                maxk = 2, n.min = 60, d0.min = 12, d1.min = 12,
+                                maxk = 1, n.min = 60, d0.min = 12, d1.min = 12,
                                 plot.sg = TRUE, by.risk = 12,
                                 parallel_args = list(plan="callr", workers = 120, show_message = TRUE)
 )
@@ -577,7 +594,7 @@ plan("sequential")
 
 ## Bootstrap Inference
 
-```{r, eval = TRUE}
+```{r, eval = FALSE}
 
 output_dir <- "results/"
 save_results <- dir.exists(output_dir)
@@ -615,7 +632,7 @@ if (save_results) {
 
 ```{r}
 
-#load("~/Documents/GitHub/forestsearch/vignettes/results/sim_gbsg_example_B=1000.RData")
+load("~/Documents/GitHub/forestsearch/vignettes/results/sim_gbsg_example_B=1000.RData")
 
 summaries <- summarize_bootstrap_results(
       sgharm = fs$sg.harm,
