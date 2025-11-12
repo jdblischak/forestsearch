@@ -93,37 +93,11 @@
 #' @param details Logical. Print detailed progress messages during execution.
 #'   Default = TRUE. Set FALSE for silent operation or simulation studies.
 #'
-#' @param n_a_s Numeric vector. Sample size allocation for bootstrap samples.
-#'   Default = c(1/3, 1/3, 1/3) for three equal parts.
-#'   Must sum to 1. First element for discovery, second for validation, third for testing.
-#'
-#' @param conf.type Character. Confidence interval type for hazard ratio estimates:
-#'   \describe{
-#'     \item{"approximate"}{Cox model-based Wald confidence intervals (fastest)}
-#'     \item{"bootstrap"}{Bootstrap confidence intervals (most accurate)}
-#'     \item{"biascorrected"}{Bias-corrected bootstrap intervals (recommended)}
-#'   }
-#'
-#' @param n.boot Integer. Number of bootstrap samples for confidence intervals.
-#'   Default = 1000. Only used if conf.type includes "bootstrap".
-#'   Range: 500-10000. Higher values increase precision but computation time.
-#'
-#' @param parallel Logical. Enable parallel processing for bootstrap iterations.
-#'   Default = FALSE. Requires setup of parallel backend (e.g., doParallel).
-#'
-#' @param n.cores Integer. Number of CPU cores for parallel processing.
-#'   Default = NULL (uses all available cores - 1).
-#'   Only used if parallel = TRUE.
-#'
 #' @param seed Integer. Random seed for reproducibility. Default = NULL.
 #'   Set explicit seed for reproducible results across runs.
 #'
 #' @param conf.factor Character vector. Names of factors to force into all models.
 #'   Default = NULL. Use for known important confounders or stratification factors.
-#'
-#' @param LassoCV_method Character. Cross-validation method for LASSO:
-#'   "min" (minimum CV error) or "1se" (one standard error rule).
-#'   Default = "min" for maximum predictive accuracy.
 #'
 #' @return A list of class "forestsearch" containing:
 #'   \describe{
@@ -247,9 +221,6 @@
 #'     to Support Approval of Human Drugs and Biological Products (2019)
 #'   \item EMA Guideline on the investigation of subgroups in confirmatory
 #'     clinical trials (2019)
-#'   \item Lipkovich et al. (2011). Subgroup identification based on differential
-#'     effect search - A recursive partitioning method for establishing response
-#'     to treatment in patient subpopulations. Statistics in Medicine.
 #'   \item Athey & Imbens (2016). Recursive partitioning for heterogeneous
 #'     causal effects. PNAS.
 #'   \item Wager & Athey (2018). Estimation and inference of heterogeneous
