@@ -872,3 +872,58 @@ assemble_results <- function(df_super,
 
 
 
+
+#' Assemble Final Results Object
+#' @keywords internal
+assemble_results_legacy <- function(df_super, mu, tau, gamma, b0, cens_model,
+                             subgroup_vars, subgroup_cuts, subgroup_definitions,
+                             hr_results, continuous_vars, factor_vars,
+                             model, n_super, seed) {
+
+  # Model parameters
+  model_params <- list(
+    mu = mu,
+    tau = tau,
+    gamma = gamma,
+    b0 = b0,
+    censoring = cens_model
+  )
+
+  # Subgroup information
+  subgroup_info <- list(
+    vars = subgroup_vars,
+    cuts = subgroup_cuts,
+    definitions = subgroup_definitions,
+    size = sum(df_super$flag_harm),
+    proportion = mean(df_super$flag_harm)
+  )
+
+  # Get covariate column names
+  covariate_cols <- grep("^z_", names(df_super), value = TRUE)
+
+  # Analysis variables (for downstream use)
+  analysis_vars <- list(
+    continuous = continuous_vars,
+    factor = factor_vars,
+    covariates = covariate_cols,
+    treatment = "treat",
+    outcome = "y_sim",
+    event = "event_sim"
+  )
+
+  # Return comprehensive results
+  results <- list(
+    df_super = df_super,
+    model_params = model_params,
+    subgroup_info = subgroup_info,
+    hazard_ratios = hr_results,
+    analysis_vars = analysis_vars,
+    model_type = model,
+    n_super = n_super,
+    seed = seed
+  )
+
+  class(results) <- c("aft_dgm_flex", "list")
+
+  return(results)
+}
