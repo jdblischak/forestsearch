@@ -1768,7 +1768,7 @@ system.time({fs &lt;- forestsearch(df_null,  confounders.name=confounders.name,
 ## Subgroup search completed in 0 minutes
 ## NO subgroup candidates found</code></pre>
 <pre><code>##    user  system elapsed 
-##   2.793   0.031   0.646</code></pre>
+##   2.780   0.031   0.634</code></pre>
 <pre class="r"><code>plan(&quot;sequential&quot;)</code></pre>
 <pre class="r"><code># Define confounders for forest search
 confounders.name &lt;- c(&quot;z_age&quot;, &quot;z_er&quot;, &quot;z_pgr&quot;, &quot;z_meno&quot;, 
@@ -1905,12 +1905,12 @@ system.time({fs &lt;- forestsearch(df_alt,  confounders.name=confounders.name,
 <pre><code>## *** Subgroup found: {z_er &lt;= 0} 
 ## % consistency criteria met= 0.9 
 ## SG focus= hrMaxSG 
-## Subgroup Consistency Minutes= 0.2118333 
+## Subgroup Consistency Minutes= 0.2365667 
 ## Subgroup found (FS) with sg_focus=&#39;hrMaxSG&#39;
 ## Selected subgroup: {z_er &lt;= 0} 
-## Minutes forestsearch overall = 0.22</code></pre>
+## Minutes forestsearch overall = 0.25</code></pre>
 <pre><code>##    user  system elapsed 
-##  11.834   1.295  13.350</code></pre>
+##  11.833   1.202  14.845</code></pre>
 <pre class="r"><code>with(fs$df.est, table(flag_harm, treat.recommend))</code></pre>
 <pre><code>##          treat.recommend
 ## flag_harm   0   1

@@ -9,7 +9,7 @@ format:
   html:
     self-contained: true
     code-fold: true
-    bibliography: subgroups_ref3.bib
+    bibliography: references.bib
     fig_caption: yes
     keep_tex: yes
     latex_engine: xelatex
@@ -52,8 +52,16 @@ library(grid)
 library(forestploter)
 library(randomizr)
 
+# library(devtools)
+# install_github("larry-leon/weightedsurv", force = TRUE)
+# install_github("larry-leon/forestsearch", force = TRUE)
+
+
 library(forestsearch)
 library(weightedsurv)
+
+#help(forestsearch)
+#help(generate_aft_dgm_flex)
 
 
 ```
