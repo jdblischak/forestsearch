@@ -99,10 +99,9 @@
 simulate_from_dgm <- function(dgm,
                               n = NULL,
                               rand_ratio = 1,
-                              entry_var = "entrytime",
+                              entry_var = NULL,
                               max_entry = 24,
-                              analysis_time = 36,
-                              max_follow = Inf,
+                              analysis_time = 48,
                               cens_adjust = 0,
                               draw_treatment = TRUE,
                               seed = NULL) {
@@ -133,6 +132,7 @@ simulate_from_dgm <- function(dgm,
     }
 
     follow_up <- analysis_time - entry_time
+    # Data at analysis_time: follow_up > 0
 
     # Reassign treatment if draw_treatment, otherwise retain per super_population
     # Set to original assignent in df_super
@@ -188,7 +188,7 @@ simulate_from_dgm <- function(dgm,
   }
 
   # Apply administrative censoring
-  C_sim <- pmin(C_sim, follow_up, max_follow)
+  C_sim <- pmin(C_sim, follow_up)
 
   # Observed times and events
   df_sim$y_sim <- pmin(T_sim, C_sim)

@@ -472,9 +472,11 @@ plot_spline_treatment_effect(dgm_spline)
 ```
 
 
-```{r, fig.width=12, fig.height=10}
+```{r, fig.width=10, fig.height=8}
 
 # Simulate data
+
+# cens_adjust  - 3.5
 
 df_example <- simulate_from_dgm(
   dgm = dgm_spline, 
@@ -482,10 +484,15 @@ df_example <- simulate_from_dgm(
   rand_ratio = 1, 
   draw_treatment = FALSE,
   entry_var = "entrytime",
-  max_follow = 100, 
-  cens_adjust = -3.5,
-  seed = 123456
+  analysis_time = 60,
+  cens_adjust = 0,
+  seed = 12345
 )
+
+dim(df_example)
+with(df_example,sum(event_sim))
+
+
 
 # ITT
 dfc <- df_counting(
@@ -537,16 +544,16 @@ dfc1 <- df_counting(
 
 par(mfrow=c(2,2))
 
-plot_weighted_km(dfideal, conf.int = FALSE, show.logrank = TRUE, ymax = 1.05)
-title("ITT no random censoring")
+plot_weighted_km(dfideal, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.75, ymed.offset = 0.15)
+title("ITT no censoring (through 100 months)")
 
-plot_weighted_km(dfc, conf.int = FALSE, show.logrank = TRUE, ymax = 1.05)
+plot_weighted_km(dfc, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.75, ymed.offset = 0.15)
 title("ITT censored")
 
-plot_weighted_km(dfc0, conf.int = FALSE, show.logrank = TRUE, ymax = 1.05)
+plot_weighted_km(dfc0, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.725, ymed.offset = 0.15)
 title("non-AP")
 
-plot_weighted_km(dfc1, conf.int = FALSE, show.logrank = TRUE, ymax = 1.05)
+plot_weighted_km(dfc1, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.725, ymed.offset = 0.15)
 title("AP")
 
 
