@@ -22,9 +22,14 @@ format:
 
 
 ```{r Setup, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
-
-options(warn = -1)
+# Set options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center',
+  fig.retina = 2
+)
 
 rm(list=ls())
 
@@ -61,8 +66,11 @@ library(forestsearch)
 library(weightedsurv)
 
 #help(forestsearch)
+
 #help(generate_aft_dgm_flex)
 
+# Set theme for plots
+theme_set(theme_minimal(base_size = 12))
 
 ```
 
@@ -389,10 +397,12 @@ dgm_spline <- generate_aft_dgm_flex(
   continuous_vars = c("age", "bm"),
   factor_vars = c("male", "histology", "prior_treat","AP"),
   set_beta_spec = list(set_var = c("z_AP"), beta_var = -log(5)),
+  continuous_vars_cens = c("age"),
+  factor_vars_cens = c("prior_treat"),
   outcome_var = "tte",
   event_var = "event",
   treatment_var = "treat",
-  cens_type = "uniform",
+  cens_type = "weibull",
   subgroup_vars = NULL,
   subgroup_cuts = NULL,
   model = "alt",
@@ -472,7 +482,8 @@ df_example <- simulate_from_dgm(
   rand_ratio = 1, 
   draw_treatment = TRUE, 
   max_follow = 100, 
-  seed = 1235
+  cens_adjust = -3.5,
+  seed = 12345
 )
 
 # ITT

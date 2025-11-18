@@ -12,6 +12,8 @@ prepare_working_dataset(
   continuous_vars,
   factor_vars,
   standardize,
+  continuous_vars_cens,
+  factor_vars_cens,
   verbose
 )
 }

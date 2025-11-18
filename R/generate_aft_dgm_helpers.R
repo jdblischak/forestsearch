@@ -41,6 +41,7 @@ validate_inputs <- function(data, model, cens_type, outcome_var, event_var,
 #' @keywords internal
 prepare_working_dataset <- function(data, outcome_var, event_var, treatment_var,
                                     continuous_vars, factor_vars, standardize,
+                                    continuous_vars_cens, factor_vars_cens,
                                     verbose) {
 
   # Create base working dataset
@@ -55,6 +56,7 @@ prepare_working_dataset <- function(data, outcome_var, event_var, treatment_var,
   df_work <- process_continuous_vars(df_work, data, continuous_vars,
                                      standardize)
 
+
   # Process factor variables
   df_work <- process_factor_vars(df_work, data, factor_vars)
 
@@ -63,6 +65,15 @@ prepare_working_dataset <- function(data, outcome_var, event_var, treatment_var,
                                   treatment_var, continuous_vars, factor_vars,
                                   verbose)
 
+  if(!is.null(continuous_vars_cens)){
+  df_work <- process_continuous_vars(df_work, data, continuous_vars_cens,
+                                     standardize, marker ="zcens_")
+  }
+
+  if(!is.null(factor_vars_cens)){
+  df_work <- process_factor_vars(df_work, data, factor_vars_cens, marker = "zcens_")
+ }
+
   return(df_work)
 }
 
@@ -70,13 +81,13 @@ prepare_working_dataset <- function(data, outcome_var, event_var, treatment_var,
 #' Process Continuous Variables
 #' @keywords internal
 process_continuous_vars <- function(df_work, data, continuous_vars,
-                                    standardize) {
+                                    standardize, marker = "z_") {
 
   for (var in continuous_vars) {
     if (standardize) {
-      df_work[[paste0("z_", var)]] <- scale(data[[var]])[, 1]  # Standardize
+      df_work[[paste0(marker, var)]] <- scale(data[[var]])[, 1]  # Standardize
     } else {
-      df_work[[paste0("z_", var)]] <- data[[var]]
+      df_work[[paste0(marker, var)]] <- data[[var]]
     }
   }
 
@@ -86,7 +97,7 @@ process_continuous_vars <- function(df_work, data, continuous_vars,
 
 #' Process Factor Variables with Largest Value as Reference
 #' @keywords internal
-process_factor_vars <- function(df_work, data, factor_vars) {
+process_factor_vars <- function(df_work, data, factor_vars, marker = "z_") {
 
   for (var in factor_vars) {
     # Get unique values
@@ -114,7 +125,7 @@ process_factor_vars <- function(df_work, data, factor_vars) {
       }
 
       # Create single indicator for non-reference level
-      df_work[[paste0("z_", var)]] <- as.numeric(data[[var]] == other_level)
+      df_work[[paste0(marker, var)]] <- as.numeric(data[[var]] == other_level)
 
     } else {
       # Multiple levels - create dummies with largest as reference
@@ -129,7 +140,7 @@ process_factor_vars <- function(df_work, data, factor_vars) {
 
       # Create dummy for each non-reference level
       for (level in other_levels) {
-        dummy_name <- paste0("z_", var, "_", level)
+        dummy_name <- paste0(marker, var, "_", level)
         df_work[[dummy_name]] <- as.numeric(data[[var]] == level)
       }
     }
@@ -712,48 +723,43 @@ calculate_hazard_ratios <- function(df_super, n_super, mu, tau, model,
 #' Prepare Censoring Model Parameters
 #' @keywords internal
 prepare_censoring_model <- function(df_work, cens_type, cens_params,
-                                    df_super, gamma, b0, spline_info = NULL, verbose) {
+                                    df_super) {
 
   cens_model <- NULL
 
-  # Get covariate columns, excluding spline interaction terms
-  covariate_cols <- grep("^z_", names(df_work), value = TRUE)
+if(cens_type != "uniform"){
+    covariate_cols <- grep("^zcens_", names(df_work), value = TRUE)
 
-  # Exclude spline terms if spline was used
-  if (!is.null(spline_info)) {
-    spline_var <- spline_info$var
-    spline_terms_to_exclude <- c(
-      paste0(spline_var, "_treat"),
-      paste0(spline_var, "_k"),
-      paste0(spline_var, "_k_treat")
-    )
-
-    covariate_cols <- setdiff(covariate_cols, spline_terms_to_exclude)
-
-
-    # # Exclude spline terms if spline was used
-    # if (!is.null(spline_info)) {
-    #   spline_var <- spline_info$var
-    #   # Match any column that contains the spline variable followed by interaction terms
-    #   spline_pattern <- paste0("^", spline_var, "_(treat|k|k_treat)$")
-    #   spline_cols <- grep(spline_pattern, covariate_cols, value = TRUE)
-    #   covariate_cols <- setdiff(covariate_cols, spline_cols)
-    # }
-
-
-    if (verbose) {
-      cat("\nExcluded spline interaction terms from censoring model:\n")
-      cat("  ", paste(spline_terms_to_exclude, collapse = ", "), "\n")
-    }
-  }
-
-  if (cens_type == "weibull") {
-    # Fit censoring model WITHOUT interaction terms (treat + covariates only)
+    if(length(covariate_cols) >= 1){
     X_cens <- as.matrix(df_work[, c("treat", covariate_cols)])
+    } else {
+    X_cens <- as.matrix(df_work[, c("treat")])
+    }
 
-    fit_cens <- survreg(Surv(y, 1 - event) ~ X_cens,
-                        data = df_work,
-                        dist = "weibull")
+      fit_cens1 <- survreg(Surv(y, 1 - event) ~ X_cens,
+                        data = df_work, dist = "weibull")
+
+
+      fit_cens2 <- survreg(Surv(y, 1 - event) ~ X_cens,
+                           data = df_work, dist = "lognormal")
+
+      fit_cens3 <- survreg(Surv(y, 1 - event) ~ 1,
+                           data = df_work, dist = "weibull")
+
+
+      fit_cens4 <- survreg(Surv(y, 1 - event) ~ 1,
+                           data = df_work, dist = "lognormal")
+
+
+      # Compare all 4 models
+      comparison <- compare_multiple_survreg(
+        fit_cens1, fit_cens2, fit_cens3, fit_cens4,
+        model_names = c("Weibull", "LogNormal", "Weibull0", "LogNormal0"),
+        verbose = TRUE
+      )
+
+    # Get the best model
+    fit_cens <- get_best_survreg(comparison)
 
     mu_cens <- coef(fit_cens)[1]
     tau_cens <- fit_cens$scale
@@ -764,19 +770,19 @@ prepare_censoring_model <- function(df_work, cens_type, cens_params,
       mu = mu_cens,
       tau = tau_cens,
       gamma = gamma_cens,
-      type = "weibull"
+      type = c(fit_cens$dist)
     )
 
-    # Calculate censoring linear predictors for super population
-    # Build matrices for censoring (no interaction term, no spline interactions)
-    X_cens_super_treat <- as.matrix(df_super[, c("treat", covariate_cols)])
-    X_cens_super_treat[, "treat"] <- 1
+    newdata <- df_super
+    newdata$treat <- 0
+    if(!all(newdata$treat == 0)) stop("Error in creating counterfactual setting treat := 0")
+    df_super$lin_pred_cens_0  <- predict(fit_cens, newdata = newdata, type = "linear")
 
-    X_cens_super_control <- as.matrix(df_super[, c("treat", covariate_cols)])
-    X_cens_super_control[, "treat"] <- 0
+    newdata <- df_super
+    newdata$treat <- 1
+    if(!all(newdata$treat == 1)) stop("Error in creating counterfactual setting treat := 1")
+    df_super$lin_pred_cens_1  <- predict(fit_cens, newdata = newdata, type = "linear")
 
-    df_super$lin_pred_cens_1 <- X_cens_super_treat %*% gamma_cens
-    df_super$lin_pred_cens_0 <- X_cens_super_control %*% gamma_cens
 
   } else if (cens_type == "uniform") {
     # Use provided or default uniform censoring parameters
@@ -869,6 +875,399 @@ assemble_results <- function(df_super,
 }
 
 
+#' Compare Multiple Survival Regression Models
+#'
+#' Performs comprehensive comparison of multiple survreg models including
+#' convergence checking, information criteria comparison, and model selection.
+#'
+#' @param ... survreg model objects to compare
+#' @param model_names Optional character vector of model names
+#' @param verbose Logical, whether to print detailed output (default: TRUE)
+#' @param criteria Character vector of criteria to use ("AIC", "BIC", or both)
+#'
+#' @return A list of class "multi_survreg_comparison" containing:
+#' \describe{
+#'   \item{models}{Named list of input models}
+#'   \item{convergence}{Convergence status for each model}
+#'   \item{comparison}{Model comparison statistics}
+#'   \item{rankings}{Model rankings by different criteria}
+#'   \item{best_model}{Name of the best model}
+#'   \item{recommendation}{Text recommendation}
+#' }
+#'
+#' @export
+#' @examples
+#' \dontrun{
+#' fit1 <- survreg(Surv(time, status) ~ x, dist = "weibull")
+#' fit2 <- survreg(Surv(time, status) ~ x, dist = "lognormal")
+#' comparison <- compare_multiple_survreg(fit1, fit2)
+#' }
+#'
+compare_multiple_survreg <- function(...,
+                                     model_names = NULL,
+                                     verbose = TRUE,
+                                     criteria = c("AIC", "BIC")) {
 
+  # Collect models
+  models <- list(...)
+  n_models <- length(models)
 
+  if(n_models < 2) {
+    stop("At least 2 models required for comparison")
+  }
 
+  # Check that all inputs are survreg objects
+  if(!all(sapply(models, function(x) inherits(x, "survreg")))) {
+    stop("All inputs must be survreg model objects")
+  }
+
+  # Auto-generate names if not provided
+  if(is.null(model_names)) {
+    model_names <- sapply(models, function(x) {
+      dist_name <- x$dist
+      if(is.list(dist_name)) dist_name <- dist_name$name
+      return(paste0(dist_name, "_model"))
+    })
+  } else if(length(model_names) != n_models) {
+    stop("Number of model names must match number of models")
+  }
+
+  # Initialize results
+  results <- list(
+    models = setNames(models, model_names),
+    model_names = model_names,
+    n_models = n_models,
+    convergence = list(),
+    comparison = list(),
+    rankings = list(),
+    best_model = NULL,
+    recommendation = NULL
+  )
+
+  # ---- CONVERGENCE CHECKING ----
+  check_convergence_single <- function(fit) {
+    conv_status <- list(
+      converged = TRUE,
+      issues = character(),
+      iterations = NA,
+      log_likelihood = NA,
+      scale = NA
+    )
+
+    # Check for NA coefficients
+    if(any(is.na(coef(fit)))) {
+      conv_status$converged <- FALSE
+      conv_status$issues <- c(conv_status$issues, "NA coefficients")
+    }
+
+    # Check variance-covariance matrix
+    tryCatch({
+      vc <- vcov(fit)
+      se <- sqrt(diag(vc))
+      if(any(is.na(se) | is.infinite(se))) {
+        conv_status$converged <- FALSE
+        conv_status$issues <- c(conv_status$issues, "Invalid standard errors")
+      }
+      # Check for negative variances
+      if(any(diag(vc) < 0)) {
+        conv_status$converged <- FALSE
+        conv_status$issues <- c(conv_status$issues, "Negative variance estimates")
+      }
+    }, error = function(e) {
+      conv_status$converged <- FALSE
+      conv_status$issues <- c(conv_status$issues, "Cannot compute variance matrix")
+    })
+
+    # Check iterations
+    if(!is.null(fit$iter)) {
+      conv_status$iterations <- fit$iter[1]
+      if(!is.null(fit$maxiter) && fit$iter[1] >= fit$maxiter) {
+        conv_status$converged <- FALSE
+        conv_status$issues <- c(conv_status$issues,
+                                paste("Max iterations reached:", fit$iter[1]))
+      }
+    }
+
+    # Check log-likelihood
+    if(!is.null(fit$loglik)) {
+      ll_final <- fit$loglik[length(fit$loglik)]
+      conv_status$log_likelihood <- ll_final
+      if(is.na(ll_final) || is.infinite(ll_final)) {
+        conv_status$converged <- FALSE
+        conv_status$issues <- c(conv_status$issues, "Invalid log-likelihood")
+      }
+    }
+
+    # Check scale parameter
+    if(!is.null(fit$scale)) {
+      conv_status$scale <- fit$scale
+      if(is.na(fit$scale) || fit$scale <= 0 || is.infinite(fit$scale)) {
+        conv_status$converged <- FALSE
+        conv_status$issues <- c(conv_status$issues, "Invalid scale parameter")
+      }
+    }
+
+    return(conv_status)
+  }
+
+  # Check all models
+  convergence_summary <- data.frame(
+    Model = model_names,
+    Converged = logical(n_models),
+    Issues = character(n_models),
+    Iterations = integer(n_models),
+    LogLik = numeric(n_models),
+    Scale = numeric(n_models),
+    stringsAsFactors = FALSE
+  )
+
+  for(i in 1:n_models) {
+    conv_check <- check_convergence_single(models[[i]])
+    results$convergence[[model_names[i]]] <- conv_check
+
+    convergence_summary$Converged[i] <- conv_check$converged
+    convergence_summary$Issues[i] <- paste(conv_check$issues, collapse = "; ")
+    convergence_summary$Iterations[i] <- ifelse(is.na(conv_check$iterations), 0, conv_check$iterations)
+    convergence_summary$LogLik[i] <- conv_check$log_likelihood
+    convergence_summary$Scale[i] <- conv_check$scale
+  }
+
+  results$convergence_summary <- convergence_summary
+  n_converged <- sum(convergence_summary$Converged)
+
+  # ---- MODEL COMPARISON ----
+
+  if(n_converged >= 2) {
+    # Only compare converged models
+    converged_idx <- which(convergence_summary$Converged)
+    converged_models <- models[converged_idx]
+    converged_names <- model_names[converged_idx]
+
+    # Initialize comparison data frame
+    comparison_df <- data.frame(
+      Model = converged_names,
+      Distribution = character(length(converged_models)),
+      Converged = TRUE,
+      LogLik = numeric(length(converged_models)),
+      AIC = numeric(length(converged_models)),
+      BIC = numeric(length(converged_models)),
+      df = integer(length(converged_models)),
+      Scale = numeric(length(converged_models)),
+      n_obs = integer(length(converged_models)),
+      stringsAsFactors = FALSE
+    )
+
+    # Fill in comparison metrics
+    for(i in seq_along(converged_models)) {
+      fit <- converged_models[[i]]
+      comparison_df$Distribution[i] <- if(is.list(fit$dist)) fit$dist$name else fit$dist
+      comparison_df$LogLik[i] <- fit$loglik[length(fit$loglik)]
+      comparison_df$AIC[i] <- AIC(fit)
+      comparison_df$BIC[i] <- BIC(fit)
+      comparison_df$df[i] <- length(coef(fit)) + 1  # +1 for scale
+      comparison_df$Scale[i] <- fit$scale
+      comparison_df$n_obs[i] <- nrow(model.frame(fit))
+    }
+
+    # Add delta values for each criterion
+    comparison_df$delta_AIC <- comparison_df$AIC - min(comparison_df$AIC)
+    comparison_df$delta_BIC <- comparison_df$BIC - min(comparison_df$BIC)
+
+    # Add AIC weights (Burnham & Anderson)
+    comparison_df$AIC_weight <- exp(-0.5 * comparison_df$delta_AIC) /
+      sum(exp(-0.5 * comparison_df$delta_AIC))
+
+    # Sort by AIC
+    comparison_df <- comparison_df[order(comparison_df$AIC), ]
+
+    # Create rankings
+    rankings <- data.frame(
+      Rank = 1:nrow(comparison_df),
+      By_AIC = comparison_df$Model[order(comparison_df$AIC)],
+      AIC_value = sort(comparison_df$AIC),
+      By_BIC = comparison_df$Model[order(comparison_df$BIC)],
+      BIC_value = sort(comparison_df$BIC),
+      By_LogLik = comparison_df$Model[order(comparison_df$LogLik, decreasing = TRUE)],
+      LogLik_value = sort(comparison_df$LogLik, decreasing = TRUE)
+    )
+
+    results$comparison$table <- comparison_df
+    results$rankings <- rankings
+
+    # Determine best models
+    best_aic <- comparison_df$Model[which.min(comparison_df$AIC)]
+    best_bic <- comparison_df$Model[which.min(comparison_df$BIC)]
+
+    results$comparison$best_aic <- best_aic
+    results$comparison$best_bic <- best_bic
+
+    # Evidence strength for top model
+    if(nrow(comparison_df) > 1) {
+      delta_second_best <- sort(comparison_df$delta_AIC)[2]
+      weight_top_model <- comparison_df$AIC_weight[1]
+
+      if(delta_second_best < 2) {
+        evidence_strength <- "No clear winner"
+        evidence_detail <- "Multiple models have similar support"
+      } else if(delta_second_best < 4) {
+        evidence_strength <- "Weak evidence"
+        evidence_detail <- paste0("Top model has ", round(weight_top_model * 100, 1), "% of AIC weight")
+      } else if(delta_second_best < 7) {
+        evidence_strength <- "Moderate evidence"
+        evidence_detail <- paste0("Top model has ", round(weight_top_model * 100, 1), "% of AIC weight")
+      } else if(delta_second_best < 10) {
+        evidence_strength <- "Strong evidence"
+        evidence_detail <- paste0("Top model has ", round(weight_top_model * 100, 1), "% of AIC weight")
+      } else {
+        evidence_strength <- "Very strong evidence"
+        evidence_detail <- paste0("Top model has ", round(weight_top_model * 100, 1), "% of AIC weight")
+      }
+
+      results$comparison$evidence_strength <- evidence_strength
+      results$comparison$evidence_detail <- evidence_detail
+    }
+
+    # Model selection recommendation
+    if(best_aic == best_bic) {
+      results$best_model <- best_aic
+      results$recommendation <- paste0(
+        "Clear winner: ", best_aic, " (best by both AIC and BIC)\n",
+        "  Evidence: ", evidence_strength, " - ", evidence_detail
+      )
+    } else {
+      # Check if AIC winner has strong support
+      aic_winner_weight <- comparison_df$AIC_weight[comparison_df$Model == best_aic]
+      if(aic_winner_weight > 0.9) {
+        results$best_model <- best_aic
+        results$recommendation <- paste0(
+          "Recommended: ", best_aic, " (overwhelming AIC support: ",
+          round(aic_winner_weight * 100, 1), "%)\n",
+          "  Note: BIC prefers ", best_bic, " but AIC evidence is very strong"
+        )
+      } else if(aic_winner_weight > 0.7) {
+        results$best_model <- best_aic
+        results$recommendation <- paste0(
+          "Recommended: ", best_aic, " (strong AIC support: ",
+          round(aic_winner_weight * 100, 1), "%)\n",
+          "  Note: BIC prefers ", best_bic
+        )
+      } else {
+        results$best_model <- best_aic
+        results$recommendation <- paste0(
+          "Mixed results: AIC prefers ", best_aic,
+          " (", round(aic_winner_weight * 100, 1), "% weight)",
+          ", BIC prefers ", best_bic, "\n",
+          "  Consider model assumptions and purpose of analysis"
+        )
+      }
+    }
+
+  } else if(n_converged == 1) {
+    results$best_model <- model_names[which(convergence_summary$Converged)]
+    results$recommendation <- paste0(results$best_model, " (only converged model)")
+  } else {
+    results$best_model <- NA
+    results$recommendation <- "No models converged successfully"
+  }
+
+  # ---- PRINT OUTPUT ----
+  if(verbose) {
+    cat("\n", paste(rep("=", 70), collapse = ""), "\n")
+    cat(" MULTIPLE SURVIVAL REGRESSION MODEL COMPARISON\n")
+    cat(paste(rep("=", 70), collapse = ""), "\n")
+
+    # Convergence summary
+    cat("\nCONVERGENCE SUMMARY (", n_converged, "/", n_models, " converged):\n")
+    cat(paste(rep("-", 50), collapse = ""), "\n")
+
+    for(i in 1:nrow(convergence_summary)) {
+      cat("\n", convergence_summary$Model[i],
+          " (", models[[i]]$dist, "):\n", sep = "")
+      cat("  Status: ", ifelse(convergence_summary$Converged[i],
+                               "✓ Converged", "✗ Failed"), "\n")
+      if(!convergence_summary$Converged[i] && convergence_summary$Issues[i] != "") {
+        cat("  Issues: ", convergence_summary$Issues[i], "\n")
+      }
+      if(convergence_summary$Converged[i]) {
+        cat("  Iterations: ", convergence_summary$Iterations[i], "\n")
+        cat("  Log-likelihood: ", round(convergence_summary$LogLik[i], 3), "\n")
+        cat("  Scale parameter: ", round(convergence_summary$Scale[i], 4), "\n")
+      }
+    }
+
+    # Model comparison
+    if(n_converged >= 2) {
+      cat("\nMODEL COMPARISON TABLE:\n")
+      cat(paste(rep("-", 50), collapse = ""), "\n")
+      # Print key columns with nice formatting
+      print_df <- results$comparison$table[, c("Model", "AIC", "delta_AIC",
+                                               "AIC_weight", "BIC", "delta_BIC")]
+      print_df$AIC <- round(print_df$AIC, 2)
+      print_df$delta_AIC <- round(print_df$delta_AIC, 2)
+      print_df$AIC_weight <- round(print_df$AIC_weight, 3)
+      print_df$BIC <- round(print_df$BIC, 2)
+      print_df$delta_BIC <- round(print_df$delta_BIC, 2)
+      print(print_df, row.names = FALSE)
+
+      cat("\nMODEL RANKINGS:\n")
+      cat(paste(rep("-", 50), collapse = ""), "\n")
+      cat("By AIC: ", paste(rankings$By_AIC, collapse = " > "), "\n")
+      cat("By BIC: ", paste(rankings$By_BIC, collapse = " > "), "\n")
+
+      if(exists("evidence_strength")) {
+        cat("\nEVIDENCE ASSESSMENT:\n")
+        cat(paste(rep("-", 50), collapse = ""), "\n")
+        cat("  Strength: ", evidence_strength, "\n")
+        cat("  Details: ", evidence_detail, "\n")
+      }
+    }
+
+    cat("\nFINAL RECOMMENDATION:\n")
+    cat(paste(rep("-", 50), collapse = ""), "\n")
+    cat(" ", results$recommendation, "\n")
+    cat(paste(rep("=", 70), collapse = ""), "\n\n")
+  }
+
+  class(results) <- c("multi_survreg_comparison", "list")
+  invisible(results)
+}
+
+#' Get Best Model from Comparison
+#'
+#' Extracts the best fitting model from a comparison result
+#'
+#' @param comparison_result Output from compare_survreg_models or compare_multiple_survreg
+#'
+#' @return The best fitting survreg model object, or NULL if none could be determined
+#' @export
+#'
+get_best_survreg <- function(comparison_result) {
+  if(!inherits(comparison_result, c("multi_survreg_comparison", "survreg_comparison"))) {
+    stop("Input must be output from model comparison function")
+  }
+
+  if(is.na(comparison_result$best_model)) {
+    warning("No best model could be determined")
+    return(NULL)
+  }
+
+  return(comparison_result$models[[comparison_result$best_model]])
+}
+
+#' Print method for survreg_comparison objects
+#'
+#' @param x A survreg_comparison object
+#' @param ... Additional arguments (not used)
+#'
+#' @return Invisibly returns the input object
+#' @exportS3Method
+#'
+print.multi_survreg_comparison <- function(x, ...) {
+  cat("\nMultiple Survival Model Comparison (", x$n_models, " models)\n", sep = "")
+  cat("Models compared: ", paste(x$model_names, collapse = ", "), "\n")
+  cat("Models converged: ", sum(x$convergence_summary$Converged), "/", x$n_models, "\n")
+  if(!is.na(x$best_model)) {
+    cat("Best model: ", x$best_model, "\n")
+  }
+  invisible(x)
+}

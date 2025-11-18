@@ -4,7 +4,7 @@
 \alias{process_factor_vars}
 \title{Process Factor Variables with Largest Value as Reference}
 \usage{
-process_factor_vars(df_work, data, factor_vars)
+process_factor_vars(df_work, data, factor_vars, marker = "z_")
 }
 \description{
 Process Factor Variables with Largest Value as Reference

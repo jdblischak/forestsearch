@@ -154,8 +154,17 @@ simulate_from_dgm <- function(dgm,
     lin_pred_cens <- ifelse(df_sim$treat_sim == 1,
                             df_sim$lin_pred_cens_1,
                             df_sim$lin_pred_cens_0)
+    epsilon_cens <- log(rexp(n))  # Extreme value distribution
+    logC_sim <- params$censoring$mu + cens_adjust +
+      params$censoring$tau * epsilon_cens + lin_pred_cens
+    C_sim <- exp(logC_sim)
 
-    epsilon_cens <- log(rexp(n))
+  } else if (params$censoring$type == "lognormal") {
+    # Lognormal censoring
+    lin_pred_cens <- ifelse(df_sim$treat_sim == 1,
+                            df_sim$lin_pred_cens_1,
+                            df_sim$lin_pred_cens_0)
+    epsilon_cens <- rnorm(n)  # Normal errors for lognormal
     logC_sim <- params$censoring$mu + cens_adjust +
       params$censoring$tau * epsilon_cens + lin_pred_cens
     C_sim <- exp(logC_sim)
