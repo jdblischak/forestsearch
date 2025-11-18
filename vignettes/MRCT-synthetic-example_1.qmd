@@ -386,7 +386,6 @@ $$\hbox{CDE}(z^{+}):= \bar\theta^{1}(z+)/\bar\theta^{0}(z+), \quad \hbox{and} \q
 ```{r}
 # Outcome model is NON-stratified (strata_tte=NULL)
 # PH 
-
 # Create AP region flag
 df.case$AP <- df.case$region_asia
 
