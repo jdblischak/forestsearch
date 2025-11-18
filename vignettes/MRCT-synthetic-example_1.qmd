@@ -220,7 +220,7 @@ dfc <- df_counting(
   treat.name = "treat"
 )
 
-plot_weighted_km(dfc, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
+plot_weighted_km(dfc, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05, xmed.fraction = 0.875, ymed.offset = 0.125)
 
 ```
 

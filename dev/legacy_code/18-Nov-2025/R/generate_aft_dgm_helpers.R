@@ -66,13 +66,13 @@ prepare_working_dataset <- function(data, outcome_var, event_var, treatment_var,
                                   verbose)
 
   if(!is.null(continuous_vars_cens)){
-    df_work <- process_continuous_vars(df_work, data, continuous_vars_cens,
-                                       standardize, marker ="zcens_")
+  df_work <- process_continuous_vars(df_work, data, continuous_vars_cens,
+                                     standardize, marker ="zcens_")
   }
 
   if(!is.null(factor_vars_cens)){
-    df_work <- process_factor_vars(df_work, data, factor_vars_cens, marker = "zcens_")
-  }
+  df_work <- process_factor_vars(df_work, data, factor_vars_cens, marker = "zcens_")
+ }
 
   return(df_work)
 }
@@ -727,36 +727,36 @@ prepare_censoring_model <- function(df_work, cens_type, cens_params,
 
   cens_model <- NULL
 
-  if(cens_type != "uniform"){
+if(cens_type != "uniform"){
     covariate_cols <- grep("^zcens_", names(df_work), value = TRUE)
 
     if(length(covariate_cols) >= 1){
-      X_cens <- as.matrix(df_work[, c("treat", covariate_cols)])
+    X_cens <- as.matrix(df_work[, c("treat", covariate_cols)])
     } else {
-      X_cens <- as.matrix(df_work[, c("treat")])
+    X_cens <- as.matrix(df_work[, c("treat")])
     }
 
-    fit_cens1 <- survreg(Surv(y, 1 - event) ~ X_cens,
-                         data = df_work, dist = "weibull")
+      fit_cens1 <- survreg(Surv(y, 1 - event) ~ X_cens,
+                        data = df_work, dist = "weibull")
 
 
-    fit_cens2 <- survreg(Surv(y, 1 - event) ~ X_cens,
-                         data = df_work, dist = "lognormal")
+      fit_cens2 <- survreg(Surv(y, 1 - event) ~ X_cens,
+                           data = df_work, dist = "lognormal")
 
-    fit_cens3 <- survreg(Surv(y, 1 - event) ~ 1,
-                         data = df_work, dist = "weibull")
-
-
-    fit_cens4 <- survreg(Surv(y, 1 - event) ~ 1,
-                         data = df_work, dist = "lognormal")
+      fit_cens3 <- survreg(Surv(y, 1 - event) ~ 1,
+                           data = df_work, dist = "weibull")
 
 
-    # Compare all 4 models
-    comparison <- compare_multiple_survreg(
-      fit_cens1, fit_cens2, fit_cens3, fit_cens4,
-      model_names = c("Weibull", "LogNormal", "Weibull0", "LogNormal0"),
-      verbose = TRUE
-    )
+      fit_cens4 <- survreg(Surv(y, 1 - event) ~ 1,
+                           data = df_work, dist = "lognormal")
+
+
+      # Compare all 4 models
+      comparison <- compare_multiple_survreg(
+        fit_cens1, fit_cens2, fit_cens3, fit_cens4,
+        model_names = c("Weibull", "LogNormal", "Weibull0", "LogNormal0"),
+        verbose = TRUE
+      )
 
     # Get the best model
     fit_cens <- get_best_survreg(comparison)
