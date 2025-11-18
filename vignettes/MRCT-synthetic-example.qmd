@@ -480,10 +480,11 @@ df_example <- simulate_from_dgm(
   dgm = dgm_spline, 
   n = 500, 
   rand_ratio = 1, 
-  draw_treatment = TRUE, 
+  draw_treatment = FALSE,
+  entry_var = "entrytime",
   max_follow = 100, 
   cens_adjust = -3.5,
-  seed = 12345
+  seed = 123456
 )
 
 # ITT
