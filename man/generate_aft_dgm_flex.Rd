@@ -8,6 +8,8 @@ generate_aft_dgm_flex(
   data,
   continuous_vars,
   factor_vars,
+  continuous_vars_cens = NULL,
+  factor_vars_cens = NULL,
   set_beta_spec = list(set_var = NULL, beta_var = NULL),
   outcome_var,
   event_var,

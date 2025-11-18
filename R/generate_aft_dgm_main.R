@@ -211,6 +211,8 @@
 generate_aft_dgm_flex <- function(data,
                                   continuous_vars,
                                   factor_vars,
+                                  continuous_vars_cens = NULL,
+                                  factor_vars_cens = NULL,
                                   set_beta_spec = list(set_var = NULL, beta_var = NULL),
                                   outcome_var,
                                   event_var,
@@ -243,7 +245,7 @@ generate_aft_dgm_flex <- function(data,
   # ============================================================================
   df_work <- prepare_working_dataset(data, outcome_var, event_var,
                                      treatment_var, continuous_vars,
-                                     factor_vars, standardize, verbose)
+                                     factor_vars, standardize, continuous_vars_cens, factor_vars_cens, verbose)
 
   # ============================================================================
   # Step 3: Define Subgroups with Flexible Cutpoints
@@ -290,8 +292,7 @@ generate_aft_dgm_flex <- function(data,
   # Step 7: Prepare Censoring Parameters
   # ============================================================================
   cens_result <- prepare_censoring_model(df_work, cens_type, cens_params,
-                                         df_super, gamma, b0, spline_info,
-                                         verbose = FALSE)
+                                         df_super)
   cens_model <- cens_result$cens_model
   df_super <- cens_result$df_super
 

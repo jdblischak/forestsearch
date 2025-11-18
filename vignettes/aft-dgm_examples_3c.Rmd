@@ -184,8 +184,8 @@ df_gbsg$tte <- with(gbsg, rfstime/30.4375)
 # Find k_inter for HR_harm = 2.0
 result <- forestsearch::find_k_inter_for_target_hr(
   target_hr_harm = 2.0,
-  data = gbsg,
-  outcome_var = "rfstime",
+  data = df_gbsg,
+  outcome_var = "tte",
   event_var = "status",
   treatment_var = "hormon",
   continuous_vars = c("age", "er", "pgr"),
@@ -209,6 +209,30 @@ calibration_results <- data.frame(
 kable(calibration_results, 
       col.names = c("Target HR", "Optimal k_inter", "Achieved HR", "Error")) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
+
+
+
+# Single-factor subgroup (er <= 1)
+
+result <- forestsearch::find_k_inter_for_target_hr(
+  target_hr_harm = 2.0,
+  data = df_gbsg,
+  outcome_var = "tte",
+  event_var = "status",
+  treatment_var = "hormon",
+  continuous_vars = c("age", "er", "pgr"),
+  factor_vars = c("meno", "grade"),
+  subgroup_vars = c("er"),
+  subgroup_cuts = list(
+  er = list(type = "custom",
+    fun = function(x) x <= 1)
+  ),
+  k_treat = 1.0,
+  verbose = TRUE
+)
+
+
+
 ```
 
 ## Sensitivity Analysis

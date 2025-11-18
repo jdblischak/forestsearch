@@ -4,7 +4,13 @@
 \alias{process_continuous_vars}
 \title{Process Continuous Variables}
 \usage{
-process_continuous_vars(df_work, data, continuous_vars, standardize)
+process_continuous_vars(
+  df_work,
+  data,
+  continuous_vars,
+  standardize,
+  marker = "z_"
+)
 }
 \description{
 Process Continuous Variables

@@ -4,16 +4,7 @@
 \alias{prepare_censoring_model}
 \title{Prepare Censoring Model Parameters}
 \usage{
-prepare_censoring_model(
-  df_work,
-  cens_type,
-  cens_params,
-  df_super,
-  gamma,
-  b0,
-  spline_info = NULL,
-  verbose
-)
+prepare_censoring_model(df_work, cens_type, cens_params, df_super)
 }
 \description{
 Prepare Censoring Model Parameters

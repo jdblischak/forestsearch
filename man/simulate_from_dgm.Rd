@@ -8,7 +8,9 @@ simulate_from_dgm(
   dgm,
   n = NULL,
   rand_ratio = 1,
-  max_follow = Inf,
+  entry_var = NULL,
+  max_entry = 24,
+  analysis_time = 48,
   cens_adjust = 0,
   draw_treatment = TRUE,
   seed = NULL
@@ -24,9 +26,6 @@ entire super population}
 \item{rand_ratio}{Numeric specifying the randomization ratio (treatment:control).
 Default is 1 (1:1 allocation)}
 
-\item{max_follow}{Numeric specifying maximum follow-up time for administrative
-censoring. Default is Inf (no administrative censoring)}
-
 \item{cens_adjust}{Numeric adjustment to censoring distribution on log scale.
 Positive values increase censoring, negative values decrease it. Default is 0}
 
@@ -35,6 +34,9 @@ If TRUE (default), reassigns treatment according to rand_ratio. If FALSE,
 keeps original treatment assignments from super population}
 
 \item{seed}{Integer random seed for reproducibility. Default is NULL (no seed set)}
+
+\item{max_follow}{Numeric specifying maximum follow-up time for administrative
+censoring. Default is Inf (no administrative censoring)}
 }
 \value{
 A data.frame containing simulated survival data with columns:
