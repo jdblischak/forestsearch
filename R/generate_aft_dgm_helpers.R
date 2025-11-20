@@ -170,11 +170,6 @@ add_unprocessed_vars <- function(df_work, data, outcome_var, event_var,
         df_work[[var]] <- data[[var]]
       }
     }
-
-    if (verbose) {
-      cat("\nAdded", length(unprocessed), "unprocessed variables:",
-          paste(unprocessed, collapse = ", "), "\n")
-    }
   }
 
   return(df_work)
@@ -1173,7 +1168,8 @@ compare_multiple_survreg <- function(...,
   # ---- PRINT OUTPUT ----
   if(verbose) {
     cat("\n", paste(rep("=", 70), collapse = ""), "\n")
-    cat(" MULTIPLE SURVIVAL REGRESSION MODEL COMPARISON\n")
+    cat(" CENSORING MODEL SELECTION:\n")
+    cat(" MULTIPLE SURVIVAL REGRESSION MODEL COMPARISONS\n")
     cat(paste(rep("=", 70), collapse = ""), "\n")
 
     # Convergence summary

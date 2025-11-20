@@ -413,7 +413,7 @@ filter_call_args <- function(source_args, target_func, override_args = NULL) {
 #'
 #' @importFrom gt gt fmt_number tab_header tab_spanner tab_source_note md
 #' @export
-sg_tables <- function(fs,
+sg_tables_legacy <- function(fs,
                       which_df = "est",
                       est_caption = "Training data estimates",
                       potentialOutcome.name = NULL,
@@ -638,5 +638,266 @@ sg_tables <- function(fs,
   return(result)
 }
 
+#' Enhanced Subgroup Summary Tables (gt output)
+#'
+#' Returns formatted summary tables for subgroups using the gt package,
+#' with search metadata and customizable decimal precision.
+#'
+#' @param fs ForestSearch results object.
+#' @param which_df Character. Which data frame to use ("est" or "testing").
+#' @param est_caption Character. Caption for estimates table.
+#' @param potentialOutcome.name Character. Name of potential outcome variable (optional).
+#' @param hr_1a Character. Adjusted HR for subgroup 1 (optional).
+#' @param hr_0a Character. Adjusted HR for subgroup 0 (optional).
+#' @param ndecimals Integer. Number of decimals for formatted numbers (default: 3).
+#' @param include_search_info Logical. Include search metadata table (default: TRUE).
+#' @param font_size Numeric. Font size in pixels for table text (default: 12).
+#'
+#' @return List with gt tables for estimates, subgroups, and optionally search info.
+#'
+#' @importFrom gt gt fmt_number tab_header tab_spanner tab_source_note tab_options md px
+#' @export
+sg_tables <- function(fs,
+                      which_df = "est",
+                      est_caption = "Training data estimates",
+                      potentialOutcome.name = NULL,
+                      hr_1a = NA,
+                      hr_0a = NA,
+                      ndecimals = 3,
+                      include_search_info = TRUE,
+                      font_size = 12) {
+
+  if (!requireNamespace("gt", quietly = TRUE)) {
+    stop("Package 'gt' required.")
+  }
+
+  # Select appropriate dataframe
+  if (which_df == "est") df <- fs$df.est
+  if (which_df == "testing") df <- fs$df.test
+
+  args_fs <- fs$args_call_all
+
+  # Prepare arguments for SG_tab_estimates
+  args_tab_filtered <- filter_call_args(
+    args_fs,
+    SG_tab_estimates,
+    list(
+      df = df,
+      sg0_name = "Questionable",
+      sg1_name = "Recommend",
+      hr_1a = hr_1a,
+      hr_0a = hr_0a
+    )
+  )
+
+  # =========================================================================
+  # TABLE 1: ITT AND SUBGROUP ESTIMATES
+  # =========================================================================
+
+  # ITT estimates
+  args_tab_filtered$SG_flag <- "ITT"
+  aa <- do.call(SG_tab_estimates, args_tab_filtered)
+
+  # Subgroup estimates
+  args_tab_filtered$SG_flag <- "treat.recommend"
+  bb <- do.call(SG_tab_estimates, args_tab_filtered)
+
+  tab_est <- as.data.frame(rbind(aa, bb))
+
+  tab_estimates <- gt::gt(tab_est, auto_align = TRUE) |>
+    gt::tab_header(
+      title = gt::md("**Treatment Effect Estimates**"),
+      subtitle = est_caption
+    ) |>
+    gt::tab_options(
+      table.font.size = gt::px(font_size),
+      heading.title.font.size = gt::px(font_size + 2),
+      heading.subtitle.font.size = gt::px(font_size),
+      column_labels.font.size = gt::px(font_size)
+    )
+
+  # =========================================================================
+  # TABLE 2: IDENTIFIED SUBGROUPS (WITH EXPERIMENTAL ARM EVENTS)
+  # =========================================================================
+
+  # Extract from single out_sg object based on sg_focus
+  if (!is.null(fs$grp.consistency) && !is.null(fs$grp.consistency$out_sg)) {
+    sg10 <- as.data.frame(fs$grp.consistency$out_sg$result)
+  } else {
+    warning("No subgroup results found in fs$grp.consistency$out_sg")
+    return(list(tab_estimates = tab_estimates, sg10_out = NULL))
+  }
+
+  # NEW: Calculate experimental arm events (d1) for each subgroup
+  outcome.name <- args_fs$outcome.name
+  event.name <- args_fs$event.name
+  treat.name <- args_fs$treat.name
+
+  # Get d1 for each subgroup in sg10
+  sg10$d1 <- NA
+
+  for (i in 1:nrow(sg10)) {
+    # Get the subgroup ID
+    sg_id <- sg10[i, "g"]
+
+    # Look up d1 from the original search results
+    if (!is.null(fs$find.grps$out.found$hr.subgroups)) {
+      hr_sub <- fs$find.grps$out.found$hr.subgroups
+      matching_row <- which(hr_sub$grp == sg_id)
+      if (length(matching_row) > 0) {
+        sg10$d1[i] <- hr_sub$d1[matching_row[1]]
+      }
+    }
+  }
+
+  # Format based on maxk
+  if (args_fs$maxk == 1) {
+    sg10 <- sg10[, c("M.1", "N", "E", "d1", "hr", "Pcons")]
+
+    if (args_fs$est.scale == "1/hr") {
+      sg10$hr <- 1 / sg10$hr
+    }
+
+    sg10_out <- sg10 |>
+      gt::gt() |>
+      gt::fmt_number(columns = c("hr", "Pcons"), decimals = ndecimals) |>
+      gt::fmt_number(columns = c("N", "E", "d1"), decimals = 0) |>
+      gt::tab_header(
+        title = gt::md("**Identified Subgroups**"),
+        subtitle = "Single-factor subgroups (maxk=1)"
+      ) |>
+      gt::cols_label(
+        M.1 = "Factor",
+        N = "N",
+        E = "Events",
+        d1 = "E₁",
+        hr = "HR",
+        Pcons = gt::md("P<sub>cons</sub>")
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size),
+        heading.title.font.size = gt::px(font_size + 2),
+        heading.subtitle.font.size = gt::px(font_size),
+        column_labels.font.size = gt::px(font_size),
+        source_notes.font.size = gt::px(font_size - 1)
+      )
+
+  } else if (args_fs$maxk == 2) {
+    sg10 <- sg10[, c("M.1", "M.2", "N", "E", "d1", "hr", "Pcons")]
+
+    if (args_fs$est.scale == "1/hr") {
+      sg10$hr <- 1 / sg10$hr
+    }
+
+    sg10_out <- sg10 |>
+      gt::gt() |>
+      gt::fmt_number(columns = c("hr", "Pcons"), decimals = ndecimals) |>
+      gt::fmt_number(columns = c("N", "E", "d1"), decimals = 0) |>
+      gt::tab_header(
+        title = gt::md("**Identified Subgroups**"),
+        subtitle = "Two-factor subgroups (maxk=2)"
+      ) |>
+      gt::cols_label(
+        M.1 = "Factor 1",
+        M.2 = "Factor 2",
+        N = "N",
+        E = "Events",
+        d1 = "E₁",
+        hr = "HR",
+        Pcons = gt::md("P<sub>cons</sub>")
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size),
+        heading.title.font.size = gt::px(font_size + 2),
+        heading.subtitle.font.size = gt::px(font_size),
+        column_labels.font.size = gt::px(font_size),
+        source_notes.font.size = gt::px(font_size - 1)
+      )
+
+  } else if (args_fs$maxk == 3) {
+    sg10 <- sg10[, c("M.1", "M.2", "M.3", "N", "E", "d1", "hr", "Pcons")]
+
+    if (args_fs$est.scale == "1/hr") {
+      sg10$hr <- 1 / sg10$hr
+    }
+
+    sg10_out <- sg10 |>
+      gt::gt() |>
+      gt::fmt_number(columns = c("hr", "Pcons"), decimals = ndecimals) |>
+      gt::fmt_number(columns = c("N", "E", "d1"), decimals = 0) |>
+      gt::tab_header(
+        title = gt::md("**Identified Subgroups**"),
+        subtitle = "Three-factor subgroups (maxk=3)"
+      ) |>
+      gt::cols_label(
+        M.1 = "Factor 1",
+        M.2 = "Factor 2",
+        M.3 = "Factor 3",
+        N = "N",
+        E = "Events",
+        d1 = "E₁",
+        hr = "HR",
+        Pcons = gt::md("P<sub>cons</sub>")
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size),
+        heading.title.font.size = gt::px(font_size + 2),
+        heading.subtitle.font.size = gt::px(font_size),
+        column_labels.font.size = gt::px(font_size),
+        source_notes.font.size = gt::px(font_size - 1)
+      )
+  }
+
+  # =========================================================================
+  # ADD SEARCH METADATA AS FOOTNOTES TO sg10_out
+  # =========================================================================
+
+  if (include_search_info && !is.null(fs$find.grps)) {
+    # Extract search metadata
+    L <- fs$find.grps$L
+    max_count <- fs$find.grps$max_count
+    maxk <- args_fs$maxk
+    n_candidates <- nrow(fs$find.grps$out.found$hr.subgroups)
+    max_sg_est <- fs$find.grps$max_sg_est
+
+    # Add search metadata as source notes
+    sg10_out <- sg10_out |>
+      gt::tab_source_note(
+        source_note = gt::md(
+          paste0(
+            "**Search Configuration:** ",
+            "Single-factor candidates (L) = ", L, "; ",
+            "Maximum combinations evaluated = ", format(max_count, big.mark = ","), "; ",
+            "Search depth (maxk) = ", maxk
+          )
+        )
+      ) |>
+      gt::tab_source_note(
+        source_note = gt::md(
+          paste0(
+            "**Search Results:** ",
+            "Candidate subgroups found = ", n_candidates, "; ",
+            "Maximum HR estimate = ", round(max_sg_est, 2)
+          )
+        )
+      ) |>
+      gt::tab_source_note(
+        source_note = gt::md(
+          "**Note:** E₁ = events in treatment arm; P<sub>cons</sub> = consistency proportion"
+        )
+      )
+  }
+
+  # =========================================================================
+  # RETURN ALL TABLES
+  # =========================================================================
+
+  result <- list(
+    tab_estimates = tab_estimates,
+    sg10_out = sg10_out
+  )
+
+  return(result)
+}
 
 
