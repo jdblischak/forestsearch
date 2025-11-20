@@ -311,19 +311,6 @@ $\beta^{0}[1] = \psi^{0}(0)$, $\beta^{0}[3] = (\psi^{0}(k) - \beta^{0}[1])/k$, a
 - For simulations we use the AFT parameterization (3) to generate $\log(T)$ outcomes according to $\log(T) = \log(\theta^{0}) + L'\gamma^{0} + \tau^{0}\epsilon$ where recall $\epsilon$ has the ``extreme value'' distribution.
 
 
-The inputs of the *get_dgm_stratified* function are: 
-
-- The case-study dataset ("df")
-- "knot"=$k$, "zeta"=$\zeta$, and "log.hrs"= ($\psi^{0}(0),\psi^{0}(k),\psi^{0}(\zeta))$
-- Note that *get_dgm_stratified* allows for outcomes to follow a stratified Weibull (Cox) models in which case the log(hazard-ratio) effects will depend on the strata, "strata_tte", where the default is non-stratified ("strata_tte=NULL")
-- If stratified the $\tau$ parameters and hence $\gamma^{0}$ depend on the strata
-- If stratified, then to simplify, the $\gamma^{0}$ effects are calculated based on the median of the $\tau^{0}$'s ($\tau^{0}=\tau_{med}$, say).  
-
-
-
-To-do --> explain outputs and how used in *draw_sim_stratified* ...
-
-
 ## Example where treatment effects increase with increasing biomarker 
 
 We assume that $z=0$ indicates biomarker negative values with $z>1$ indicating positive levels.  As an example, suppose the log(hazard ratio) at
@@ -378,9 +365,323 @@ Averaging across hazard ratios:  Define the hazard (omitting baseline hazard) $\
 $$\hbox{CDE}(z^{+}):= \bar\theta^{1}(z+)/\bar\theta^{0}(z+), \quad \hbox{and} \quad \hbox{CDE}(z^{-}):= \bar\theta^{1}(z-)/\bar\theta^{0}(z-)$$
 
 
-## Compare 'AHR' versions under various biomarker specifications 
+### Overview
 
-### Under PH (uniform effects, hr=0.7), with strong prognostic effect $\beta_{w}= -\log(5)$
+The `generate_aft_dgm_flex()` function creates a flexible data generating mechanism (DGM) for survival data that can incorporate complex, non-linear covariate effects through spline specifications. This is particularly useful for simulating realistic clinical trial scenarios where biomarker effects vary across their range.
+
+### Example: Creating a Spline-Based DGM
+
+In this example, we create a DGM where the effect of a biomarker (`bm`) varies non-linearly, exhibiting different hazard ratios across three segments of the biomarker distribution.
+```{r create-dgm-spline}
+dgm_spline <- generate_aft_dgm_flex(
+  data = df.case,
+  
+  # Main effects: continuous and factor variables
+  # NOTE that ALL variables in the outcome model will have a "z_" prefix attached
+  continuous_vars = c("age", "bm"),
+  factor_vars = c("male", "histology", "prior_treat", "AP"),
+  
+  # Force specific coefficient for AP variable
+  set_beta_spec = list(
+    set_var = c("z_AP"),
+    beta_var = -log(5)  # HR = 0.2 (strong protective effect)
+  ),
+  
+  # Censoring mechanism covariates
+  # NOTE that ALL variables in the censoring model will have a "zcens_" prefix attached
+  # See notes below on how the censoring model is selected
+  continuous_vars_cens = c("age"),
+  factor_vars_cens = c("prior_treat"),
+  cens_type = "weibull",
+  
+  # Outcome specification
+  outcome_var = "tte",
+  event_var = "event",
+  treatment_var = "treat",
+  
+  # No subgroup-specific effects
+  subgroup_vars = NULL,
+  subgroup_cuts = NULL,
+  k_inter = 0.0,
+  
+  # Alternative AFT model formulation
+  model = "alt",
+  
+  # Spline specification for non-linear biomarker effect
+  spline_spec = list(
+    var = "z_bm",                    # Variable with non-linear effect
+    knot = 5,                        # Spline knot position
+    zeta = 10,                       # Transition smoothness parameter
+    log_hrs = log(c(2, 1.25, 0.5))  # Hazard ratios for three segments
+  ),
+  
+  verbose = TRUE,
+  standardize = FALSE #default
+)
+```
+
+
+### Notes
+
+- The `z_` prefix in variable names (e.g., `z_bm`, `z_AP`) indicates the original variables that are true factors in the outcome model when standardize=false (if true then the variables
+are standardized prior to estimation)
+- Setting `k_inter = 0.0` turns off any treatment-subgroup interaction effects unless the spline model is implemented
+- The `verbose = TRUE` option provides detailed output during DGM creation
+- The `model = "alt"` specifies whether the true outcome model has heterogeneous treatment effects (HTEs)
+
+For the **censoring distribution** with `cens_type ="weibull"`, `continuous_vars_cens = c("age")`, and 
+`factor_vars_cens = c("prior_treat")` four censoring models will be estimated using weibull and log-normal distributions including treatment with 
+the specified variables as well as no covariates.  That is, if a weibull model without covariate adjustment is found to provide a better fit (per AIC/BIC) 
+then this will be selected. NOTE that the censoring distribution is completely independent of the outcome model and so this aspect does not depend on how 
+the survival times are generated.
+  
+
+#### Examine beta = log(hr) parameters
+
+Verify that the effect for "z_AP" is set to the specified value (Notice the "z_" prefixes)
+
+Note that treatment effects with interactions (e.g., spline and/or subgroups) are interpreted below.
+
+```{r}
+library(dplyr)
+b0_coefs <- dgm_spline$model_params$b0
+
+coef_df <- data.frame(
+  Coefficient = names(b0_coefs),
+  Value = as.numeric(b0_coefs),
+  HR = exp(as.numeric(b0_coefs))
+) %>%
+  mutate(
+    Type = case_when(
+      grepl("^treat", Coefficient) ~ "Treatment Effects",
+      grepl("^z_bm", Coefficient) ~ "Biomarker (Spline)",
+      grepl("^z_", Coefficient) ~ "Baseline Covariates",
+      TRUE ~ "Other"
+    )
+  )
+
+coef_table_grouped <- coef_df %>%
+  arrange(Type, Coefficient) %>%
+  gt(groupname_col = "Type") %>%
+  fmt_number(
+    columns = c(Value, HR),
+    decimals = 4
+  ) %>%
+  tab_header(
+    title = "AFT Model Coefficients by Type",
+    subtitle = "Weibull Parameterization (b0) with Hazard Ratios"
+  ) %>%
+  cols_label(
+    Coefficient = "Variable",
+    Value = "b0 Coefficient",
+    HR = "Hazard Ratio"
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_style(
+    style = cell_text(style = "italic"),
+    locations = cells_row_groups()
+  )
+
+coef_table_grouped
+
+
+cat("AP region parmeter = -log(5)?", c(dgm_spline$model_params$b0["z_AP"],-log(5)),"\n")
+```
+
+
+
+
+### Understanding the Spline Specification
+
+The `spline_spec` parameter creates a **three-segment piecewise effect** for the biomarker:
+
+- **Segment 1** (low biomarker values): HR = 2.0 (harmful effect)
+- **Segment 2** (intermediate values): HR = 1.25 (modest harmful effect)  
+- **Segment 3** (high biomarker values): HR = 0.5 (protective effect)
+
+The transition between segments occurs smoothly around `knot = 5`, with the degree of smoothness controlled by `zeta = 10`. Higher values of `zeta` create sharper transitions between segments.
+
+See log(hazard-ratio) plot below.
+
+
+View the censoring parameters:  Using this case example the best fitting censoring model is a common censoring (weibull with NO covariates).   If the selected model included 
+covariates then these would show up with "zcens_" prefixes attached.   If `cens_type="uniform"` then a uniform model is implemented.   
+
+```{r}
+dgm_spline$model_params$censoring
+```
+
+
+### What is Created
+
+The `dgm_spline` object contains:
+
+1. **Linear coefficients** for all specified covariates (age, male, histology, prior_treat, AP)
+2. **Spline parameters** defining the non-linear effect of the biomarker
+3. **Censoring distribution parameters** (Weibull/lognormal with specified covariates, or uniform)
+4. **Model structure** ready for use with `simulate_from_dgm()`
+
+**Causal log-hazard-ratio**
+
+Recall, the log(hazard-ratio) for biomarker level $z$ `="z_bm"` is a linear function of $z$ with a change-point (in slope) at $z=k$ given by 
+
+\begin{eqnarray*}
+\psi^{0}(z) &=& \beta^{0}_{1} + \beta^{0}_{3}z, \quad \hbox{for} \ z \leq k, \cr
+            &=& \beta^{0}_{1} + \beta^{0}_{3}z + \beta^{0}_{5}(z-k), \quad \hbox{for} \ z > k.
+\end{eqnarray*}
+
+Log hazard-ratio parameters $(\beta^{0}_{1},\beta^{0}_{3},\beta^{0}_{5})$ can be chosen to generate "treatment effect patterns" by specifying $\psi^{0}(z)$ values at 
+$z=0$, $z=k$, and $z=\zeta$ for $\zeta > k$.  For specified $\psi^{0}(0)$, $\psi^{0}(k)$, and $\psi^{0}(\zeta)$ we have 
+
+\begin{eqnarray}
+\beta^{0}_{1} &=& \psi^{0}(0), \cr
+\beta^{0}_{3} &=& {(\psi^{0}(k) - \beta^{0}_{1}) \over k}, \cr
+\beta^{0}_{5} &=& {(\psi^{0}(\zeta) - \beta^{0}_{1} - \beta^{0}_{3}\zeta) \over (\zeta -k)}.
+\end{eqnarray}
+
+In the above table $\beta^{0}_{1}$ corresponds to `treat`, $\beta^{0}_{2}$ to `z_bm`, $\beta^{0}_{3}$ to `z_bm_treat`, $\beta^{0}_{4}$ to `z_bm_k`, 
+and $\beta^{0}_{5}$ to `z_bm_k_treat`.
+
+Note that defining $m(1,z)$ [$m(0,z)$)] as the conditional expected value of $\log(T)$ with treatment set to experimental [control] given biomarker level $Z=z$  
+
+$$\psi^{0}(z) = \{m(0,z)-m(1,z)\}/\tau$$
+\noindent
+which corresponds to the difference in the (true) means of the potential outcomes under experimental and control conditions ($\log(T[0,z]$ versus $\log(T[1,z]$, say). 
+
+
+The **super-population** dataset `dgm_spline$df_super`:
+
+Note that in `df_super`: 
+- `lin_pred_1` = $m(1,z)/\tau$, 
+- `lin_pred_0` = $m(0,z)/\tau$, and 
+- `loghr_po` = $\psi^{0}(z) = {m(0,z) - m(1,z)}/\tau$ 
+
+
+```{r}
+# Note that here flag_harm is not relevant because of the spline specification and definition of "harm" depends on degree
+# In discussion below we describe how to specify thresholds of "harm" corresponding to biomarker effects
+superpopln_tab <- create_baseline_table(data=dgm_spline$df_super, treat_var="treat", 
+                                      vars_continuous=c("z_age","z_bm","entrytime","lin_pred_1","lin_pred_0","loghr_po"),
+                                      vars_categorical=c("z_male","z_histology","z_prior_treat","z_AP","ecog","strat","region_other","flag_harm"))
+
+superpopln_tab
+
+```
+
+
+
+
+
+### Simulating Data from the DGM
+
+Once created, the DGM can be used to generate synthetic datasets:
+```{r simulate-from-dgm, eval=FALSE}
+# Generate a dataset with n=500 subjects:
+# Randomized 1:1 (rand_ratio=1);
+# Retain the original treatment assignment in df.case (draw_treatment=FALSE)
+# Note that draw_treatment=TRUE will draw randomized treatment assignments
+# Use observed entry times per df.case if provided (entry_var = entrytime);
+# Otherwise entry times are simulated as uniform(0, max_entry)
+# Entry times are then incorporated in administrative censoring at the time 
+# of analysis (eg., analysis_time = 60);
+# That is, subjects with entrytime > analysis_time are not available
+# and follow-up is "60 - entrytime" for each subjects entrytime value
+# The cens_adjust argument allows for increasing or decreasing the mean of 
+# the censoring distribution in order to reduce or increase the censoring rate
+sim_data <- simulate_from_dgm(
+  dgm = dgm_spline,
+  n = 500,
+  rand_ratio = 1, 
+  draw_treatment = FALSE,
+  entry_var = "entrytime",
+  analysis_time = 60,
+  cens_adjust = 0,
+  seed = 12345
+)
+
+# Examine the simulated data structure
+head(sim_data)
+```
+```{r}
+# Note that y_sim, treat_sim, and event_sim are the outcomes, treatment, and events for the simulated data  
+# t_true are the uncensored outcomes, and c_time are the uncensored (not censored by outcomes) censoring times
+# Of course in reality t_true and c_time are not observable
+simdata_tab <- create_baseline_table(data = sim_data, treat_var="treat_sim", 
+                                      vars_continuous=c("y_sim","t_true","c_time","z_age","z_bm","entrytime","lin_pred_1","lin_pred_0","loghr_po"),
+                                      vars_categorical=c("event_sim","z_male","z_histology","z_prior_treat","z_AP","ecog","strat","region_other","flag_harm"))
+
+simdata_tab
+
+```
+
+
+### Visualizing the Non-Linear Effect
+
+The non-linear effect of the biomarker can be visualized by plotting the log hazard ratio across the range of biomarker values:
+
+```{r plot-spline-effect,  fig.width = 7, fig.height = 5}
+# Plot the spline effect
+plot_spline_treatment_effect(dgm_spline)
+```
+
+A *more detailed* look at the spline causal effects: AHR, and CDEs
+
+
+
+```{r, fig.width = 10, fig.height = 7}
+
+# hr_threshold = 1.25 specifies finding the biomarker level such that the AHR (loghr_po) is above 1.25
+
+results <- cox_ahr_cde_analysis(
+   df = df_large,
+   tte_name = "y_sim", event_name = "event_sim", treat_name = "treat_sim", 
+   z_name = "z_bm",
+   hr_threshold = 1.25,
+   plot_style = "grid"
+ )
+
+
+
+```
+
+```{r}
+ res <-results$subgroup_stats
+ cut_hr <- results$optimal_cutpoint
+
+res %>%
+  gt() %>%
+  tab_header(
+    title = "Subgroup Statistics"
+  ) %>%
+  tab_source_note(
+    source_note = md(paste0("*HR threshold biomarker cutpoint: ", 
+                            round(cut_hr, 3), "*"))
+  ) %>%
+  # Format first 3 columns with 0 decimals
+  fmt_number(
+    columns = 1:4,
+    decimals = 0
+  ) %>%
+  # Format remaining numeric columns with 3 decimals
+  fmt_number(
+    columns = -c(1:4),
+    decimals = 3
+  ) %>%
+  tab_style(
+    style = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+  tab_options(
+    table.font.size = px(12)
+  )
+
+```
+
+
+
 
 
 ```{r}
@@ -416,28 +717,6 @@ dgm_spline <- generate_aft_dgm_flex(
 )
 
 
-# dgm_spline <- generate_aft_dgm_flex(
-#   data = df.case,
-#   continuous_vars = c("bm"),
-#   factor_vars = c("AP"),
-#   set_beta_spec = list(set_var = c("z_AP"), beta_var = -log(4)),
-#   outcome_var = "tte",
-#   event_var = "event",
-#   treatment_var = "treat",
-#   subgroup_vars = NULL, 
-#   subgroup_cuts = NULL,
-#   model = "alt",
-#   spline_spec = list(
-#     var = "z_bm",  # Use original variable name (or "z_er" if transformed)
-#     knot = 2,
-#     zeta = 5,
-#     log_hrs = log(c(2.5, 1.0, 0.5))  # HR varies with ER
-#   ),
-#   k_inter = 0.0,  # Amplify or turn-off (=0) subgroup per subgroup_vars effect?
-#   verbose = TRUE
-# )
-
-
 # Examine beta = log(hr) parameters
 
 dgm_spline$model_params$b0
@@ -447,18 +726,34 @@ cat("AP region parmeter = -log(5)?", c(dgm_spline$model_params$b0["z_AP"],-log(5
 ```
 
 
-```{r,  fig.width = 8, fig.height = 5}
-# Plot the spline effect
-plot_spline_treatment_effect(dgm_spline)
-```
 
 
 
 ```{r,  fig.width=12, fig.height=10}
 
+# Large sample approximation
+df_large <- simulate_from_dgm(
+  dgm = dgm_spline, 
+  n = 5000, 
+  rand_ratio = 1, 
+  draw_treatment = FALSE,
+  entry_var = "entrytime",
+  analysis_time = 60,
+  cens_adjust = 0,
+  seed = 12345
+)
+
+
+baseline_tab <- create_baseline_table(data=df_large, treat_var="treat_sim", 
+                                      vars_continuous=c("z_age","z_bm","entrytime","lin_pred_1","lin_pred_0","loghr_po"),
+                                      vars_categorical=c("z_male","z_histology","z_prior_treat","z_AP","flag_harm"))
+
+baseline_tab
+
+
  results <- cox_ahr_cde_analysis(
-   df = dgm_spline$df_super,
-   tte_name = "y", event_name = "event", treat_name = "treat", 
+   df = df_large,
+   tte_name = "y_sim", event_name = "event_sim", treat_name = "treat_sim", 
    z_name = "z_bm",
    hr_threshold = 0.9,
    plot_style = "grid"
@@ -466,6 +761,7 @@ plot_spline_treatment_effect(dgm_spline)
 
  # Access specific results
  print(results$subgroup_stats)
+ 
  print(results$optimal_cutpoint)
 
 ```
@@ -645,9 +941,137 @@ res_tabs$tab_estimates
 
 ```
 
+```{r fs-null, echo=TRUE, message=FALSE, warning=TRUE, fig.width = 10, fig.height = 8, eval = TRUE}
+
+dgm_spline_null <- generate_aft_dgm_flex(
+  data = df.case,
+  continuous_vars = c("age", "bm"),
+  factor_vars = c("male", "histology", "prior_treat","AP"),
+  set_beta_spec = list(set_var = c("z_AP"), beta_var = -log(5)),
+  continuous_vars_cens = c("age"),
+  factor_vars_cens = c("prior_treat"),
+  outcome_var = "tte",
+  event_var = "event",
+  treatment_var = "treat",
+  cens_type = "weibull",
+  subgroup_vars = NULL,
+  subgroup_cuts = NULL,
+  model = "alt",
+  spline_spec = list(
+    var = "z_bm",  # Use original variable name (or "z_er" if transformed)
+    knot = 5,
+    zeta = 10,
+    log_hrs = log(c(0.7, 0.7, 0.7))  # HR varies with ER
+  ),
+  k_inter = 0.0,  # Amplify or turn-off (=0) subgroup per subgroup_vars effect?
+  verbose = TRUE
+)
+
+```
+
+```{r,  fig.width=12, fig.height=10}
+
+ results <- cox_ahr_cde_analysis(
+   df = dgm_spline_null$df_super,
+   tte_name = "y", event_name = "event", treat_name = "treat", 
+   z_name = "z_bm",
+   hr_threshold = 0.9,
+   plot_style = "grid"
+ )
+```
 
 
-```{r fs2, echo=TRUE, message=FALSE, warning=TRUE, fig.width = 10, fig.height = 8, eval = TRUE}
+```{r, fig.width=10, fig.height=8}
+
+# Simulate data
+
+# cens_adjust  - 3.5
+
+df_example <- simulate_from_dgm(
+  dgm = dgm_spline_null, 
+  n = 500, 
+  rand_ratio = 1, 
+  draw_treatment = FALSE,
+  entry_var = "entrytime",
+  analysis_time = 60,
+  cens_adjust = 0,
+  seed = 12345
+)
+
+dim(df_example)
+with(df_example,sum(event_sim))
+
+
+
+# ITT
+dfc <- df_counting(
+  df = df_example,
+  by.risk = 6,
+  tte.name = "y_sim", 
+  event.name = "event_sim", 
+  treat.name = "treat_sim"
+)
+
+# No censoring
+# Except by max_follow
+
+df_example$t_true <- pmin(df_example$t_true, 100)
+
+df_example$event_mod <- ifelse(df_example$t_true <= 100,1,0)
+
+dfideal <- df_counting(
+  df = df_example,
+  by.risk = 6,
+  tte.name = "t_true", 
+  event.name = "event_mod", 
+  treat.name = "treat_sim"
+)
+
+
+df_nonAP <- subset(df_example, z_AP == 0)
+df_AP <- subset(df_example, z_AP == 1)
+
+
+# non-AP
+dfc0 <- df_counting(
+  df = df_nonAP,
+  by.risk = 6,
+  tte.name = "y_sim", 
+  event.name = "event_sim", 
+  treat.name = "treat_sim"
+)
+
+# AP
+dfc1 <- df_counting(
+  df = df_AP,
+  by.risk = 6,
+  tte.name = "y_sim", 
+  event.name = "event_sim", 
+  treat.name = "treat_sim"
+)
+
+
+par(mfrow=c(2,2))
+
+plot_weighted_km(dfideal, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.75, ymed.offset = 0.15)
+title("ITT no censoring (through 100 months)")
+
+plot_weighted_km(dfc, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.75, ymed.offset = 0.15)
+title("ITT censored")
+
+plot_weighted_km(dfc0, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.725, ymed.offset = 0.15)
+title("non-AP")
+
+plot_weighted_km(dfc1, conf.int = FALSE, show.logrank = TRUE, ymax = 1.1, xmed.fraction = 0.725, ymed.offset = 0.15)
+title("AP")
+
+
+```
+
+```{r fs-null, echo=TRUE, message=FALSE, warning=TRUE, fig.width = 10, fig.height = 8, eval = TRUE}
+
+
+
 
 confounders.name <- c("z_age","z_bm","z_male","ecog","z_histology","z_prior_treat","strat")
 

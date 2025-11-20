@@ -230,7 +230,7 @@ generate_aft_dgm_flex <- function(data,
                                   verbose = TRUE,
                                   standardize = FALSE,
                                   spline_spec = NULL) {
-
+ if(standardize) message("Standardizing continuous covariates, take care interpreting predictive effects (especially spline)")
   # Set seed for reproducibility
   set.seed(seed)
 
@@ -244,8 +244,8 @@ generate_aft_dgm_flex <- function(data,
   # Step 2: Data Preparation
   # ============================================================================
   df_work <- prepare_working_dataset(data, outcome_var, event_var,
-                                     treatment_var, continuous_vars,
-                                     factor_vars, standardize, continuous_vars_cens, factor_vars_cens, verbose)
+  treatment_var, continuous_vars, factor_vars, standardize,
+  continuous_vars_cens, factor_vars_cens, verbose)
 
   # ============================================================================
   # Step 3: Define Subgroups with Flexible Cutpoints
