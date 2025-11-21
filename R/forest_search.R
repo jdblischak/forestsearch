@@ -171,14 +171,6 @@
 #'   )
 #' })
 #'
-#' # Compare selected subgroups
-#' comparison <- data.frame(
-#'   sg_focus = sg_options,
-#'   N = sapply(sensitivity_results, function(x) x$sg.harm$N),
-#'   HR = sapply(sensitivity_results, function(x) x$sg.harm$hr),
-#'   Pcons = sapply(sensitivity_results, function(x) x$sg.harm$Pcons)
-#' )
-#' print(comparison)
 #' }
 #'
 #' @references
@@ -614,6 +606,7 @@ forestsearch <- function(df.analysis,
   }
   return(out)
 }
+
 
 
 
