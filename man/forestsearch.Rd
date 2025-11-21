@@ -294,7 +294,7 @@ treatment effects using random forests. JASA.
 }
 \seealso{
 \code{\link{subgroup.consistency}} for consistency evaluation details
-\code{\link{bootstrap_forestsearch}} for bootstrap inference
-\code{\link{summarize_forestsearch}} for results visualization
-\code{\link{plot.forestsearch}} for graphical displays
+\code{\link{forestsearch_bootstrap_dofuture}} for bootstrap inference
+\code{\link{sg_tables}} for results tabulation
+\code{\link{plot_subgroup}} for graphical displays
 }

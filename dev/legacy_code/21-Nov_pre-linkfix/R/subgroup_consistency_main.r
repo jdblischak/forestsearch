@@ -627,6 +627,82 @@ subgroup.consistency <- function(df, hr.subgroups,
     stop("Error converting result columns to numeric: ", e$message)
   })
 
+  # =========================================================================
+  # SECTION 10: GENERATE OUTPUTS (UNCHANGED FROM ORIGINAL)
+  # =========================================================================
+
+  # out_hr <- out_maxSG <- out_minSG <- NULL
+  # df_flag <- sg.harm <- sg.harm.id <- NULL
+  #
+  # if (any.found > 0) {
+  #   result_new <- data.table::copy(res)
+  #
+  #   # Generate outputs for different sg_focus values
+  #   sgdetails <- ifelse(plot.sg && sg_focus == "hr", TRUE, FALSE)
+  #   out_hr <- tryCatch({
+  #     sg_consistency_out(df = df, result_new = result_new, sg_focus = "hr",
+  #                       details = sgdetails, plot.sg = sgdetails, index.Z = index.Z,
+  #                       names.Z = names.Z, by.risk = by.risk, confs_labels = confs_labels)
+  #   }, error = function(e) {
+  #     warning("Error in sg_consistency_out for 'hr': ", e$message)
+  #     NULL
+  #   })
+  #
+  #   sgdetails <- ifelse(plot.sg && sg_focus %in% c("hrMaxSG", "maxSG"), TRUE, FALSE)
+  #   out_maxSG <- tryCatch({
+  #     sg_consistency_out(df = df, result_new = result_new, sg_focus = "maxSG",
+  #                       details = sgdetails, plot.sg = sgdetails, index.Z = index.Z,
+  #                       names.Z = names.Z, by.risk = by.risk, confs_labels = confs_labels)
+  #   }, error = function(e) {
+  #     warning("Error in sg_consistency_out for 'maxSG': ", e$message)
+  #     NULL
+  #   })
+  #
+  #   sgdetails <- ifelse(plot.sg && sg_focus %in% c("hrMinSG", "minSG"), TRUE, FALSE)
+  #   out_minSG <- tryCatch({
+  #     sg_consistency_out(df = df, result_new = result_new, sg_focus = "minSG",
+  #                       details = sgdetails, plot.sg = sgdetails, index.Z = index.Z,
+  #                       names.Z = names.Z, by.risk = by.risk, confs_labels = confs_labels)
+  #   }, error = function(e) {
+  #     warning("Error in sg_consistency_out for 'minSG': ", e$message)
+  #     NULL
+  #   })
+  #
+  #   # Map sg_focus to output
+  #   sg_map <- list(
+  #     hr = out_hr,
+  #     hrMaxSG = out_maxSG,
+  #     maxSG = out_maxSG,
+  #     hrMinSG = out_minSG,
+  #     minSG = out_minSG
+  #   )
+  #
+  #   if (!sg_focus %in% names(sg_map)) {
+  #     stop(sprintf("Unknown sg_focus value: %s", sg_focus))
+  #   }
+  #
+  #   sg_obj <- sg_map[[sg_focus]]
+  #
+  #   if (is.null(sg_obj)) {
+  #     warning("No valid output for sg_focus='", sg_focus, "'")
+  #     df_flag <- NULL
+  #     sg.harm <- NULL
+  #     sg.harm.id <- NULL
+  #   } else {
+  #     required_fields <- c("df_flag", "sg.harm_label", "sg.harm.id")
+  #     missing_fields <- setdiff(required_fields, names(sg_obj))
+  #     if (length(missing_fields) > 0) {
+  #       stop("sg_consistency_out result missing fields: ",
+  #            paste(missing_fields, collapse = ", "))
+  #     }
+  #
+  #     df_flag <- sg_obj$df_flag
+  #     sg.harm <- sg_obj$sg.harm_label
+  #     sg.harm.id <- sg_obj$sg.harm.id
+  #   }
+  #
+  #   if (details) cat("SG focus=", sg_focus, "\n")
+  # }
 
 
   # =========================================================================

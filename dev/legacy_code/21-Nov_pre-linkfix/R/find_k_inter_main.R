@@ -49,6 +49,8 @@
 #' function evaluates the boundaries and provides diagnostic information.
 #'
 #' @seealso
+#' \code{\link{find_k_inter_grid_search}} for grid search method
+#' \code{\link{find_k_inter_batch}} for processing multiple targets
 #' \code{\link{sensitivity_analysis_k_inter}} for sensitivity analysis
 #' \code{\link{generate_aft_dgm_flex}} for DGM generation
 #'
@@ -354,82 +356,3 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
   class(results) <- c("k_inter_sensitivity", "data.frame")
   return(results)
 }
-
-#' Find Quantile for Target Subgroup Proportion
-#'
-#' Determines the quantile cutpoint that achieves a target proportion of
-#' observations in a subgroup. Useful for calibrating subgroup sizes.
-#'
-#' @param data A data.frame containing the variable of interest
-#' @param var_name Character string specifying the variable name to analyze
-#' @param target_prop Numeric value between 0 and 1 specifying the target
-#'   proportion of observations to be included in the subgroup
-#' @param direction Character string: "less" for values <= cutpoint (default),
-#'   "greater" for values > cutpoint
-#' @param tol Numeric tolerance for root finding algorithm. Default is 0.0001
-#'
-#' @return A list containing:
-#' \describe{
-#'   \item{quantile}{The quantile value (between 0 and 1) that achieves the
-#'     target proportion}
-#'   \item{cutpoint}{The actual data value corresponding to this quantile}
-#'   \item{actual_proportion}{The achieved proportion (should equal target_prop
-#'     within tolerance)}
-#' }
-#'
-#' @details
-#' This function uses root finding (\code{uniroot}) to determine the quantile
-#' that results in exactly the target proportion of observations being classified
-#' into the subgroup. This is particularly useful when you want to ensure a
-#' specific subgroup size regardless of the data distribution.
-#'
-#' @examples
-#' \dontrun{
-#' library(survival)
-#' data(cancer)
-#'
-#' # Find ER cutpoint for 12.5% subgroup
-#' result <- find_quantile_for_proportion(
-#'   data = gbsg,
-#'   var_name = "er",
-#'   target_prop = 0.125,
-#'   direction = "less"
-#' )
-#'
-#' print(result)
-#' # Use in subgroup definition
-#' subgroup_cuts = list(
-#'   er = list(type = "quantile", value = result$quantile)
-#' )
-#' }
-#'
-#' @seealso \code{\link{generate_aft_dgm_flex}}
-#' @export
-#' @importFrom stats quantile uniroot
-
-find_quantile_for_proportion <- function(data, var_name, target_prop,
-                                         direction = "less", tol = 0.0001) {
-
-  var_data <- data[[var_name]]
-
-  # Objective function
-  obj_fun <- function(q) {
-    cutpoint <- quantile(var_data, probs = q, na.rm = TRUE)
-    if (direction == "less") {
-      actual_prop <- mean(var_data <= cutpoint, na.rm = TRUE)
-    } else {
-      actual_prop <- mean(var_data > cutpoint, na.rm = TRUE)
-    }
-    return(actual_prop - target_prop)
-  }
-
-  # Find root
-  result <- uniroot(obj_fun, interval = c(0, 1), tol = tol)
-
-  return(list(
-    quantile = result$root,
-    cutpoint = quantile(var_data, probs = result$root, na.rm = TRUE),
-    actual_proportion = target_prop
-  ))
-}
-

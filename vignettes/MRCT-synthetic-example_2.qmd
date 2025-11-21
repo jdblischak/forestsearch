@@ -30,9 +30,7 @@ knitr::opts_chunk$set(
   fig.align = 'center',
   fig.retina = 2
 )
-
 rm(list=ls())
-
 library(tinytex)
 library(ggplot2)
 library(table1)

@@ -114,8 +114,6 @@ cat("Achieved HR:", result$achieved_hr_harm, "\n")
 
 }
 \seealso{
-\code{\link{find_k_inter_grid_search}} for grid search method
-\code{\link{find_k_inter_batch}} for processing multiple targets
 \code{\link{sensitivity_analysis_k_inter}} for sensitivity analysis
 \code{\link{generate_aft_dgm_flex}} for DGM generation
 }
