@@ -4,6 +4,7 @@
 
 # List of files with non-ASCII characters (from R CMD check)
 files_to_fix <- c(
+  "R/bootstrap_summaries_helpers.R",
   "R/cox_ahr_cde_wrapper.R",
   "R/cox_spline_fit.R",
   "R/format_subgroup_summary_tables.R",
@@ -15,75 +16,75 @@ files_to_fix <- c(
 )
 
 fix_nonascii_in_file <- function(file_path) {
-
+  
   if (!file.exists(file_path)) {
     cat("File not found:", file_path, "\n")
     return(FALSE)
   }
-
+  
   cat("Processing:", file_path, "\n")
-
+  
   # Read file
   lines <- readLines(file_path, encoding = "UTF-8", warn = FALSE)
   original_lines <- lines
-
+  
   # Replace dagger symbols with Unicode escapes (for footnotes)
   lines <- gsub("\u2020", "\\\\u2020", lines)  # † (dagger)
   lines <- gsub("\u2021", "\\\\u2021", lines)  # ‡ (double dagger)
-
+  
   # Replace em dash with double hyphen
   lines <- gsub("\u2014", "--", lines)         # — (em dash)
   lines <- gsub("\u2013", "--", lines)         # – (en dash)
-
+  
   # Replace checkmark with Unicode escape
   lines <- gsub("\u2713", "\\\\u2713", lines)  # ✓ (checkmark)
-
+  
   # Replace warning symbol with Unicode escape
   lines <- gsub("\u26A0", "\\\\u26A0", lines)  # ⚠ (warning)
-
+  
   # Replace bullet with hyphen
   lines <- gsub("\u2022", "-", lines)          # • (bullet)
-
+  
   # Replace arrows with ASCII equivalents
   lines <- gsub("\u2192", "->", lines)         # → (right arrow)
   lines <- gsub("\u2190", "<-", lines)         # ← (left arrow)
-
+  
   # Replace comparison symbols with ASCII equivalents
   lines <- gsub("\u2265", ">=", lines)         # ≥ (greater than or equal)
   lines <- gsub("\u2264", "<=", lines)         # ≤ (less than or equal)
-
+  
   # Replace multiplication and division symbols
   lines <- gsub("\u00D7", "*", lines)          # × (multiplication)
   lines <- gsub("\u00F7", "/", lines)          # ÷ (division)
-
+  
   # Replace minus sign with hyphen
   lines <- gsub("\u2212", "-", lines)          # − (minus sign)
-
+  
   # Replace ellipsis with three periods
   lines <- gsub("\u2026", "...", lines)        # … (ellipsis)
-
+  
   # Replace smart quotes with straight quotes
   lines <- gsub("[\u201C\u201D]", '"', lines)  # " " (curly double quotes)
   lines <- gsub("[\u2018\u2019]", "'", lines)  # ' ' (curly single quotes)
-
+  
   # Check if any changes were made
   if (identical(lines, original_lines)) {
     cat("  No changes needed\n")
     return(TRUE)
   }
-
+  
   # Write back to file
   writeLines(lines, file_path, useBytes = TRUE)
-
+  
   # Verify no non-ASCII characters remain
   remaining <- grep("[^\x01-\x7F]", lines)
   if (length(remaining) > 0) {
-    cat("  WARNING: Still has non-ASCII characters on lines:",
+    cat("  WARNING: Still has non-ASCII characters on lines:", 
         paste(remaining, collapse = ", "), "\n")
     cat("  Run tools::showNonASCIIfile('", file_path, "') to investigate\n", sep = "")
     return(FALSE)
   }
-
+  
   cat("  Fixed successfully\n")
   return(TRUE)
 }

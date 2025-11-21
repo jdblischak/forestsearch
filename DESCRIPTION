@@ -29,6 +29,7 @@ Imports:
 Suggests: 
     DiagrammeR,
     patchwork,
+    tidyr
 URL: https://github.com/larry-leon/forestsearch
 BugReports: https://github.com/larry-leon/forestsearch/issues
 Remotes: 

@@ -34,6 +34,8 @@ usethis::use_package("patchwork", type = "Suggests")
 # DiagrammeR for grf graph
 usethis::use_package("DiagrammeR", type = "Suggests")
 
+usethis::use_package("tidyr", type = "Suggests")
+
 usethis::use_package("rlang")
 
 usethis::use_package("dplyr")
@@ -58,7 +60,7 @@ devtools::clean_dll()
 
 
 
-tools::showNonASCIIfile("~/Documents/GitHub/forestsearch/R/bootstrap_summaries_helpers.R")
+tools::showNonASCIIfile("~/Documents/GitHub/forestsearch/R/summary_utility_functions.R")
 
 
 
