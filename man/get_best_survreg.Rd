@@ -10,8 +10,11 @@ get_best_survreg(comparison_result)
 \item{comparison_result}{Output from compare_survreg_models or compare_multiple_survreg}
 }
 \value{
-The best fitting survreg model object, or NULL if none could be determined
+A survreg model object (defaults to Weibull0 model)
 }
 \description{
-Extracts the best fitting model from a comparison result
+Extracts the best fitting model object from a comparison result.
+If no single best model can be determined, returns the Weibull model if
+selected by either AIC or BIC. Defaults to Weibull0 model if no model
+can be determined.
 }

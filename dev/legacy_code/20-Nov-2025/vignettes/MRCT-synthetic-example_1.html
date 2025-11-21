@@ -2342,35 +2342,28 @@ window.Quarto = {
   <li><a href="#weibull-aftcox-model-with-biomarker-effects" id="toc-weibull-aftcox-model-with-biomarker-effects" class="nav-link" data-scroll-target="#weibull-aftcox-model-with-biomarker-effects"><span class="header-section-number">2</span> Weibull AFT/Cox model with biomarker effects</a>
   <ul class="collapse">
   <li><a href="#brief-review" id="toc-brief-review" class="nav-link" data-scroll-target="#brief-review"><span class="header-section-number">2.1</span> Brief Review</a></li>
+  <li><a href="#biomarker-effects-with-spline-model" id="toc-biomarker-effects-with-spline-model" class="nav-link" data-scroll-target="#biomarker-effects-with-spline-model"><span class="header-section-number">2.2</span> Biomarker effects with spline model</a></li>
+  <li><a href="#causal-log-hazard-ratio" id="toc-causal-log-hazard-ratio" class="nav-link" data-scroll-target="#causal-log-hazard-ratio"><span class="header-section-number">2.3</span> Causal log-hazard-ratio</a></li>
+  <li><a href="#example-where-treatment-effects-increase-with-increasing-biomarker" id="toc-example-where-treatment-effects-increase-with-increasing-biomarker" class="nav-link" data-scroll-target="#example-where-treatment-effects-increase-with-increasing-biomarker"><span class="header-section-number">2.4</span> Example where treatment effects increase with increasing biomarker</a></li>
+  <li><a href="#including-prognostic-factors-w" id="toc-including-prognostic-factors-w" class="nav-link" data-scroll-target="#including-prognostic-factors-w"><span class="header-section-number">2.5</span> Including prognostic factors <span class="math inline">\(W\)</span></a></li>
   </ul></li>
-  <li><a href="#case-study" id="toc-case-study" class="nav-link" data-scroll-target="#case-study"><span class="header-section-number">3</span> Case-study</a>
+  <li><a href="#specifying-biomarker-treatment-effects" id="toc-specifying-biomarker-treatment-effects" class="nav-link" data-scroll-target="#specifying-biomarker-treatment-effects"><span class="header-section-number">3</span> Specifying biomarker treatment effects</a>
   <ul class="collapse">
-  <li><a href="#kaplan-meier-curves-of-synthetic-dataset" id="toc-kaplan-meier-curves-of-synthetic-dataset" class="nav-link" data-scroll-target="#kaplan-meier-curves-of-synthetic-dataset"><span class="header-section-number">3.1</span> Kaplan-Meier curves of synthetic dataset</a>
+  <li><a href="#average-hazard-ratios-ahrs" id="toc-average-hazard-ratios-ahrs" class="nav-link" data-scroll-target="#average-hazard-ratios-ahrs"><span class="header-section-number">3.1</span> Average hazard ratios (AHRs)</a></li>
+  <li><a href="#controlled-direct-effect-cde-versions-acr_2015" id="toc-controlled-direct-effect-cde-versions-acr_2015" class="nav-link" data-scroll-target="#controlled-direct-effect-cde-versions-acr_2015"><span class="header-section-number">3.2</span> Controlled direct-effect (CDE) versions (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (2015)</span>)</a>
   <ul class="collapse">
-  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview"><span class="header-section-number">3.1.1</span> Overview</a></li>
-  <li><a href="#example-creating-a-spline-based-dgm" id="toc-example-creating-a-spline-based-dgm" class="nav-link" data-scroll-target="#example-creating-a-spline-based-dgm"><span class="header-section-number">3.1.2</span> Example: Creating a Spline-Based DGM</a></li>
-  <li><a href="#notes" id="toc-notes" class="nav-link" data-scroll-target="#notes"><span class="header-section-number">3.1.3</span> Notes</a></li>
-  <li><a href="#understanding-the-spline-specification" id="toc-understanding-the-spline-specification" class="nav-link" data-scroll-target="#understanding-the-spline-specification"><span class="header-section-number">3.1.4</span> Understanding the Spline Specification</a></li>
-  <li><a href="#what-is-created" id="toc-what-is-created" class="nav-link" data-scroll-target="#what-is-created"><span class="header-section-number">3.1.5</span> What is Created</a></li>
-  <li><a href="#simulating-data-from-the-dgm" id="toc-simulating-data-from-the-dgm" class="nav-link" data-scroll-target="#simulating-data-from-the-dgm"><span class="header-section-number">3.1.6</span> Simulating Data from the DGM</a></li>
-  <li><a href="#visualizing-the-non-linear-effect" id="toc-visualizing-the-non-linear-effect" class="nav-link" data-scroll-target="#visualizing-the-non-linear-effect"><span class="header-section-number">3.1.7</span> Visualizing the Non-Linear Effect</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview"><span class="header-section-number">3.2.1</span> Overview</a></li>
+  <li><a href="#example-creating-a-spline-based-dgm" id="toc-example-creating-a-spline-based-dgm" class="nav-link" data-scroll-target="#example-creating-a-spline-based-dgm"><span class="header-section-number">3.2.2</span> Example: Creating a Spline-Based DGM</a></li>
+  <li><a href="#notes" id="toc-notes" class="nav-link" data-scroll-target="#notes"><span class="header-section-number">3.2.3</span> Notes</a></li>
+  <li><a href="#understanding-the-spline-specification" id="toc-understanding-the-spline-specification" class="nav-link" data-scroll-target="#understanding-the-spline-specification"><span class="header-section-number">3.2.4</span> Understanding the Spline Specification</a></li>
+  <li><a href="#what-is-created" id="toc-what-is-created" class="nav-link" data-scroll-target="#what-is-created"><span class="header-section-number">3.2.5</span> What is Created</a></li>
+  <li><a href="#simulating-data-from-the-dgm" id="toc-simulating-data-from-the-dgm" class="nav-link" data-scroll-target="#simulating-data-from-the-dgm"><span class="header-section-number">3.2.6</span> Simulating Data from the DGM</a></li>
+  <li><a href="#visualizing-the-non-linear-effect" id="toc-visualizing-the-non-linear-effect" class="nav-link" data-scroll-target="#visualizing-the-non-linear-effect"><span class="header-section-number">3.2.7</span> Visualizing the Non-Linear Effect</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#subgroup-identification-criteria-options-for-targeting-subgroup-effects" id="toc-subgroup-identification-criteria-options-for-targeting-subgroup-effects" class="nav-link" data-scroll-target="#subgroup-identification-criteria-options-for-targeting-subgroup-effects"><span class="header-section-number">4</span> Subgroup identification criteria: Options for targeting subgroup effects</a>
   <ul class="collapse">
   <li><a href="#finding-non-ap-subgroup-with-highest-consistency-rate-in-favor-of-control" id="toc-finding-non-ap-subgroup-with-highest-consistency-rate-in-favor-of-control" class="nav-link" data-scroll-target="#finding-non-ap-subgroup-with-highest-consistency-rate-in-favor-of-control"><span class="header-section-number">4.1</span> Finding Non-AP subgroup with highest consistency rate (in favor of control)</a></li>
-  </ul></li>
-  <li><a href="#appendix" id="toc-appendix" class="nav-link" data-scroll-target="#appendix"><span class="header-section-number">5</span> Appendix</a>
-  <ul class="collapse">
-  <li><a href="#biomarker-effects-with-spline-model" id="toc-biomarker-effects-with-spline-model" class="nav-link" data-scroll-target="#biomarker-effects-with-spline-model"><span class="header-section-number">5.1</span> Biomarker effects with spline model</a></li>
-  <li><a href="#causal-log-hazard-ratio" id="toc-causal-log-hazard-ratio" class="nav-link" data-scroll-target="#causal-log-hazard-ratio"><span class="header-section-number">5.2</span> Causal log-hazard-ratio</a></li>
-  <li><a href="#example-where-treatment-effects-increase-with-increasing-biomarker" id="toc-example-where-treatment-effects-increase-with-increasing-biomarker" class="nav-link" data-scroll-target="#example-where-treatment-effects-increase-with-increasing-biomarker"><span class="header-section-number">5.3</span> Example where treatment effects increase with increasing biomarker</a></li>
-  <li><a href="#including-prognostic-factors-w" id="toc-including-prognostic-factors-w" class="nav-link" data-scroll-target="#including-prognostic-factors-w"><span class="header-section-number">5.4</span> Including prognostic factors <span class="math inline">\(W\)</span></a></li>
-  </ul></li>
-  <li><a href="#specifying-biomarker-treatment-effects" id="toc-specifying-biomarker-treatment-effects" class="nav-link" data-scroll-target="#specifying-biomarker-treatment-effects"><span class="header-section-number">6</span> Specifying biomarker treatment effects</a>
-  <ul class="collapse">
-  <li><a href="#average-hazard-ratios-ahrs" id="toc-average-hazard-ratios-ahrs" class="nav-link" data-scroll-target="#average-hazard-ratios-ahrs"><span class="header-section-number">6.1</span> Average hazard ratios (AHRs)</a></li>
-  <li><a href="#controlled-direct-effect-cde-versions-acr_2015" id="toc-controlled-direct-effect-cde-versions-acr_2015" class="nav-link" data-scroll-target="#controlled-direct-effect-cde-versions-acr_2015"><span class="header-section-number">6.2</span> Controlled direct-effect (CDE) versions (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (2015)</span>)</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -2526,39 +2519,36 @@ f(t) &amp;=&amp; \nu \theta^{-\nu}t^{\nu-1}\exp(-(t/\theta)^{\nu}), \cr F(t)
 \hat\beta = -\hat\gamma / \hat{\tau}.
 \end{equation}\]</span></p>
 <p>As an illustration we compare the <em>survReg</em> model fits for the case-study dataset. The following table below compares the Weibull <em>survReg</em> model fits with covariates Treat and Ecog1 (Ecog = 1 vs 0) where components of <span class="math inline">\(\hat\gamma\)</span> from model (3) are calculated according to <em>survReg</em> and <span class="math inline">\(\hat\beta\)</span> are formed via (4). In the table below Weibull estimates of <span class="math inline">\(\hat\beta\)</span> are compared to Cox model versions.</p>
-</section>
-</section>
-<section id="case-study" class="level1" data-number="3">
-<h1 data-number="3"><span class="header-section-number">3</span> Case-study</h1>
-<p>For illustration we use a synthetic case-study dataset that is based on a clinical trial with characteristics <code>perturbed</code> and masked.</p>
-<p>The case-study dataset will be the basis for simulating subgroup effects generated by either binary factors, continuous covariates (e.g., biomarkers), or a combination.</p>
-<p>This will serve as a framework for simulating from actual study data to evaluate operating characteristics of post-hoc analyses that may be conducted to understand <code>subgroup type</code> questions.</p>
-<p>The objectives here are to evaluate the potential for utilizing subgroup identification methods to identify subgroup with <code>enhanced benefit</code> to inform regional consistency objectives of MRCTs as described in the introduction.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># case-study example</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Draw sample from synthetic dataset (n=2,000)</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>dfsynth <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="st">&quot;data/dfsynthetic.csv&quot;</span>, <span class="at">header=</span><span class="cn">TRUE</span>, <span class="at">sep=</span><span class="st">&quot;,&quot;</span>)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>df.case <span class="ot">&lt;-</span> dfsynth</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Create &quot;Asia Pacific (AP)&quot; region flag variable</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>df.case<span class="sc">$</span>AP <span class="ot">&lt;-</span> df.case<span class="sc">$</span>region_asia</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Consider the &quot;full&quot; dataset </span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># will sample trials (eg, n=500) below</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>df.case <span class="ot">&lt;-</span> dfsynth</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create &quot;Asia Pacific (AP)&quot; region flag variable</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create AP region flag</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>df.case<span class="sc">$</span>AP <span class="ot">&lt;-</span> df.case<span class="sc">$</span>region_asia</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-<section id="kaplan-meier-curves-of-synthetic-dataset" class="level2" data-number="3.1">
-<h2 data-number="3.1" class="anchored" data-anchor-id="kaplan-meier-curves-of-synthetic-dataset"><span class="header-section-number">3.1</span> Kaplan-Meier curves of synthetic dataset</h2>
-<p>Note that the outcomes are representative of the trial data</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>dfcount <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df.case,</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;tte&quot;</span>, </span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event&quot;</span>, </span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat&quot;</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfcount, <span class="at">conf.int =</span> <span class="cn">TRUE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.05</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.775</span>, <span class="at">ymed.offset =</span> <span class="fl">0.125</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Original data</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>dfcount <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df.case,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;tte&quot;</span>, </span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event&quot;</span>, </span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat&quot;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfcount, <span class="at">conf.int =</span> <span class="cn">TRUE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.05</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.775</span>, <span class="at">ymed.offset =</span> <span class="fl">0.125</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -2568,53 +2558,48 @@ f(t) &amp;=&amp; \nu \theta^{-\nu}t^{\nu-1}\exp(-(t/\theta)^{\nu}), \cr F(t)
 </div>
 </div>
 </div>
-<p>Illustration of correspondence between Weibull model and Cox</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Comparing Weibull vs Cox with case-study </span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This is just for illustration to show conversion of Weibull parameters from </span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># AFT regression to Weibull hazard </span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>fit.weib_ex <span class="ot">&lt;-</span> <span class="fu">survreg</span>(<span class="fu">Surv</span>(tte,<span class="fu">pmax</span>(event,<span class="dv">1</span>)) <span class="sc">~</span> treat <span class="sc">+</span> ecog, <span class="at">dist=</span><span class="st">&#39;weibull&#39;</span>, <span class="at">data=</span>df.case)</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>tauhat <span class="ot">&lt;-</span> fit.weib_ex<span class="sc">$</span>scale</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># convert (treat,ecog1) regression parms to Weibull hazard-ratio</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>bhat.weib <span class="ot">&lt;-</span> <span class="sc">-</span>(<span class="dv">1</span>)<span class="sc">*</span><span class="fu">coef</span>(fit.weib_ex)[<span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>)]<span class="sc">/</span>tauhat</span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to Cox </span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>fit.cox_ex <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(tte,<span class="fu">pmax</span>(event,<span class="dv">1</span>)) <span class="sc">~</span> treat <span class="sc">+</span> ecog, <span class="at">data=</span>df.case)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">cbind</span>(bhat.weib,<span class="fu">coef</span>(fit.cox_ex))</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res)</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(res)<span class="ot">&lt;-</span><span class="fu">c</span>(<span class="st">&quot;Weibull&quot;</span>,<span class="st">&quot;Cox&quot;</span>)</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>res <span class="sc">|&gt;</span> <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="fu">fmt_number</span>(<span class="at">columns=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,<span class="at">decimals=</span><span class="dv">6</span>) <span class="sc">|&gt;</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="fu">tab_options</span>(</span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">table.font.size =</span> <span class="fu">px</span>(<span class="dv">12</span>)</span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="fu">tab_header</span>(<span class="at">title=</span><span class="st">&quot;Comparing Weibull to Cox hazard ratio estimates&quot;</span>,</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="at">subtitle=</span><span class="st">&quot;Case-study dataset with artificial outcomes&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Comparing Weibull vs Cox with case-study where outcomes are artifical</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># This is just for illustration to show conversion of Weibull parameters from </span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># AFT regression to Weibull hazard </span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fit.weib_ex <span class="ot">&lt;-</span> <span class="fu">survreg</span>(<span class="fu">Surv</span>(tte,<span class="fu">pmax</span>(event,<span class="dv">1</span>)) <span class="sc">~</span> treat <span class="sc">+</span> ecog, <span class="at">dist=</span><span class="st">&#39;weibull&#39;</span>, <span class="at">data=</span>df.case)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>tauhat <span class="ot">&lt;-</span> fit.weib_ex<span class="sc">$</span>scale</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># convert (treat,ecog1) regression parms to Weibull hazard-ratio</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>bhat.weib <span class="ot">&lt;-</span> <span class="sc">-</span>(<span class="dv">1</span>)<span class="sc">*</span><span class="fu">coef</span>(fit.weib_ex)[<span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">3</span>)]<span class="sc">/</span>tauhat</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Compare to Cox </span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>fit.cox_ex <span class="ot">&lt;-</span> <span class="fu">coxph</span>(<span class="fu">Surv</span>(tte,<span class="fu">pmax</span>(event,<span class="dv">1</span>)) <span class="sc">~</span> treat <span class="sc">+</span> ecog, <span class="at">data=</span>df.case)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">cbind</span>(bhat.weib,<span class="fu">coef</span>(fit.cox_ex))</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(res)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(res)<span class="ot">&lt;-</span><span class="fu">c</span>(<span class="st">&quot;Weibull&quot;</span>,<span class="st">&quot;Cox&quot;</span>)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>res <span class="sc">|&gt;</span> <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="fu">fmt_number</span>(<span class="at">columns=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>,<span class="at">decimals=</span><span class="dv">6</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="fu">tab_header</span>(<span class="at">title=</span><span class="st">&quot;Comparing Weibull to Cox hazard ratio estimates&quot;</span>,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="at">subtitle=</span><span class="st">&quot;Case-study dataset with artificial outcomes&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
-<div id="oowdjvojfa" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#oowdjvojfa table {
+<div id="vkoidcnjgx" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#vkoidcnjgx table {
 font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 -webkit-font-smoothing: antialiased;
 -moz-osx-font-smoothing: grayscale;
 }
-#oowdjvojfa thead, #oowdjvojfa tbody, #oowdjvojfa tfoot, #oowdjvojfa tr, #oowdjvojfa td, #oowdjvojfa th {
+#vkoidcnjgx thead, #vkoidcnjgx tbody, #vkoidcnjgx tfoot, #vkoidcnjgx tr, #vkoidcnjgx td, #vkoidcnjgx th {
 border-style: none;
 }
-#oowdjvojfa p {
+#vkoidcnjgx p {
 margin: 0;
 padding: 0;
 }
-#oowdjvojfa .gt_table {
+#vkoidcnjgx .gt_table {
 display: table;
 border-collapse: collapse;
 line-height: normal;
 margin-left: auto;
 margin-right: auto;
 color: #333333;
-font-size: 12px;
+font-size: 16px;
 font-weight: normal;
 font-style: normal;
 background-color: #FFFFFF;
@@ -2632,11 +2617,11 @@ border-left-style: none;
 border-left-width: 2px;
 border-left-color: #D3D3D3;
 }
-#oowdjvojfa .gt_caption {
+#vkoidcnjgx .gt_caption {
 padding-top: 4px;
 padding-bottom: 4px;
 }
-#oowdjvojfa .gt_title {
+#vkoidcnjgx .gt_title {
 color: #333333;
 font-size: 125%;
 font-weight: initial;
@@ -2647,7 +2632,7 @@ padding-right: 5px;
 border-bottom-color: #FFFFFF;
 border-bottom-width: 0;
 }
-#oowdjvojfa .gt_subtitle {
+#vkoidcnjgx .gt_subtitle {
 color: #333333;
 font-size: 85%;
 font-weight: initial;
@@ -2658,7 +2643,7 @@ padding-right: 5px;
 border-top-color: #FFFFFF;
 border-top-width: 0;
 }
-#oowdjvojfa .gt_heading {
+#vkoidcnjgx .gt_heading {
 background-color: #FFFFFF;
 text-align: center;
 border-bottom-color: #FFFFFF;
@@ -2669,12 +2654,12 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#oowdjvojfa .gt_bottom_border {
+#vkoidcnjgx .gt_bottom_border {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#oowdjvojfa .gt_col_headings {
+#vkoidcnjgx .gt_col_headings {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -2688,7 +2673,7 @@ border-right-style: none;
 border-right-width: 1px;
 border-right-color: #D3D3D3;
 }
-#oowdjvojfa .gt_col_heading {
+#vkoidcnjgx .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2707,7 +2692,7 @@ padding-left: 5px;
 padding-right: 5px;
 overflow-x: hidden;
 }
-#oowdjvojfa .gt_column_spanner_outer {
+#vkoidcnjgx .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2718,13 +2703,13 @@ padding-bottom: 0;
 padding-left: 4px;
 padding-right: 4px;
 }
-#oowdjvojfa .gt_column_spanner_outer:first-child {
+#vkoidcnjgx .gt_column_spanner_outer:first-child {
 padding-left: 0;
 }
-#oowdjvojfa .gt_column_spanner_outer:last-child {
+#vkoidcnjgx .gt_column_spanner_outer:last-child {
 padding-right: 0;
 }
-#oowdjvojfa .gt_column_spanner {
+#vkoidcnjgx .gt_column_spanner {
 border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
@@ -2735,10 +2720,10 @@ overflow-x: hidden;
 display: inline-block;
 width: 100%;
 }
-#oowdjvojfa .gt_spanner_row {
+#vkoidcnjgx .gt_spanner_row {
 border-bottom-style: hidden;
 }
-#oowdjvojfa .gt_group_heading {
+#vkoidcnjgx .gt_group_heading {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2763,7 +2748,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 text-align: left;
 }
-#oowdjvojfa .gt_empty_group_heading {
+#vkoidcnjgx .gt_empty_group_heading {
 padding: 0.5px;
 color: #333333;
 background-color: #FFFFFF;
@@ -2777,13 +2762,13 @@ border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 vertical-align: middle;
 }
-#oowdjvojfa .gt_from_md > :first-child {
+#vkoidcnjgx .gt_from_md > :first-child {
 margin-top: 0;
 }
-#oowdjvojfa .gt_from_md > :last-child {
+#vkoidcnjgx .gt_from_md > :last-child {
 margin-bottom: 0;
 }
-#oowdjvojfa .gt_row {
+#vkoidcnjgx .gt_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2801,7 +2786,7 @@ border-right-color: #D3D3D3;
 vertical-align: middle;
 overflow-x: hidden;
 }
-#oowdjvojfa .gt_stub {
+#vkoidcnjgx .gt_stub {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2813,7 +2798,7 @@ border-right-color: #D3D3D3;
 padding-left: 5px;
 padding-right: 5px;
 }
-#oowdjvojfa .gt_stub_row_group {
+#vkoidcnjgx .gt_stub_row_group {
 color: #333333;
 background-color: #FFFFFF;
 font-size: 100%;
@@ -2826,13 +2811,13 @@ padding-left: 5px;
 padding-right: 5px;
 vertical-align: top;
 }
-#oowdjvojfa .gt_row_group_first td {
+#vkoidcnjgx .gt_row_group_first td {
 border-top-width: 2px;
 }
-#oowdjvojfa .gt_row_group_first th {
+#vkoidcnjgx .gt_row_group_first th {
 border-top-width: 2px;
 }
-#oowdjvojfa .gt_summary_row {
+#vkoidcnjgx .gt_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -2841,14 +2826,14 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#oowdjvojfa .gt_first_summary_row {
+#vkoidcnjgx .gt_first_summary_row {
 border-top-style: solid;
 border-top-color: #D3D3D3;
 }
-#oowdjvojfa .gt_first_summary_row.thick {
+#vkoidcnjgx .gt_first_summary_row.thick {
 border-top-width: 2px;
 }
-#oowdjvojfa .gt_last_summary_row {
+#vkoidcnjgx .gt_last_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2857,7 +2842,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#oowdjvojfa .gt_grand_summary_row {
+#vkoidcnjgx .gt_grand_summary_row {
 color: #333333;
 background-color: #FFFFFF;
 text-transform: inherit;
@@ -2866,7 +2851,7 @@ padding-bottom: 8px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#oowdjvojfa .gt_first_grand_summary_row {
+#vkoidcnjgx .gt_first_grand_summary_row {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2875,7 +2860,7 @@ border-top-style: double;
 border-top-width: 6px;
 border-top-color: #D3D3D3;
 }
-#oowdjvojfa .gt_last_grand_summary_row_top {
+#vkoidcnjgx .gt_last_grand_summary_row_top {
 padding-top: 8px;
 padding-bottom: 8px;
 padding-left: 5px;
@@ -2884,10 +2869,10 @@ border-bottom-style: double;
 border-bottom-width: 6px;
 border-bottom-color: #D3D3D3;
 }
-#oowdjvojfa .gt_striped {
+#vkoidcnjgx .gt_striped {
 background-color: rgba(128, 128, 128, 0.05);
 }
-#oowdjvojfa .gt_table_body {
+#vkoidcnjgx .gt_table_body {
 border-top-style: solid;
 border-top-width: 2px;
 border-top-color: #D3D3D3;
@@ -2895,7 +2880,7 @@ border-bottom-style: solid;
 border-bottom-width: 2px;
 border-bottom-color: #D3D3D3;
 }
-#oowdjvojfa .gt_footnotes {
+#vkoidcnjgx .gt_footnotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -2908,7 +2893,7 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#oowdjvojfa .gt_footnote {
+#vkoidcnjgx .gt_footnote {
 margin: 0px;
 font-size: 90%;
 padding-top: 4px;
@@ -2916,7 +2901,7 @@ padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#oowdjvojfa .gt_sourcenotes {
+#vkoidcnjgx .gt_sourcenotes {
 color: #333333;
 background-color: #FFFFFF;
 border-bottom-style: none;
@@ -2929,64 +2914,64 @@ border-right-style: none;
 border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
-#oowdjvojfa .gt_sourcenote {
+#vkoidcnjgx .gt_sourcenote {
 font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
 padding-right: 5px;
 }
-#oowdjvojfa .gt_left {
+#vkoidcnjgx .gt_left {
 text-align: left;
 }
-#oowdjvojfa .gt_center {
+#vkoidcnjgx .gt_center {
 text-align: center;
 }
-#oowdjvojfa .gt_right {
+#vkoidcnjgx .gt_right {
 text-align: right;
 font-variant-numeric: tabular-nums;
 }
-#oowdjvojfa .gt_font_normal {
+#vkoidcnjgx .gt_font_normal {
 font-weight: normal;
 }
-#oowdjvojfa .gt_font_bold {
+#vkoidcnjgx .gt_font_bold {
 font-weight: bold;
 }
-#oowdjvojfa .gt_font_italic {
+#vkoidcnjgx .gt_font_italic {
 font-style: italic;
 }
-#oowdjvojfa .gt_super {
+#vkoidcnjgx .gt_super {
 font-size: 65%;
 }
-#oowdjvojfa .gt_footnote_marks {
+#vkoidcnjgx .gt_footnote_marks {
 font-size: 75%;
 vertical-align: 0.4em;
 position: initial;
 }
-#oowdjvojfa .gt_asterisk {
+#vkoidcnjgx .gt_asterisk {
 font-size: 100%;
 vertical-align: 0;
 }
-#oowdjvojfa .gt_indent_1 {
+#vkoidcnjgx .gt_indent_1 {
 text-indent: 5px;
 }
-#oowdjvojfa .gt_indent_2 {
+#vkoidcnjgx .gt_indent_2 {
 text-indent: 10px;
 }
-#oowdjvojfa .gt_indent_3 {
+#vkoidcnjgx .gt_indent_3 {
 text-indent: 15px;
 }
-#oowdjvojfa .gt_indent_4 {
+#vkoidcnjgx .gt_indent_4 {
 text-indent: 20px;
 }
-#oowdjvojfa .gt_indent_5 {
+#vkoidcnjgx .gt_indent_5 {
 text-indent: 25px;
 }
-#oowdjvojfa .katex-display {
+#vkoidcnjgx .katex-display {
 display: inline-flex !important;
 margin-bottom: 0.75em !important;
 }
-#oowdjvojfa div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#vkoidcnjgx div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
 height: 0px !important;
 }
 </style>
@@ -3019,56 +3004,147 @@ height: 0px !important;
 </div>
 </div>
 </div>
-<section id="overview" class="level3" data-number="3.1.1">
-<h3 data-number="3.1.1" class="anchored" data-anchor-id="overview"><span class="header-section-number">3.1.1</span> Overview</h3>
+</section>
+<section id="biomarker-effects-with-spline-model" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="biomarker-effects-with-spline-model"><span class="header-section-number">2.2</span> Biomarker effects with spline model</h2>
+<p>We now outline how potential outcomes are simulated according to parameters fit to the case-study dataset but with parameters specified to induce biomarker effects. That is, causal treatment effects (on log(hazard-ratio) scale) that follow a spline model according to patterns where biomarker effects increase with biomarker levels; Including various degrees of limited treatment effects for low biomarker levels.</p>
+<p>We first consider a Weibull model with treatment and a single biomarker covariate <span class="math inline">\(Z\)</span> where we write the linear predictor of the Cox model <span class="math inline">\(L&#39;\beta\)</span> (say) as</p>
+<p><span class="math display">\[\begin{equation}
+\tag{5}
+L&#39;\beta  := \beta_{1}\hbox{Treat} + \beta_{2}\hbox{Z} + \beta_{3}\hbox{Z}\hbox{Treat} + \beta_{4}(\hbox{Z}-k)I(\hbox{Z}&gt;k) + \beta_{5}(\hbox{Z}-k)I(\hbox{Z}&gt;k)\hbox{Treat}.
+\end{equation}\]</span></p>
+<p>Following the potential-outcome approach let <span class="math inline">\(l_{x,z}\)</span> denote subject’s hazard-function “had they followed treatment regimen <span class="math inline">\(Treat=x\)</span> while having biomarker level <span class="math inline">\(Z=z\)</span>”. That is, for subject with biomarker level <span class="math inline">\(Z=z\)</span> we can simulate their survival outcomes under both treatment (<span class="math inline">\(x=1\)</span>) and control (<span class="math inline">\(x=0\)</span>) conditions. Let <span class="math inline">\(\beta^{0} = (\beta_{1}^{0},\ldots,\beta_{5}^{0})&#39;\)</span> denote the true coefficients and denote the hazard function as</p>
+<p><span class="math display">\[\lambda_{x,z}(t) = \lambda_{0}(t)\exp(l_{x,z}), \quad \hbox{say}.\]</span></p>
+<p>Writing</p>
+<p><span class="math display">\[\begin{equation}
+l_{x,z} = \beta^{0}_{1}x + \beta^{0}_{2}z + \beta^{0}_{3}zx + \beta^{0}_{4}(z-k)I(z&gt;k) +
+\beta^{0}_{5}(z-k)I(z&gt;k)x,
+\end{equation}\]</span> the log of the hazard ratio for biomarker level <span class="math inline">\(z\)</span> under treatment (<span class="math inline">\(x=1\)</span>) relative to control (<span class="math inline">\(x=0\)</span>) is given by</p>
+<p><span class="math display">\[\begin{equation}
+\tag{6}
+\psi^{0}(z) := \log(\lambda_{1,z}(t)/\lambda_{0,z}(t)) = \beta^{0}_{1} + \beta^{0}_{3}z + \beta^{0}_{5}(z-k)I(z&gt;k).
+\end{equation}\]</span></p>
+</section>
+<section id="causal-log-hazard-ratio" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="causal-log-hazard-ratio"><span class="header-section-number">2.3</span> Causal log-hazard-ratio</h2>
+<p>The log(hazard-ratio) for biomarker level <span class="math inline">\(z\)</span> is a linear function of <span class="math inline">\(z\)</span> with a change-point (in slope) at <span class="math inline">\(z=k\)</span> given by</p>
+<p><span class="math display">\[\begin{eqnarray*}
+\psi^{0}(z) &amp;=&amp; \beta^{0}_{1} + \beta^{0}_{3}z, \quad \hbox{for} \ z \leq k, \cr
+            &amp;=&amp; \beta^{0}_{1} + \beta^{0}_{3}z + \beta^{0}_{5}(z-k), \quad \hbox{for} \ z &gt; k.
+\end{eqnarray*}\]</span></p>
+<p>Log hazard-ratio parameters <span class="math inline">\((\beta^{0}_{1},\beta^{0}_{3},\beta^{0}_{5})\)</span> can be chosen to generate “treatment effect patterns” by specifying <span class="math inline">\(\psi^{0}(z)\)</span> values at <span class="math inline">\(z=0\)</span>, <span class="math inline">\(z=k\)</span>, and <span class="math inline">\(z=\zeta\)</span> for <span class="math inline">\(\zeta &gt; k\)</span>. For specified <span class="math inline">\(\psi^{0}(0)\)</span>, <span class="math inline">\(\psi^{0}(k)\)</span>, and <span class="math inline">\(\psi^{0}(\zeta)\)</span> we have</p>
+<p><span class="math display">\[\begin{eqnarray}
+\beta^{0}_{1} &amp;=&amp; \psi^{0}(0), \cr
+\beta^{0}_{3} &amp;=&amp; {(\psi^{0}(k) - \beta^{0}_{1}) \over k}, \cr
+\beta^{0}_{5} &amp;=&amp; {(\psi^{0}(\zeta) - \beta^{0}_{1} - \beta^{0}_{3}\zeta) \over (\zeta -k)}.
+\end{eqnarray}\]</span></p>
+<p>The function <em>get_dgm_stratified</em> generates <span class="math inline">\(\psi^{0}(z)\)</span> according to desired “biomarker treatment effect patterns” as follows.</p>
+<ul>
+<li>Let <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> denote the treatment and biomarker variables in the case-study dataset and for specified <span class="math inline">\(k\)</span>, form the covariates <span class="math inline">\(L:=(X,Z,ZX,(Z-k)I(Z&gt;k),(Z-k)I(Z&gt;k)X))\)</span>;</li>
+<li>Fit the Weibull model (recall on AFT scale) to get <span class="math inline">\(\log(\hat\theta)\)</span>, <span class="math inline">\(\hat\tau=1/\hat{\nu}\)</span>, and <span class="math inline">\(\hat\gamma\)</span> corresponding to <span class="math inline">\(L\)</span>;</li>
+<li><span class="math inline">\(\hat\gamma\)</span> is in terms of the AFT parameterization given by model (3)</li>
+<li>Next transform to the Weibull (Cox) log hazard-ratio parameterization (4): <span class="math inline">\(\hat\beta = -\hat\gamma/\hat\tau\)</span></li>
+<li>Set “true” parameters <span class="math inline">\(\theta^{0}=\hat\theta\)</span>, and <span class="math inline">\(\tau^{0}=\hat\tau\)</span></li>
+<li>Initialize the “true” parameter <span class="math inline">\(\beta^{0} = \hat\beta\)</span> and re-define parameters 1, 3, and 5 in order to satisfy specified <span class="math inline">\(\psi^{0}(0)\)</span>, <span class="math inline">\(\psi^{0}(k)\)</span>, and <span class="math inline">\(\psi^{0}(\zeta)\)</span>: <span class="math inline">\(\beta^{0}[1] = \psi^{0}(0)\)</span>, <span class="math inline">\(\beta^{0}[3] = (\psi^{0}(k) - \beta^{0}[1])/k\)</span>, and <span class="math inline">\(\beta^{0}[5] = (\psi^{0}(\zeta) - \beta^{0}[1] - \beta^{0}[3]\zeta)/(\zeta -k)\)</span>;</li>
+<li>Form corresponding <span class="math inline">\(\gamma^{0}= -\beta^{0}\tau^{0}\)</span></li>
+<li>For simulations we use the AFT parameterization (3) to generate <span class="math inline">\(\log(T)\)</span> outcomes according to <span class="math inline">\(\log(T) = \log(\theta^{0}) + L&#39;\gamma^{0} + \tau^{0}\epsilon\)</span> where recall <span class="math inline">\(\epsilon\)</span> has the ``extreme value’’ distribution.</li>
+</ul>
+</section>
+<section id="example-where-treatment-effects-increase-with-increasing-biomarker" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="example-where-treatment-effects-increase-with-increasing-biomarker"><span class="header-section-number">2.4</span> Example where treatment effects increase with increasing biomarker</h2>
+<p>We assume that <span class="math inline">\(z=0\)</span> indicates biomarker negative values with <span class="math inline">\(z&gt;1\)</span> indicating positive levels. As an example, suppose the log(hazard ratio) at <span class="math inline">\(z=0\)</span> is <span class="math inline">\(\psi^{0}(0)=\log(3)\)</span> and decreases linearly for <span class="math inline">\(z \leq 5\)</span> (with slope <span class="math inline">\(\beta_{3}^{0}\)</span>) such that at <span class="math inline">\(z=5\)</span>, <span class="math inline">\(\psi^{0}(5)=\log(1.25)\)</span> and for <span class="math inline">\(z&gt;5\)</span> decreases linearly (with a change in slope and intercept) such that at <span class="math inline">\(z=10\)</span>, <span class="math inline">\(\psi^{0}(10) = \log(0.5)\)</span>. In the following we will describe summary measures of the treatment effects as a function of increasing [or decreasing] values of the biomarker. In this example treatment is detrimental for lower values of the biomarker with treatment effects increasing fairly quickly as the biomarker increases with an overall ``average hazard ratio’’ (AHR) of <span class="math inline">\(\approx 0.74\)</span> (see Working Example below).</p>
+</section>
+<section id="including-prognostic-factors-w" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="including-prognostic-factors-w"><span class="header-section-number">2.5</span> Including prognostic factors <span class="math inline">\(W\)</span></h2>
+<p>We extend the model to include a baseline prognostic factor <span class="math inline">\(W\)</span> within <span class="math inline">\(L\)</span> (effect parameter <span class="math inline">\(\beta^{0}_{w}\)</span>) where</p>
+<p><span class="math display">\[\begin{equation}
+l_{x,z,w} = \beta^{0}_{1}x + \beta^{0}_{2}z + \beta^{0}_{3}zx + \beta^{0}_{4}(z-k)I(z&gt;k) +
+\beta^{0}_{5}(z-k)I(z&gt;k)x + \beta^{0}_{w}w.
+\end{equation}\]</span></p>
+<p>Note that defining <span class="math inline">\(m(1,z,w)\)</span> [<span class="math inline">\(m(0,z,w)\)</span>)] as the conditional expected value of <span class="math inline">\(\log(T)\)</span> with treatment set to experimental [control] given biomarker level <span class="math inline">\(Z=z\)</span> and <span class="math inline">\(W=w\)</span></p>
+<p><span class="math display">\[\psi^{0}(z,w) = \{m(0,z,w)-m(1,z,w)\}/\tau\]</span> which corresponds to the difference in the (true) means of the potential outcomes under experimental and control conditions (<span class="math inline">\(\log(T[0,z,w]\)</span> versus <span class="math inline">\(\log(T[1,z,w]\)</span>, say)</p>
+</section>
+</section>
+<section id="specifying-biomarker-treatment-effects" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Specifying biomarker treatment effects</h1>
+<section id="average-hazard-ratios-ahrs" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="average-hazard-ratios-ahrs"><span class="header-section-number">3.1</span> Average hazard ratios (AHRs)</h2>
+<p>We define the <em>biomarker average hazard ratio (AHR)</em> as the expected value of <span class="math inline">\(\psi^{0}(\cdot)\)</span> across “increasing biomarker” sub-populations. For example, <span class="math inline">\(\hbox{AHR}(2^{+})\)</span> represents the AHR for subjects with biomarker values <span class="math inline">\(\geq 2\)</span> via</p>
+<p><span class="math display">\[\begin{equation}
+\tag{6}
+\hbox{AHR}(z^{+}):= \exp\left\{E_{Z \geq z} \psi^{0}(Z) \right\};
+\end{equation}\]</span></p>
+<p>With the opposite direction – across “decreasing biomarker” sub-populations</p>
+<p><span class="math display">\[\begin{equation}
+\tag{7}
+\hbox{AHR}(z^{-}):= \exp\left\{E_{Z \leq z} \psi^{0}(Z) \right\}.
+\end{equation}\]</span></p>
+<p>Here the expectations are over the distribution of <span class="math inline">\(Z\)</span>, however if there is a prognostic factor <span class="math inline">\(W\)</span> then the expectations are over <span class="math inline">\((Z,W)\)</span>. In our calculations we calculate empirical averages.</p>
+</section>
+<section id="controlled-direct-effect-cde-versions-acr_2015" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="controlled-direct-effect-cde-versions-acr_2015"><span class="header-section-number">3.2</span> Controlled direct-effect (CDE) versions (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (<a href="#ref-ACR_2015" role="doc-biblioref">2015</a>)</span>)</h2>
+<p>Averaging across hazard ratios: Define the hazard (omitting baseline hazard) <span class="math inline">\(\theta^{x}(z,w) = \exp(l(x,z,w))\)</span> setting treatment to <span class="math inline">\(X=x\)</span> given <span class="math inline">\(Z=z\)</span> and <span class="math inline">\(W=w\)</span>. Aalen et al. (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (<a href="#ref-ACR_2015" role="doc-biblioref">2015</a>)</span>) define the controlled direct-effect (CDE) as the ratio of the expected hazards. Here we consider the above cumulative versions (omitting possible dependence on <span class="math inline">\(W\)</span>). Let <span class="math inline">\(\bar\theta^{x}(z+) = E_{Z \geq z}\theta^{x}(Z)\)</span> for <span class="math inline">\(x=0,1\)</span>, and define</p>
+<p><span class="math display">\[\hbox{CDE}(z^{+}):= \bar\theta^{1}(z+)/\bar\theta^{0}(z+), \quad \hbox{and} \quad \hbox{CDE}(z^{-}):= \bar\theta^{1}(z-)/\bar\theta^{0}(z-)\]</span></p>
+<section id="overview" class="level3" data-number="3.2.1">
+<h3 data-number="3.2.1" class="anchored" data-anchor-id="overview"><span class="header-section-number">3.2.1</span> Overview</h3>
 <p>The <code>generate_aft_dgm_flex()</code> function creates a flexible data generating mechanism (DGM) for survival data that can incorporate complex, non-linear covariate effects through spline specifications. This is particularly useful for simulating realistic clinical trial scenarios where biomarker effects vary across their range.</p>
 </section>
-<section id="example-creating-a-spline-based-dgm" class="level3" data-number="3.1.2">
-<h3 data-number="3.1.2" class="anchored" data-anchor-id="example-creating-a-spline-based-dgm"><span class="header-section-number">3.1.2</span> Example: Creating a Spline-Based DGM</h3>
+<section id="example-creating-a-spline-based-dgm" class="level3" data-number="3.2.2">
+<h3 data-number="3.2.2" class="anchored" data-anchor-id="example-creating-a-spline-based-dgm"><span class="header-section-number">3.2.2</span> Example: Creating a Spline-Based DGM</h3>
 <p>In this example, we create a DGM where the effect of a biomarker (<code>bm</code>) varies non-linearly, exhibiting different hazard ratios across three segments of the biomarker distribution.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>dgm_spline <span class="ot">&lt;-</span> <span class="fu">generate_aft_dgm_flex</span>(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> df.case,</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Main effects: continuous and factor variables</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">NOTE</span><span class="co"> that ALL variables in the outcome model will have a &quot;z_&quot; prefix attached</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">continuous_vars =</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;bm&quot;</span>),</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">factor_vars =</span> <span class="fu">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;histology&quot;</span>, <span class="st">&quot;prior_treat&quot;</span>, <span class="st">&quot;AP&quot;</span>),</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Force specific coefficient for AP variable</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">set_beta_spec =</span> <span class="fu">list</span>(</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">set_var =</span> <span class="fu">c</span>(<span class="st">&quot;z_AP&quot;</span>),</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">beta_var =</span> <span class="sc">-</span><span class="fu">log</span>(<span class="dv">5</span>)  <span class="co"># HR = 0.2 (strong protective effect)</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Censoring mechanism covariates</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">NOTE</span><span class="co"> that ALL variables in the censoring model will have a &quot;zcens_&quot; prefix attached</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># See notes below on how the censoring model is selected</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">continuous_vars_cens =</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>),</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">factor_vars_cens =</span> <span class="fu">c</span>(<span class="st">&quot;prior_treat&quot;</span>),</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">cens_type =</span> <span class="st">&quot;weibull&quot;</span>,</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Outcome specification</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_var =</span> <span class="st">&quot;tte&quot;</span>,</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">event_var =</span> <span class="st">&quot;event&quot;</span>,</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment_var =</span> <span class="st">&quot;treat&quot;</span>,</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># No additional subgroup factors </span></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">subgroup_vars =</span> <span class="cn">NULL</span>,</span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">subgroup_cuts =</span> <span class="cn">NULL</span>,</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">k_inter =</span> <span class="fl">0.0</span>,</span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  <span class="co"># indicate that subgroup effects are incorporated</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">model =</span> <span class="st">&quot;alt&quot;</span>,</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Spline specification for non-linear biomarker effect</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">spline_spec =</span> <span class="fu">list</span>(</span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">var =</span> <span class="st">&quot;z_bm&quot;</span>,                    <span class="co"># Variable with non-linear effect</span></span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">knot =</span> <span class="dv">5</span>,                        <span class="co"># Spline knot position</span></span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">zeta =</span> <span class="dv">10</span>,                       <span class="co"># Transition smoothness parameter</span></span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_hrs =</span> <span class="fu">log</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">1.25</span>, <span class="fl">0.5</span>))  <span class="co"># Hazard ratios for three segments</span></span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">standardize =</span> <span class="cn">FALSE</span> <span class="co">#default</span></span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Main effects: continuous and factor variables</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">NOTE</span><span class="co"> that ALL variables in the outcome model will have a &quot;z_&quot; prefix attached</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">continuous_vars =</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>, <span class="st">&quot;bm&quot;</span>),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">factor_vars =</span> <span class="fu">c</span>(<span class="st">&quot;male&quot;</span>, <span class="st">&quot;histology&quot;</span>, <span class="st">&quot;prior_treat&quot;</span>, <span class="st">&quot;AP&quot;</span>),</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Force specific coefficient for AP variable</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">set_beta_spec =</span> <span class="fu">list</span>(</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">set_var =</span> <span class="fu">c</span>(<span class="st">&quot;z_AP&quot;</span>),</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">beta_var =</span> <span class="sc">-</span><span class="fu">log</span>(<span class="dv">5</span>)  <span class="co"># HR = 0.2 (strong protective effect)</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Censoring mechanism covariates</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  <span class="co"># </span><span class="al">NOTE</span><span class="co"> that ALL variables in the censoring model will have a &quot;zcens_&quot; prefix attached</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># See notes below on how the censoring model is selected</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">continuous_vars_cens =</span> <span class="fu">c</span>(<span class="st">&quot;age&quot;</span>),</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">factor_vars_cens =</span> <span class="fu">c</span>(<span class="st">&quot;prior_treat&quot;</span>),</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">cens_type =</span> <span class="st">&quot;weibull&quot;</span>,</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Outcome specification</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">outcome_var =</span> <span class="st">&quot;tte&quot;</span>,</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">event_var =</span> <span class="st">&quot;event&quot;</span>,</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">treatment_var =</span> <span class="st">&quot;treat&quot;</span>,</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>  <span class="co"># No subgroup-specific effects</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">subgroup_vars =</span> <span class="cn">NULL</span>,</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">subgroup_cuts =</span> <span class="cn">NULL</span>,</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">k_inter =</span> <span class="fl">0.0</span>,</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Alternative AFT model formulation</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">model =</span> <span class="st">&quot;alt&quot;</span>,</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Spline specification for non-linear biomarker effect</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">spline_spec =</span> <span class="fu">list</span>(</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">var =</span> <span class="st">&quot;z_bm&quot;</span>,                    <span class="co"># Variable with non-linear effect</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">knot =</span> <span class="dv">5</span>,                        <span class="co"># Spline knot position</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">zeta =</span> <span class="dv">10</span>,                       <span class="co"># Transition smoothness parameter</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_hrs =</span> <span class="fu">log</span>(<span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">1.25</span>, <span class="fl">0.5</span>))  <span class="co"># Hazard ratios for three segments</span></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>  <span class="at">standardize =</span> <span class="cn">FALSE</span> <span class="co">#default</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
+Added 6 unprocessed variables: entrytime, strat, ecog, region_other, region_asia, pid 
+
 === Spline Constraint Applied ===
 Target log(HR) at z_bm = 0: 0.693 
 Target log(HR) at z_bm = knot ( 5 ): 0.223 
@@ -3095,8 +3171,7 @@ Causal AHR: 0.657 </code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>
  ====================================================================== 
- CENSORING MODEL SELECTION:
- MULTIPLE SURVIVAL REGRESSION MODEL COMPARISONS
+ MULTIPLE SURVIVAL REGRESSION MODEL COMPARISON
 ====================================================================== 
 
 CONVERGENCE SUMMARY ( 4 / 4  converged):
@@ -3152,8 +3227,8 @@ FINAL RECOMMENDATION:
 </div>
 </div>
 </section>
-<section id="notes" class="level3" data-number="3.1.3">
-<h3 data-number="3.1.3" class="anchored" data-anchor-id="notes"><span class="header-section-number">3.1.3</span> Notes</h3>
+<section id="notes" class="level3" data-number="3.2.3">
+<h3 data-number="3.2.3" class="anchored" data-anchor-id="notes"><span class="header-section-number">3.2.3</span> Notes</h3>
 <ul>
 <li>The <code>z_</code> prefix in variable names (e.g., <code>z_bm</code>, <code>z_AP</code>) indicates the original variables that are true factors in the outcome model when standardize=false (if true then the variables are standardized prior to estimation)</li>
 <li>Setting <code>k_inter = 0.0</code> turns off any treatment-subgroup interaction effects unless the spline model is implemented</li>
@@ -3161,8 +3236,8 @@ FINAL RECOMMENDATION:
 <li>The <code>model = &quot;alt&quot;</code> specifies whether the true outcome model has heterogeneous treatment effects (HTEs)</li>
 </ul>
 <p>For the <strong>censoring distribution</strong> with <code>cens_type =&quot;weibull&quot;</code>, <code>continuous_vars_cens = c(&quot;age&quot;)</code>, and <code>factor_vars_cens = c(&quot;prior_treat&quot;)</code> four censoring models will be estimated using weibull and log-normal distributions including treatment with the specified variables as well as no covariates. That is, if a weibull model without covariate adjustment is found to provide a better fit (per AIC/BIC) then this will be selected. NOTE that the censoring distribution is completely independent of the outcome model and so this aspect does not depend on how the survival times are generated.</p>
-<section id="examine-beta-loghr-parameters" class="level4" data-number="3.1.3.1">
-<h4 data-number="3.1.3.1" class="anchored" data-anchor-id="examine-beta-loghr-parameters"><span class="header-section-number">3.1.3.1</span> Examine beta = log(hr) parameters</h4>
+<section id="examine-beta-loghr-parameters" class="level4" data-number="3.2.3.1">
+<h4 data-number="3.2.3.1" class="anchored" data-anchor-id="examine-beta-loghr-parameters"><span class="header-section-number">3.2.3.1</span> Examine beta = log(hr) parameters</h4>
 <p>Verify that the effect for “z_AP” is set to the specified value (Notice the “z_” prefixes)</p>
 <p>Note that treatment effects with interactions (e.g., spline and/or subgroups) are interpreted below.</p>
 <div class="cell" data-layout-align="center">
@@ -3175,7 +3250,7 @@ FINAL RECOMMENDATION:
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">Coefficient =</span> <span class="fu">names</span>(b0_coefs),</span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">Value =</span> <span class="fu">as.numeric</span>(b0_coefs),</span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">HR =</span> <span class="fu">exp</span>(<span class="fu">as.numeric</span>(b0_coefs))</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%&gt;%</span></span>
 <span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Type =</span> <span class="fu">case_when</span>(</span>
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">grepl</span>(<span class="st">&quot;^treat&quot;</span>, Coefficient) <span class="sc">~</span> <span class="st">&quot;Treatment Effects&quot;</span>,</span>
@@ -3185,30 +3260,30 @@ FINAL RECOMMENDATION:
 <span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>coef_table_grouped <span class="ot">&lt;-</span> coef_df <span class="sc">|&gt;</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Type, Coefficient) <span class="sc">|&gt;</span></span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>(<span class="at">groupname_col =</span> <span class="st">&quot;Type&quot;</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>coef_table_grouped <span class="ot">&lt;-</span> coef_df <span class="sc">%&gt;%</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(Type, Coefficient) <span class="sc">%&gt;%</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>(<span class="at">groupname_col =</span> <span class="st">&quot;Type&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
 <span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="fu">c</span>(Value, HR),</span>
 <span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">4</span></span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
 <span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;AFT Model Coefficients by Type&quot;</span>,</span>
 <span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">&quot;Weibull Parameterization (b0) with Hazard Ratios&quot;</span></span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cols_label</span>(</span>
 <span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">Coefficient =</span> <span class="st">&quot;Variable&quot;</span>,</span>
 <span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">Value =</span> <span class="st">&quot;b0 Coefficient&quot;</span>,</span>
 <span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">HR =</span> <span class="st">&quot;Hazard Ratio&quot;</span></span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_style</span>(</span>
 <span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">style =</span> <span class="fu">cell_text</span>(<span class="at">weight =</span> <span class="st">&quot;bold&quot;</span>),</span>
 <span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">locations =</span> <span class="fu">cells_column_labels</span>()</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_style</span>(</span>
 <span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">style =</span> <span class="fu">cell_text</span>(<span class="at">style =</span> <span class="st">&quot;italic&quot;</span>),</span>
 <span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">locations =</span> <span class="fu">cells_row_groups</span>()</span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_options</span>(</span>
 <span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">table.font.size =</span> <span class="fu">px</span>(<span class="dv">12</span>)</span>
 <span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>  )</span>
@@ -3702,8 +3777,8 @@ height: 0px !important;
 </div>
 </section>
 </section>
-<section id="understanding-the-spline-specification" class="level3" data-number="3.1.4">
-<h3 data-number="3.1.4" class="anchored" data-anchor-id="understanding-the-spline-specification"><span class="header-section-number">3.1.4</span> Understanding the Spline Specification</h3>
+<section id="understanding-the-spline-specification" class="level3" data-number="3.2.4">
+<h3 data-number="3.2.4" class="anchored" data-anchor-id="understanding-the-spline-specification"><span class="header-section-number">3.2.4</span> Understanding the Spline Specification</h3>
 <p>The <code>spline_spec</code> parameter creates a <strong>three-segment piecewise effect</strong> for the biomarker:</p>
 <ul>
 <li><strong>Segment 1</strong> (low biomarker values): HR = 2.0 (harmful effect)</li>
@@ -3713,9 +3788,7 @@ height: 0px !important;
 </ul>
 <p>The transition between segments occurs smoothly around <code>knot = 5</code>, with the degree of smoothness controlled by <code>zeta = 10</code>. Higher values of <code>zeta</code> create sharper transitions between segments.</p>
 <p>See log(hazard-ratio) plot below.</p>
-<p>View the censoring parameters:</p>
-<p>In this case example the best fitting censoring model is a common censoring model (weibull with NO covariates).</p>
-<p>If the selected model included covariates then these would show up with “zcens_” prefixes attached. If <code>cens_type=&quot;uniform&quot;</code> then a uniform model is implemented.</p>
+<p>View the censoring parameters: Using this case example the best fitting censoring model is a common censoring (weibull with NO covariates). If the selected model included covariates then these would show up with “zcens_” prefixes attached. If <code>cens_type=&quot;uniform&quot;</code> then a uniform model is implemented.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
@@ -3737,8 +3810,8 @@ $type
 </div>
 </div>
 </section>
-<section id="what-is-created" class="level3" data-number="3.1.5">
-<h3 data-number="3.1.5" class="anchored" data-anchor-id="what-is-created"><span class="header-section-number">3.1.5</span> What is Created</h3>
+<section id="what-is-created" class="level3" data-number="3.2.5">
+<h3 data-number="3.2.5" class="anchored" data-anchor-id="what-is-created"><span class="header-section-number">3.2.5</span> What is Created</h3>
 <p>The <code>dgm_spline</code> object contains:</p>
 <ol type="1">
 <li><strong>Linear coefficients</strong> for all specified covariates (age, male, histology, prior_treat, AP)</li>
@@ -3762,17 +3835,16 @@ $type
 <p>Note that defining <span class="math inline">\(m(1,z)\)</span> [<span class="math inline">\(m(0,z)\)</span>)] as the conditional expected value of <span class="math inline">\(\log(T)\)</span> with treatment set to experimental [control] given biomarker level <span class="math inline">\(Z=z\)</span></p>
 <p><span class="math display">\[\psi^{0}(z) = \{m(0,z)-m(1,z)\}/\tau\]</span> which corresponds to the difference in the (true) means of the potential outcomes under experimental and control conditions (<span class="math inline">\(\log(T[0,z]\)</span> versus <span class="math inline">\(\log(T[1,z]\)</span>, say).</p>
 <p>The <strong>super-population</strong> dataset <code>dgm_spline$df_super</code>:</p>
-<p>Note that in <code>df_super</code>: <code>lin_pred_1</code> = <span class="math inline">\(m(1,z)/\tau\)</span>, <code>lin_pred_0</code> = <span class="math inline">\(m(0,z)/\tau\)</span>, and <code>loghr_po</code> = <span class="math inline">\(\psi^{0}(z) = {m(0,z) - m(1,z)}/\tau\)</span></p>
+<p>Note that in <code>df_super</code>: - <code>lin_pred_1</code> = <span class="math inline">\(m(1,z)/\tau\)</span>, - <code>lin_pred_0</code> = <span class="math inline">\(m(0,z)/\tau\)</span>, and - <code>loghr_po</code> = <span class="math inline">\(\psi^{0}(z) = {m(0,z) - m(1,z)}/\tau\)</span></p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Note that here flag_harm is not relevant because of the spline specification and definition of &quot;harm&quot; depends on degree</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># In discussion below we describe how to specify thresholds of &quot;harm&quot; corresponding to biomarker effects</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="fu">create_summary_table</span>(<span class="at">data=</span>dgm_spline<span class="sc">$</span>df_super, <span class="at">treat_var=</span><span class="st">&quot;treat&quot;</span>, </span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">table_title =</span> <span class="st">&quot;Super-population Characteristics by Treatment Arm&quot;</span>,</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_continuous=</span><span class="fu">c</span>(<span class="st">&quot;z_age&quot;</span>,<span class="st">&quot;z_bm&quot;</span>,<span class="st">&quot;entrytime&quot;</span>,<span class="st">&quot;lin_pred_1&quot;</span>,<span class="st">&quot;lin_pred_0&quot;</span>,<span class="st">&quot;loghr_po&quot;</span>),</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_categorical=</span><span class="fu">c</span>(<span class="st">&quot;z_male&quot;</span>,<span class="st">&quot;z_histology&quot;</span>,<span class="st">&quot;z_prior_treat&quot;</span>,<span class="st">&quot;z_AP&quot;</span>,<span class="st">&quot;ecog&quot;</span>,<span class="st">&quot;strat&quot;</span>,<span class="st">&quot;region_other&quot;</span>,<span class="st">&quot;flag_harm&quot;</span>),</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">font_size =</span> <span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_continuous=</span><span class="fu">c</span>(<span class="st">&quot;z_age&quot;</span>,<span class="st">&quot;z_bm&quot;</span>,<span class="st">&quot;entrytime&quot;</span>,<span class="st">&quot;lin_pred_1&quot;</span>,<span class="st">&quot;lin_pred_0&quot;</span>,<span class="st">&quot;loghr_po&quot;</span>),</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_categorical=</span><span class="fu">c</span>(<span class="st">&quot;z_male&quot;</span>,<span class="st">&quot;z_histology&quot;</span>,<span class="st">&quot;z_prior_treat&quot;</span>,<span class="st">&quot;z_AP&quot;</span>,<span class="st">&quot;ecog&quot;</span>,<span class="st">&quot;strat&quot;</span>,<span class="st">&quot;region_other&quot;</span>,<span class="st">&quot;flag_harm&quot;</span>),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">font_size =</span> <span class="dv">12</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="wvzghibwut" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
@@ -4175,7 +4247,7 @@ height: 0px !important;
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
 <thead>
 <tr class="gt_heading header">
-<th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border">Super-population Characteristics by Treatment Arm</th>
+<th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border">Baseline Characteristics by Treatment Arm</th>
 </tr>
 <tr class="gt_col_headings even">
 <th id="Variable" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: black" scope="col">Characteristic</th>
@@ -4434,10 +4506,9 @@ height: 0px !important;
 </div>
 </div>
 </section>
-<section id="simulating-data-from-the-dgm" class="level3" data-number="3.1.6">
-<h3 data-number="3.1.6" class="anchored" data-anchor-id="simulating-data-from-the-dgm"><span class="header-section-number">3.1.6</span> Simulating Data from the DGM</h3>
+<section id="simulating-data-from-the-dgm" class="level3" data-number="3.2.6">
+<h3 data-number="3.2.6" class="anchored" data-anchor-id="simulating-data-from-the-dgm"><span class="header-section-number">3.2.6</span> Simulating Data from the DGM</h3>
 <p>Once created, the DGM can be used to generate synthetic datasets:</p>
-<p>Here we generate n=500 retaining the treatment assigment of the case-study to mimic the randomization and utilize the actual entry times (if available).</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
@@ -4453,7 +4524,7 @@ height: 0px !important;
 <span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co"># and follow-up is &quot;60 - entrytime&quot; for each subjects entrytime value</span></span>
 <span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co"># The cens_adjust argument allows for increasing or decreasing the mean of </span></span>
 <span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co"># the censoring distribution in order to reduce or increase the censoring rate</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>df_example <span class="ot">&lt;-</span> <span class="fu">simulate_from_dgm</span>(</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>sim_data <span class="ot">&lt;-</span> <span class="fu">simulate_from_dgm</span>(</span>
 <span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">dgm =</span> dgm_spline,</span>
 <span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">500</span>,</span>
 <span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">rand_ratio =</span> <span class="dv">1</span>, </span>
@@ -4465,7 +4536,7 @@ height: 0px !important;
 <span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Examine the simulated data structure</span></span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(df_example)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(sim_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>      id         y treat event z_age z_bm z_male z_histology z_prior_treat z_AP
@@ -4511,10 +4582,9 @@ height: 0px !important;
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Note that y_sim, treat_sim, and event_sim are the outcomes, treatment, and events for the simulated data  </span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="co"># t_true are the uncensored outcomes, and c_time are the uncensored (not censored by outcomes) censoring times</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Of course in reality t_true and c_time are not observable</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">create_summary_table</span>(<span class="at">data =</span> df_example, <span class="at">treat_var=</span><span class="st">&quot;treat_sim&quot;</span>, </span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">table_title =</span> <span class="st">&quot;Simulated data (n=500) from Spline Model&quot;</span>,</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_continuous=</span><span class="fu">c</span>(<span class="st">&quot;y_sim&quot;</span>,<span class="st">&quot;t_true&quot;</span>,<span class="st">&quot;c_time&quot;</span>,<span class="st">&quot;z_age&quot;</span>,<span class="st">&quot;z_bm&quot;</span>,<span class="st">&quot;entrytime&quot;</span>,<span class="st">&quot;lin_pred_1&quot;</span>,<span class="st">&quot;lin_pred_0&quot;</span>,<span class="st">&quot;loghr_po&quot;</span>),</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_categorical=</span><span class="fu">c</span>(<span class="st">&quot;event_sim&quot;</span>,<span class="st">&quot;z_male&quot;</span>,<span class="st">&quot;z_histology&quot;</span>,<span class="st">&quot;z_prior_treat&quot;</span>,<span class="st">&quot;z_AP&quot;</span>,<span class="st">&quot;ecog&quot;</span>,<span class="st">&quot;strat&quot;</span>,<span class="st">&quot;region_other&quot;</span>,<span class="st">&quot;flag_harm&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="fu">create_summary_table</span>(<span class="at">data =</span> sim_data, <span class="at">treat_var=</span><span class="st">&quot;treat_sim&quot;</span>, </span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_continuous=</span><span class="fu">c</span>(<span class="st">&quot;y_sim&quot;</span>,<span class="st">&quot;t_true&quot;</span>,<span class="st">&quot;c_time&quot;</span>,<span class="st">&quot;z_age&quot;</span>,<span class="st">&quot;z_bm&quot;</span>,<span class="st">&quot;entrytime&quot;</span>,<span class="st">&quot;lin_pred_1&quot;</span>,<span class="st">&quot;lin_pred_0&quot;</span>,<span class="st">&quot;loghr_po&quot;</span>),</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                                      <span class="at">vars_categorical=</span><span class="fu">c</span>(<span class="st">&quot;event_sim&quot;</span>,<span class="st">&quot;z_male&quot;</span>,<span class="st">&quot;z_histology&quot;</span>,<span class="st">&quot;z_prior_treat&quot;</span>,<span class="st">&quot;z_AP&quot;</span>,<span class="st">&quot;ecog&quot;</span>,<span class="st">&quot;strat&quot;</span>,<span class="st">&quot;region_other&quot;</span>,<span class="st">&quot;flag_harm&quot;</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="bbmoyraifi" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
@@ -4917,7 +4987,7 @@ height: 0px !important;
 <table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
 <thead>
 <tr class="gt_heading header">
-<th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border">Simulated data (n=500) from Spline Model</th>
+<th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border">Baseline Characteristics by Treatment Arm</th>
 </tr>
 <tr class="gt_col_headings even">
 <th id="Variable" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" style="border-bottom-width: 2px; border-bottom-style: solid; border-bottom-color: black" scope="col">Characteristic</th>
@@ -5224,8 +5294,8 @@ height: 0px !important;
 </div>
 </div>
 </section>
-<section id="visualizing-the-non-linear-effect" class="level3" data-number="3.1.7">
-<h3 data-number="3.1.7" class="anchored" data-anchor-id="visualizing-the-non-linear-effect"><span class="header-section-number">3.1.7</span> Visualizing the Non-Linear Effect</h3>
+<section id="visualizing-the-non-linear-effect" class="level3" data-number="3.2.7">
+<h3 data-number="3.2.7" class="anchored" data-anchor-id="visualizing-the-non-linear-effect"><span class="header-section-number">3.2.7</span> Visualizing the Non-Linear Effect</h3>
 <p>The non-linear effect of the biomarker can be visualized by plotting the log hazard ratio across the range of biomarker values:</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
@@ -5242,7 +5312,6 @@ height: 0px !important;
 </div>
 </div>
 <p>A <em>more detailed</em> look at the spline causal effects: AHR, and CDEs</p>
-<p>We draw a large trial (n=5000) as a large sample approximation to summarize the underlying <code>population</code> effects.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
@@ -5337,29 +5406,29 @@ CDE (Recommend): 0.716
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a> res <span class="ot">&lt;-</span>results<span class="sc">$</span>subgroup_stats</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a> cut_hr <span class="ot">&lt;-</span> results<span class="sc">$</span>optimal_cutpoint</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>res <span class="sc">|&gt;</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">|&gt;</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>res <span class="sc">%&gt;%</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">gt</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_header</span>(</span>
 <span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">&quot;Subgroup Statistics&quot;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_source_note</span>(</span>
 <span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">source_note =</span> <span class="fu">md</span>(<span class="fu">paste0</span>(<span class="st">&quot;*HR threshold biomarker cutpoint: &quot;</span>, </span>
 <span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>                            <span class="fu">round</span>(cut_hr, <span class="dv">3</span>), <span class="st">&quot;*&quot;</span>))</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Format first 3 columns with 0 decimals</span></span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
 <span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>,</span>
 <span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">0</span></span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Format remaining numeric columns with 3 decimals</span></span>
 <span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">fmt_number</span>(</span>
 <span id="cb21-20"><a href="#cb21-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">columns =</span> <span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">4</span>),</span>
 <span id="cb21-21"><a href="#cb21-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">decimals =</span> <span class="dv">3</span></span>
-<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-22"><a href="#cb21-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-23"><a href="#cb21-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_style</span>(</span>
 <span id="cb21-24"><a href="#cb21-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">style =</span> <span class="fu">cell_text</span>(<span class="at">weight =</span> <span class="st">&quot;bold&quot;</span>),</span>
 <span id="cb21-25"><a href="#cb21-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">locations =</span> <span class="fu">cells_column_labels</span>()</span>
-<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb21-26"><a href="#cb21-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-27"><a href="#cb21-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tab_options</span>(</span>
 <span id="cb21-28"><a href="#cb21-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">table.font.size =</span> <span class="fu">px</span>(<span class="dv">12</span>)</span>
 <span id="cb21-29"><a href="#cb21-29" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -5812,70 +5881,91 @@ height: 0px !important;
 </div>
 </div>
 </div>
-<p>Next, a simulated example (n=500) with forestsearch subgroup identification</p>
+<p>Next, a simulated example with forestsearch subgroup identification</p>
 <ul>
 <li>Here we simulated a study according to the biomarker effects described above</li>
 <li>Summarize the non-AP and AP populations (K-M plots)<br>
 </li>
 <li>Apply subgroup identification procedures to the non-AP data and apply to AP</li>
 </ul>
-<p>Returning to the simulated example data <code>df_example</code> (described above): (a) View K-M curves; (b) Estimate spline model to compare with true biomarker effects; and (c) Apply forestsearch to identify subgroups base on non-AP data and applied to AP.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ITT </span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>dfc <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_example,</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co"># No censoring</span></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Except by max_follow</span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>df_example<span class="sc">$</span>t_true <span class="ot">&lt;-</span> <span class="fu">pmin</span>(df_example<span class="sc">$</span>t_true, <span class="dv">100</span>)</span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>df_example<span class="sc">$</span>event_mod <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df_example<span class="sc">$</span>t_true <span class="sc">&lt;=</span> <span class="dv">100</span>,<span class="dv">1</span>,<span class="dv">0</span>)</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>dfideal <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_example,</span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;t_true&quot;</span>, </span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_mod&quot;</span>, </span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>df_nonAP <span class="ot">&lt;-</span> <span class="fu">subset</span>(df_example, z_AP <span class="sc">==</span> <span class="dv">0</span>)</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>df_AP <span class="ot">&lt;-</span> <span class="fu">subset</span>(df_example, z_AP <span class="sc">==</span> <span class="dv">1</span>)</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a><span class="co"># non-AP</span></span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>dfc0 <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_nonAP,</span>
-<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
-<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
-<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
-<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
-<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>)</span>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate data at analysis time of 60 months</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>df_example <span class="ot">&lt;-</span> <span class="fu">simulate_from_dgm</span>(</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">dgm =</span> dgm_spline, </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">n =</span> <span class="dv">500</span>, </span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">rand_ratio =</span> <span class="dv">1</span>, </span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">draw_treatment =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">entry_var =</span> <span class="st">&quot;entrytime&quot;</span>,</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">analysis_time =</span> <span class="dv">60</span>,</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">cens_adjust =</span> <span class="dv">0</span>,</span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">seed =</span> <span class="dv">12345</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="co"># ITT </span></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>dfc <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_example,</span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="co"># No censoring</span></span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Except by max_follow</span></span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>df_example<span class="sc">$</span>t_true <span class="ot">&lt;-</span> <span class="fu">pmin</span>(df_example<span class="sc">$</span>t_true, <span class="dv">100</span>)</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>df_example<span class="sc">$</span>event_mod <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(df_example<span class="sc">$</span>t_true <span class="sc">&lt;=</span> <span class="dv">100</span>,<span class="dv">1</span>,<span class="dv">0</span>)</span>
 <span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a><span class="co"># AP</span></span>
-<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>dfc1 <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
-<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_AP,</span>
-<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
-<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
-<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
-<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
-<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a>dfideal <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_example,</span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;t_true&quot;</span>, </span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_mod&quot;</span>, </span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>df_nonAP <span class="ot">&lt;-</span> <span class="fu">subset</span>(df_example, z_AP <span class="sc">==</span> <span class="dv">0</span>)</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>df_AP <span class="ot">&lt;-</span> <span class="fu">subset</span>(df_example, z_AP <span class="sc">==</span> <span class="dv">1</span>)</span>
 <span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfideal, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.75</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
-<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;ITT no censoring (through 100 months)&quot;</span>)</span>
-<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.75</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
-<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;ITT censored&quot;</span>)</span>
-<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc0, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.725</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
-<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;non-AP&quot;</span>)</span>
-<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc1, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.725</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
-<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;AP&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a><span class="co"># non-AP</span></span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a>dfc0 <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_nonAP,</span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a><span class="co"># AP</span></span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a>dfc1 <span class="ot">&lt;-</span> <span class="fu">df_counting</span>(</span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> df_AP,</span>
+<span id="cb22-56"><a href="#cb22-56" aria-hidden="true" tabindex="-1"></a>  <span class="at">by.risk =</span> <span class="dv">6</span>,</span>
+<span id="cb22-57"><a href="#cb22-57" aria-hidden="true" tabindex="-1"></a>  <span class="at">tte.name =</span> <span class="st">&quot;y_sim&quot;</span>, </span>
+<span id="cb22-58"><a href="#cb22-58" aria-hidden="true" tabindex="-1"></a>  <span class="at">event.name =</span> <span class="st">&quot;event_sim&quot;</span>, </span>
+<span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">treat.name =</span> <span class="st">&quot;treat_sim&quot;</span></span>
+<span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-62"><a href="#cb22-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-63"><a href="#cb22-63" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow=</span><span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb22-64"><a href="#cb22-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-65"><a href="#cb22-65" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfideal, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.75</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
+<span id="cb22-66"><a href="#cb22-66" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;ITT no censoring (through 100 months)&quot;</span>)</span>
+<span id="cb22-67"><a href="#cb22-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-68"><a href="#cb22-68" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.75</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
+<span id="cb22-69"><a href="#cb22-69" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;ITT censored&quot;</span>)</span>
+<span id="cb22-70"><a href="#cb22-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-71"><a href="#cb22-71" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc0, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.725</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
+<span id="cb22-72"><a href="#cb22-72" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;non-AP&quot;</span>)</span>
+<span id="cb22-73"><a href="#cb22-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-74"><a href="#cb22-74" aria-hidden="true" tabindex="-1"></a><span class="fu">plot_weighted_km</span>(dfc1, <span class="at">conf.int =</span> <span class="cn">FALSE</span>, <span class="at">show.logrank =</span> <span class="cn">TRUE</span>, <span class="at">ymax =</span> <span class="fl">1.1</span>, <span class="at">xmed.fraction =</span> <span class="fl">0.725</span>, <span class="at">ymed.offset =</span> <span class="fl">0.15</span>)</span>
+<span id="cb22-75"><a href="#cb22-75" aria-hidden="true" tabindex="-1"></a><span class="fu">title</span>(<span class="st">&quot;AP&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -6067,14 +6157,14 @@ Consistency met!
 <pre><code>*** Subgroup found: {z_bm &lt;= 1} 
 % consistency criteria met= 1 
 SG focus= minSG 
-Subgroup Consistency Minutes= 0.04848333 
+Subgroup Consistency Minutes= 0.046 
 Subgroup found (FS) with sg_focus=&#39;minSG&#39;
 Selected subgroup: {z_bm &lt;= 1} 
 Minutes forestsearch overall = 0.05 </code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
- 12.313   0.639   3.145 </code></pre>
+ 12.280   0.635   2.976 </code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
@@ -6107,7 +6197,7 @@ line-height: normal;
 margin-left: auto;
 margin-right: auto;
 color: #333333;
-font-size: 12px;
+font-size: 16px;
 font-weight: normal;
 font-style: normal;
 background-color: #FFFFFF;
@@ -6131,7 +6221,7 @@ padding-bottom: 4px;
 }
 #bbdyxasmwc .gt_title {
 color: #333333;
-font-size: 14px;
+font-size: 125%;
 font-weight: initial;
 padding-top: 4px;
 padding-bottom: 4px;
@@ -6142,7 +6232,7 @@ border-bottom-width: 0;
 }
 #bbdyxasmwc .gt_subtitle {
 color: #333333;
-font-size: 12px;
+font-size: 85%;
 font-weight: initial;
 padding-top: 3px;
 padding-bottom: 5px;
@@ -6184,7 +6274,7 @@ border-right-color: #D3D3D3;
 #bbdyxasmwc .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 border-left-style: none;
@@ -6203,7 +6293,7 @@ overflow-x: hidden;
 #bbdyxasmwc .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 padding-top: 0;
@@ -6423,7 +6513,7 @@ border-right-width: 2px;
 border-right-color: #D3D3D3;
 }
 #bbdyxasmwc .gt_sourcenote {
-font-size: 11px;
+font-size: 90%;
 padding-top: 4px;
 padding-bottom: 4px;
 padding-left: 5px;
@@ -6583,7 +6673,7 @@ line-height: normal;
 margin-left: auto;
 margin-right: auto;
 color: #333333;
-font-size: 12px;
+font-size: 16px;
 font-weight: normal;
 font-style: normal;
 background-color: #FFFFFF;
@@ -6607,7 +6697,7 @@ padding-bottom: 4px;
 }
 #uxkjtkkugo .gt_title {
 color: #333333;
-font-size: 14px;
+font-size: 125%;
 font-weight: initial;
 padding-top: 4px;
 padding-bottom: 4px;
@@ -6618,7 +6708,7 @@ border-bottom-width: 0;
 }
 #uxkjtkkugo .gt_subtitle {
 color: #333333;
-font-size: 12px;
+font-size: 85%;
 font-weight: initial;
 padding-top: 3px;
 padding-bottom: 5px;
@@ -6660,7 +6750,7 @@ border-right-color: #D3D3D3;
 #uxkjtkkugo .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 border-left-style: none;
@@ -6679,7 +6769,7 @@ overflow-x: hidden;
 #uxkjtkkugo .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 padding-top: 0;
@@ -7046,7 +7136,7 @@ line-height: normal;
 margin-left: auto;
 margin-right: auto;
 color: #333333;
-font-size: 12px;
+font-size: 16px;
 font-weight: normal;
 font-style: normal;
 background-color: #FFFFFF;
@@ -7070,7 +7160,7 @@ padding-bottom: 4px;
 }
 #mdphxrkpie .gt_title {
 color: #333333;
-font-size: 14px;
+font-size: 125%;
 font-weight: initial;
 padding-top: 4px;
 padding-bottom: 4px;
@@ -7081,7 +7171,7 @@ border-bottom-width: 0;
 }
 #mdphxrkpie .gt_subtitle {
 color: #333333;
-font-size: 12px;
+font-size: 85%;
 font-weight: initial;
 padding-top: 3px;
 padding-bottom: 5px;
@@ -7123,7 +7213,7 @@ border-right-color: #D3D3D3;
 #mdphxrkpie .gt_col_heading {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 border-left-style: none;
@@ -7142,7 +7232,7 @@ overflow-x: hidden;
 #mdphxrkpie .gt_column_spanner_outer {
 color: #333333;
 background-color: #FFFFFF;
-font-size: 12px;
+font-size: 100%;
 font-weight: normal;
 text-transform: inherit;
 padding-top: 0;
@@ -7513,6 +7603,8 @@ height: 0px !important;
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>
+Added 6 unprocessed variables: entrytime, strat, ecog, region_other, region_asia, pid 
+
 === Spline Constraint Applied ===
 Target log(HR) at z_bm = 0: -0.357 
 Target log(HR) at z_bm = knot ( 5 ): -0.357 
@@ -7543,8 +7635,7 @@ control, : Ran out of iterations and did not converge</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>
  ====================================================================== 
- CENSORING MODEL SELECTION:
- MULTIPLE SURVIVAL REGRESSION MODEL COMPARISONS
+ MULTIPLE SURVIVAL REGRESSION MODEL COMPARISON
 ====================================================================== 
 
 CONVERGENCE SUMMARY ( 4 / 4  converged):
@@ -7790,97 +7881,13 @@ NO subgroup candidates found</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>   user  system elapsed 
-  0.706   0.016   0.149 </code></pre>
+  0.714   0.020   0.152 </code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(<span class="st">&quot;sequential&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
-</section>
-</section>
-<section id="appendix" class="level1" data-number="5">
-<h1 data-number="5"><span class="header-section-number">5</span> Appendix</h1>
-<section id="biomarker-effects-with-spline-model" class="level2" data-number="5.1">
-<h2 data-number="5.1" class="anchored" data-anchor-id="biomarker-effects-with-spline-model"><span class="header-section-number">5.1</span> Biomarker effects with spline model</h2>
-<p>We now outline how potential outcomes are simulated according to parameters fit to the case-study dataset but with parameters specified to induce biomarker effects. That is, causal treatment effects (on log(hazard-ratio) scale) that follow a spline model according to patterns where biomarker effects increase with biomarker levels; Including various degrees of limited treatment effects for low biomarker levels.</p>
-<p>We first consider a Weibull model with treatment and a single biomarker covariate <span class="math inline">\(Z\)</span> where we write the linear predictor of the Cox model <span class="math inline">\(L&#39;\beta\)</span> (say) as</p>
-<p><span class="math display">\[\begin{equation}
-\tag{5}
-L&#39;\beta  := \beta_{1}\hbox{Treat} + \beta_{2}\hbox{Z} + \beta_{3}\hbox{Z}\hbox{Treat} + \beta_{4}(\hbox{Z}-k)I(\hbox{Z}&gt;k) + \beta_{5}(\hbox{Z}-k)I(\hbox{Z}&gt;k)\hbox{Treat}.
-\end{equation}\]</span></p>
-<p>Following the potential-outcome approach let <span class="math inline">\(l_{x,z}\)</span> denote subject’s hazard-function “had they followed treatment regimen <span class="math inline">\(Treat=x\)</span> while having biomarker level <span class="math inline">\(Z=z\)</span>”. That is, for subject with biomarker level <span class="math inline">\(Z=z\)</span> we can simulate their survival outcomes under both treatment (<span class="math inline">\(x=1\)</span>) and control (<span class="math inline">\(x=0\)</span>) conditions. Let <span class="math inline">\(\beta^{0} = (\beta_{1}^{0},\ldots,\beta_{5}^{0})&#39;\)</span> denote the true coefficients and denote the hazard function as</p>
-<p><span class="math display">\[\lambda_{x,z}(t) = \lambda_{0}(t)\exp(l_{x,z}), \quad \hbox{say}.\]</span></p>
-<p>Writing</p>
-<p><span class="math display">\[\begin{equation}
-l_{x,z} = \beta^{0}_{1}x + \beta^{0}_{2}z + \beta^{0}_{3}zx + \beta^{0}_{4}(z-k)I(z&gt;k) +
-\beta^{0}_{5}(z-k)I(z&gt;k)x,
-\end{equation}\]</span> the log of the hazard ratio for biomarker level <span class="math inline">\(z\)</span> under treatment (<span class="math inline">\(x=1\)</span>) relative to control (<span class="math inline">\(x=0\)</span>) is given by</p>
-<p><span class="math display">\[\begin{equation}
-\tag{6}
-\psi^{0}(z) := \log(\lambda_{1,z}(t)/\lambda_{0,z}(t)) = \beta^{0}_{1} + \beta^{0}_{3}z + \beta^{0}_{5}(z-k)I(z&gt;k).
-\end{equation}\]</span></p>
-</section>
-<section id="causal-log-hazard-ratio" class="level2" data-number="5.2">
-<h2 data-number="5.2" class="anchored" data-anchor-id="causal-log-hazard-ratio"><span class="header-section-number">5.2</span> Causal log-hazard-ratio</h2>
-<p>The log(hazard-ratio) for biomarker level <span class="math inline">\(z\)</span> is a linear function of <span class="math inline">\(z\)</span> with a change-point (in slope) at <span class="math inline">\(z=k\)</span> given by</p>
-<p><span class="math display">\[\begin{eqnarray*}
-\psi^{0}(z) &amp;=&amp; \beta^{0}_{1} + \beta^{0}_{3}z, \quad \hbox{for} \ z \leq k, \cr
-            &amp;=&amp; \beta^{0}_{1} + \beta^{0}_{3}z + \beta^{0}_{5}(z-k), \quad \hbox{for} \ z &gt; k.
-\end{eqnarray*}\]</span></p>
-<p>Log hazard-ratio parameters <span class="math inline">\((\beta^{0}_{1},\beta^{0}_{3},\beta^{0}_{5})\)</span> can be chosen to generate “treatment effect patterns” by specifying <span class="math inline">\(\psi^{0}(z)\)</span> values at <span class="math inline">\(z=0\)</span>, <span class="math inline">\(z=k\)</span>, and <span class="math inline">\(z=\zeta\)</span> for <span class="math inline">\(\zeta &gt; k\)</span>. For specified <span class="math inline">\(\psi^{0}(0)\)</span>, <span class="math inline">\(\psi^{0}(k)\)</span>, and <span class="math inline">\(\psi^{0}(\zeta)\)</span> we have</p>
-<p><span class="math display">\[\begin{eqnarray}
-\beta^{0}_{1} &amp;=&amp; \psi^{0}(0), \cr
-\beta^{0}_{3} &amp;=&amp; {(\psi^{0}(k) - \beta^{0}_{1}) \over k}, \cr
-\beta^{0}_{5} &amp;=&amp; {(\psi^{0}(\zeta) - \beta^{0}_{1} - \beta^{0}_{3}\zeta) \over (\zeta -k)}.
-\end{eqnarray}\]</span></p>
-<p>The function <em>get_dgm_stratified</em> generates <span class="math inline">\(\psi^{0}(z)\)</span> according to desired “biomarker treatment effect patterns” as follows.</p>
-<ul>
-<li>Let <span class="math inline">\(X\)</span> and <span class="math inline">\(Z\)</span> denote the treatment and biomarker variables in the case-study dataset and for specified <span class="math inline">\(k\)</span>, form the covariates <span class="math inline">\(L:=(X,Z,ZX,(Z-k)I(Z&gt;k),(Z-k)I(Z&gt;k)X))\)</span>;</li>
-<li>Fit the Weibull model (recall on AFT scale) to get <span class="math inline">\(\log(\hat\theta)\)</span>, <span class="math inline">\(\hat\tau=1/\hat{\nu}\)</span>, and <span class="math inline">\(\hat\gamma\)</span> corresponding to <span class="math inline">\(L\)</span>;</li>
-<li><span class="math inline">\(\hat\gamma\)</span> is in terms of the AFT parameterization given by model (3)</li>
-<li>Next transform to the Weibull (Cox) log hazard-ratio parameterization (4): <span class="math inline">\(\hat\beta = -\hat\gamma/\hat\tau\)</span></li>
-<li>Set “true” parameters <span class="math inline">\(\theta^{0}=\hat\theta\)</span>, and <span class="math inline">\(\tau^{0}=\hat\tau\)</span></li>
-<li>Initialize the “true” parameter <span class="math inline">\(\beta^{0} = \hat\beta\)</span> and re-define parameters 1, 3, and 5 in order to satisfy specified <span class="math inline">\(\psi^{0}(0)\)</span>, <span class="math inline">\(\psi^{0}(k)\)</span>, and <span class="math inline">\(\psi^{0}(\zeta)\)</span>: <span class="math inline">\(\beta^{0}[1] = \psi^{0}(0)\)</span>, <span class="math inline">\(\beta^{0}[3] = (\psi^{0}(k) - \beta^{0}[1])/k\)</span>, and <span class="math inline">\(\beta^{0}[5] = (\psi^{0}(\zeta) - \beta^{0}[1] - \beta^{0}[3]\zeta)/(\zeta -k)\)</span>;</li>
-<li>Form corresponding <span class="math inline">\(\gamma^{0}= -\beta^{0}\tau^{0}\)</span></li>
-<li>For simulations we use the AFT parameterization (3) to generate <span class="math inline">\(\log(T)\)</span> outcomes according to <span class="math inline">\(\log(T) = \log(\theta^{0}) + L&#39;\gamma^{0} + \tau^{0}\epsilon\)</span> where recall <span class="math inline">\(\epsilon\)</span> has the ``extreme value’’ distribution.</li>
-</ul>
-</section>
-<section id="example-where-treatment-effects-increase-with-increasing-biomarker" class="level2" data-number="5.3">
-<h2 data-number="5.3" class="anchored" data-anchor-id="example-where-treatment-effects-increase-with-increasing-biomarker"><span class="header-section-number">5.3</span> Example where treatment effects increase with increasing biomarker</h2>
-<p>We assume that <span class="math inline">\(z=0\)</span> indicates biomarker negative values with <span class="math inline">\(z&gt;1\)</span> indicating positive levels. As an example, suppose the log(hazard ratio) at <span class="math inline">\(z=0\)</span> is <span class="math inline">\(\psi^{0}(0)=\log(3)\)</span> and decreases linearly for <span class="math inline">\(z \leq 5\)</span> (with slope <span class="math inline">\(\beta_{3}^{0}\)</span>) such that at <span class="math inline">\(z=5\)</span>, <span class="math inline">\(\psi^{0}(5)=\log(1.25)\)</span> and for <span class="math inline">\(z&gt;5\)</span> decreases linearly (with a change in slope and intercept) such that at <span class="math inline">\(z=10\)</span>, <span class="math inline">\(\psi^{0}(10) = \log(0.5)\)</span>. In the following we will describe summary measures of the treatment effects as a function of increasing [or decreasing] values of the biomarker. In this example treatment is detrimental for lower values of the biomarker with treatment effects increasing fairly quickly as the biomarker increases with an overall ``average hazard ratio’’ (AHR) of <span class="math inline">\(\approx 0.74\)</span> (see Working Example below).</p>
-</section>
-<section id="including-prognostic-factors-w" class="level2" data-number="5.4">
-<h2 data-number="5.4" class="anchored" data-anchor-id="including-prognostic-factors-w"><span class="header-section-number">5.4</span> Including prognostic factors <span class="math inline">\(W\)</span></h2>
-<p>We extend the model to include a baseline prognostic factor <span class="math inline">\(W\)</span> within <span class="math inline">\(L\)</span> (effect parameter <span class="math inline">\(\beta^{0}_{w}\)</span>) where</p>
-<p><span class="math display">\[\begin{equation}
-l_{x,z,w} = \beta^{0}_{1}x + \beta^{0}_{2}z + \beta^{0}_{3}zx + \beta^{0}_{4}(z-k)I(z&gt;k) +
-\beta^{0}_{5}(z-k)I(z&gt;k)x + \beta^{0}_{w}w.
-\end{equation}\]</span></p>
-<p>Note that defining <span class="math inline">\(m(1,z,w)\)</span> [<span class="math inline">\(m(0,z,w)\)</span>)] as the conditional expected value of <span class="math inline">\(\log(T)\)</span> with treatment set to experimental [control] given biomarker level <span class="math inline">\(Z=z\)</span> and <span class="math inline">\(W=w\)</span></p>
-<p><span class="math display">\[\psi^{0}(z,w) = \{m(0,z,w)-m(1,z,w)\}/\tau\]</span> which corresponds to the difference in the (true) means of the potential outcomes under experimental and control conditions (<span class="math inline">\(\log(T[0,z,w]\)</span> versus <span class="math inline">\(\log(T[1,z,w]\)</span>, say)</p>
-</section>
-</section>
-<section id="specifying-biomarker-treatment-effects" class="level1" data-number="6">
-<h1 data-number="6"><span class="header-section-number">6</span> Specifying biomarker treatment effects</h1>
-<section id="average-hazard-ratios-ahrs" class="level2" data-number="6.1">
-<h2 data-number="6.1" class="anchored" data-anchor-id="average-hazard-ratios-ahrs"><span class="header-section-number">6.1</span> Average hazard ratios (AHRs)</h2>
-<p>We define the <em>biomarker average hazard ratio (AHR)</em> as the expected value of <span class="math inline">\(\psi^{0}(\cdot)\)</span> across “increasing biomarker” sub-populations. For example, <span class="math inline">\(\hbox{AHR}(2^{+})\)</span> represents the AHR for subjects with biomarker values <span class="math inline">\(\geq 2\)</span> via</p>
-<p><span class="math display">\[\begin{equation}
-\tag{6}
-\hbox{AHR}(z^{+}):= \exp\left\{E_{Z \geq z} \psi^{0}(Z) \right\};
-\end{equation}\]</span></p>
-<p>With the opposite direction – across “decreasing biomarker” sub-populations</p>
-<p><span class="math display">\[\begin{equation}
-\tag{7}
-\hbox{AHR}(z^{-}):= \exp\left\{E_{Z \leq z} \psi^{0}(Z) \right\}.
-\end{equation}\]</span></p>
-<p>Here the expectations are over the distribution of <span class="math inline">\(Z\)</span>, however if there is a prognostic factor <span class="math inline">\(W\)</span> then the expectations are over <span class="math inline">\((Z,W)\)</span>. In our calculations we calculate empirical averages.</p>
-</section>
-<section id="controlled-direct-effect-cde-versions-acr_2015" class="level2" data-number="6.2">
-<h2 data-number="6.2" class="anchored" data-anchor-id="controlled-direct-effect-cde-versions-acr_2015"><span class="header-section-number">6.2</span> Controlled direct-effect (CDE) versions (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (<a href="#ref-ACR_2015" role="doc-biblioref">2015</a>)</span>)</h2>
-<p>Averaging across hazard ratios: Define the hazard (omitting baseline hazard) <span class="math inline">\(\theta^{x}(z,w) = \exp(l(x,z,w))\)</span> setting treatment to <span class="math inline">\(X=x\)</span> given <span class="math inline">\(Z=z\)</span> and <span class="math inline">\(W=w\)</span>. Aalen et al. (<span class="citation" data-cites="ACR_2015">Aalen, Cook, and Røysland (<a href="#ref-ACR_2015" role="doc-biblioref">2015</a>)</span>) define the controlled direct-effect (CDE) as the ratio of the expected hazards. Here we consider the above cumulative versions (omitting possible dependence on <span class="math inline">\(W\)</span>). Let <span class="math inline">\(\bar\theta^{x}(z+) = E_{Z \geq z}\theta^{x}(Z)\)</span> for <span class="math inline">\(x=0,1\)</span>, and define</p>
-<p><span class="math display">\[\hbox{CDE}(z^{+}):= \bar\theta^{1}(z+)/\bar\theta^{0}(z+), \quad \hbox{and} \quad \hbox{CDE}(z^{-}):= \bar\theta^{1}(z-)/\bar\theta^{0}(z-)\]</span></p>
 
 </section>
 </section>

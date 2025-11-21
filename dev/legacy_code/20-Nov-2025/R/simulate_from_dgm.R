@@ -128,7 +128,7 @@ simulate_from_dgm <- function(dgm,
     if(!is.null(entry_var)){
     entry_time <- df_sim[,c(entry_var)]
     } else {
-    entry_time <- runif(n, min = 0, max = max_entry)
+    entry_time <- runif(0,max_entry)
     }
 
     follow_up <- analysis_time - entry_time

@@ -224,7 +224,6 @@ generate_aft_dgm_flex <- function(data,
                                   k_treat = 1,
                                   k_inter = 1,
                                   n_super = 5000,
-                                  select_censoring = FALSE,
                                   cens_type = "weibull",
                                   cens_params = list(),
                                   seed = 8316951,
@@ -234,9 +233,6 @@ generate_aft_dgm_flex <- function(data,
  if(standardize) message("Standardizing continuous covariates, take care interpreting predictive effects (especially spline)")
   # Set seed for reproducibility
   set.seed(seed)
-
-  if(is.null(factor_vars_cens) & is.null(continuous_vars_cens)) factor_vars_cens = factor_vars
-  if(is.null(continuous_vars_cens)) continuous_vars_cens = continuous_vars
 
   # ============================================================================
   # Step 1: Input Validation
@@ -295,14 +291,10 @@ generate_aft_dgm_flex <- function(data,
   # ============================================================================
   # Step 7: Prepare Censoring Parameters
   # ============================================================================
-  cens_model <- NULL
-
-  if(select_censoring){
   cens_result <- prepare_censoring_model(df_work, cens_type, cens_params,
                                          df_super)
   cens_model <- cens_result$cens_model
   df_super <- cens_result$df_super
-  }
 
   # ============================================================================
   # Step 8: Assemble and Return Results

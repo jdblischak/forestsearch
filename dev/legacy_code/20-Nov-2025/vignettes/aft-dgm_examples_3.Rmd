@@ -92,7 +92,7 @@ data_summary <- data.frame(
   )
 )
 
-kable(data_summary, row.names = FALSE) |>
+kable(data_summary, row.names = FALSE) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
@@ -166,7 +166,7 @@ subgroup_summary <- data.frame(
 
 kable(subgroup_summary, 
       col.names = c("Criterion", "N", "Proportion"),
-      digits = 3) |>
+      digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
@@ -184,8 +184,8 @@ df_gbsg$tte <- with(gbsg, rfstime/30.4375)
 # Find k_inter for HR_harm = 2.0
 result <- forestsearch::find_k_inter_for_target_hr(
   target_hr_harm = 2.0,
-  data = df_gbsg,
-  outcome_var = "tte",
+  data = gbsg,
+  outcome_var = "rfstime",
   event_var = "status",
   treatment_var = "hormon",
   continuous_vars = c("age", "er", "pgr"),
@@ -207,32 +207,8 @@ calibration_results <- data.frame(
 )
 
 kable(calibration_results, 
-      col.names = c("Target HR", "Optimal k_inter", "Achieved HR", "Error")) |>
+      col.names = c("Target HR", "Optimal k_inter", "Achieved HR", "Error")) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
-
-
-
-# Single-factor subgroup (er <= 1)
-
-result <- forestsearch::find_k_inter_for_target_hr(
-  target_hr_harm = 2.0,
-  data = df_gbsg,
-  outcome_var = "tte",
-  event_var = "status",
-  treatment_var = "hormon",
-  continuous_vars = c("age", "er", "pgr"),
-  factor_vars = c("meno", "grade"),
-  subgroup_vars = c("er"),
-  subgroup_cuts = list(
-  er = list(type = "custom",
-    fun = function(x) x <= 1)
-  ),
-  k_treat = 1.0,
-  verbose = TRUE
-)
-
-
-
 ```
 
 ## Sensitivity Analysis
@@ -269,9 +245,9 @@ sensitivity_results <- do.call(sensitivity_analysis_k_inter, c(
 ))
 
 # Create long format for plotting
-sens_long <- sensitivity_results |>
-  select(k_inter, hr_harm, hr_no_harm, hr_overall) |>
-  pivot_longer(cols = -k_inter, names_to = "Group", values_to = "HR") |>
+sens_long <- sensitivity_results %>%
+  select(k_inter, hr_harm, hr_no_harm, hr_overall) %>%
+  pivot_longer(cols = -k_inter, names_to = "Group", values_to = "HR") %>%
   mutate(Group = case_when(
     Group == "hr_harm" ~ "Harm Subgroup",
     Group == "hr_no_harm" ~ "No-Harm Subgroup",
@@ -303,10 +279,8 @@ ggplot(sens_long, aes(x = k_inter, y = HR, color = Group)) +
 ## Null Scenario (No Interaction)
 
 ```{r}
-
 # Generate DGM with no interaction
 dgm_null <- generate_aft_dgm_flex(
-  select_censoring = TRUE,
   data = df_gbsg,
   n_super = 5000,
   continuous_vars = c("age", "er", "pgr"),
@@ -319,7 +293,7 @@ dgm_null <- generate_aft_dgm_flex(
     er = list(type = "quantile", value = er_quantile),
     meno = 0
   ),
-  model = "null",
+  model = "alt",
   k_inter = 0.0,
   verbose = FALSE
 )
@@ -331,8 +305,7 @@ draw_null <- simulate_from_dgm(
   n = 700, 
   rand_ratio = 1, 
   draw_treatment = TRUE, 
-  max_entry = 36,
-  analysis_time = 48,
+  max_follow = Inf, 
   seed = 123
 )
 
@@ -347,9 +320,8 @@ null_summary <- data.frame(
             mean(draw_null$flag_harm))
 )
 
-kable(null_summary, digits = 3) |>
+kable(null_summary, digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
-
 ```
 
 ```{r, fig.width = 10, fig.height = 8}
@@ -362,6 +334,7 @@ dfcount_null <- df_counting(
 )
 
 # Create KM plot
+par(mfrow=c(1,1))
 plot_weighted_km(dfcount_null, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
 title(main = "Null Scenario: No Treatment-Subgroup Interaction")
 ```
@@ -369,111 +342,6 @@ title(main = "Null Scenario: No Treatment-Subgroup Interaction")
 ## Alternative Scenario (With Interaction)
 
 ```{r}
-
-
-df_gbsg$erlog <- log(df_gbsg$er+1)
-
-# Example: Spline treatment effect on ER with subgroup interaction on meno
-# dgm_spline <- generate_aft_dgm_flex(
-#   data = df_gbsg,
-#   continuous_vars = c("age", "size", "pgr","erlog"),
-#   factor_vars = c("meno", "grade"),
-#   outcome_var = "tte",
-#   event_var = "status",
-#   treatment_var = "hormon",
-#   subgroup_vars = "meno",  # Subgroup on meno
-#   subgroup_cuts = list(meno = 0),
-#   model = "alt",
-#   spline_spec = list(
-#     var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
-#     knot = log(10),
-#     zeta = log(20),
-#     log_hrs = log(c(0.9, 0.7, 0.6))  # HR varies with ER
-#   ),
-#   k_inter = 0.0,  # Amplify meno subgroup effect
-#   verbose = TRUE
-# )
-
-
-dgm_spline <- generate_aft_dgm_flex(
-  data = df_gbsg,
-  continuous_vars = c("age", "size", "pgr","erlog"),
-  factor_vars = c("meno", "grade"),
-  set_beta_spec = list(set_var = c("z_meno"), beta_var = -log(4)),
-  outcome_var = "tte",
-  event_var = "status",
-  treatment_var = "hormon",
-  subgroup_vars = NULL, 
-  subgroup_cuts = NULL,
-  model = "alt",
-  spline_spec = list(
-    var = "z_erlog",  # Use original variable name (or "z_er" if transformed)
-    knot = log(5),
-    zeta = log(20),
-    log_hrs = log(c(1.5, 0.9, 0.6))  # HR varies with ER
-  ),
-  k_inter = 0.0,  # Amplify meno subgroup effect
-  verbose = TRUE
-)
-
-
-# Plot the spline effect
-plot_spline_treatment_effect(dgm_spline)
-
-dgm_spline$model_params$b0
-
-dgm_spline$model_params$censoring$gamma 
-
-names(dgm_spline$df_super)
-
-# Simulate data
-set.seed(123)
-draw_spline <- simulate_from_dgm(
-  dgm = dgm_spline, 
-  n = 700, 
-  rand_ratio = 1, 
-  draw_treatment = TRUE, 
-  max_follow = Inf, 
-  seed = 123
-)
-
-result <- cox_cs_fit(
-  df = draw_spline, tte_name = "y_sim", event_name ="event_sim", treat_name = "treat_sim",
-  truebeta_name = "loghr_po",
-  z_name = "z_erlog", z_by = 0.25, z_window = 0.125,
-  alpha = 0.20,
-  plot_params = list(
-    xlab = "Biomarker Level",
-    main_title = "Treatment Effect Heterogeneity"
-  )
-)
-
-# dfp <- data.table::setorder(draw_spline,z_erlog)
-# with(dfp, plot(z_erlog, loghr_po, type="l", lty=1))
-
-# Specify critical HR threshold
-results <- plot_subgroup_effects(dgm_spline$df_super, z ="z_erlog", hrz_crit = 0)
-
-
-# Find "k" to achieve target HR in subgroup
-result <- forestsearch::find_k_inter_for_target_hr(
-  target_hr_harm = 2.0,
-  data = df_gbsg,
-  outcome_var = "rfstime",
-  event_var = "status",
-  treatment_var = "hormon",
-  continuous_vars = c("age", "er", "pgr"),
-  factor_vars = c("meno", "grade"),
-  subgroup_vars = c("er", "meno"),
-  subgroup_cuts = list(
-    er = list(type = "quantile", value = er_quantile),
-    meno = 0
-  ),
-  k_treat = 1.0,
-  verbose = FALSE
-)
-
-
 # Generate DGM with calibrated interaction
 dgm_alt <- generate_aft_dgm_flex(
   data = df_gbsg,
@@ -514,7 +382,7 @@ alt_summary <- data.frame(
             mean(draw_alt$flag_harm))
 )
 
-kable(alt_summary, digits = 3) |>
+kable(alt_summary, digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
@@ -569,8 +437,8 @@ system.time({fs <- forestsearch(df_null,  confounders.name=confounders.name,
                                 showten_subgroups = FALSE, details=TRUE,
                                 conf_force = c("z_age <= 65", "z_er <= 0", "z_er <= 1", "z_er <= 2","z_er <= 5"),
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
-                                maxk = 1, n.min = 60, d0.min = 12, d1.min = 12,
-                                plot.sg = TRUE, by.risk = 120,
+                                maxk = 2, n.min = 60, d0.min = 12, d1.min = 12,
+                                plot.sg = TRUE, by.risk = 12,
                                 parallel_args = list(plan="callr", workers = 12, show_message = TRUE)
 )
 })
@@ -601,9 +469,9 @@ system.time({fs <- forestsearch(df_alt,  confounders.name=confounders.name,
                                 showten_subgroups = FALSE, details=TRUE,
                                 conf_force = c("z_age <= 65", "z_er <= 0", "z_er <= 1", "z_er <= 2","z_er <= 5"),
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
-                                maxk = 1, n.min = 60, d0.min = 12, d1.min = 12,
+                                maxk = 2, n.min = 60, d0.min = 12, d1.min = 12,
                                 plot.sg = TRUE, by.risk = 12,
-                                parallel_args = list(plan="callr", workers = 120, show_message = TRUE)
+                                parallel_args = list(plan="callr", workers = 12, show_message = TRUE)
 )
 })
 

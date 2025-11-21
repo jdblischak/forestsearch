@@ -452,7 +452,7 @@ coef_df <- data.frame(
   Coefficient = names(b0_coefs),
   Value = as.numeric(b0_coefs),
   HR = exp(as.numeric(b0_coefs))
-) |>
+) %>%
   mutate(
     Type = case_when(
       grepl("^treat", Coefficient) ~ "Treatment Effects",
@@ -462,30 +462,30 @@ coef_df <- data.frame(
     )
   )
 
-coef_table_grouped <- coef_df |>
-  arrange(Type, Coefficient) |>
-  gt(groupname_col = "Type") |>
+coef_table_grouped <- coef_df %>%
+  arrange(Type, Coefficient) %>%
+  gt(groupname_col = "Type") %>%
   fmt_number(
     columns = c(Value, HR),
     decimals = 4
-  ) |>
+  ) %>%
   tab_header(
     title = "AFT Model Coefficients by Type",
     subtitle = "Weibull Parameterization (b0) with Hazard Ratios"
-  ) |>
+  ) %>%
   cols_label(
     Coefficient = "Variable",
     Value = "b0 Coefficient",
     HR = "Hazard Ratio"
-  ) |>
+  ) %>%
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
-  ) |>
+  ) %>%
   tab_style(
     style = cell_text(style = "italic"),
     locations = cells_row_groups()
-  ) |>
+  ) %>%
   tab_options(
     table.font.size = px(12)
   )
@@ -670,29 +670,29 @@ results <- cox_ahr_cde_analysis(
  res <-results$subgroup_stats
  cut_hr <- results$optimal_cutpoint
 
-res |>
-  gt() |>
+res %>%
+  gt() %>%
   tab_header(
     title = "Subgroup Statistics"
-  ) |>
+  ) %>%
   tab_source_note(
     source_note = md(paste0("*HR threshold biomarker cutpoint: ", 
                             round(cut_hr, 3), "*"))
-  ) |>
+  ) %>%
   # Format first 3 columns with 0 decimals
   fmt_number(
     columns = 1:4,
     decimals = 0
-  ) |>
+  ) %>%
   # Format remaining numeric columns with 3 decimals
   fmt_number(
     columns = -c(1:4),
     decimals = 3
-  ) |>
+  ) %>%
   tab_style(
     style = cell_text(weight = "bold"),
     locations = cells_column_labels()
-  ) |>
+  ) %>%
   tab_options(
     table.font.size = px(12)
   )

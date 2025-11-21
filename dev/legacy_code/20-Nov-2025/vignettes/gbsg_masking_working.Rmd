@@ -173,14 +173,14 @@ library(dplyr)
 gbsg_raw <- read_csv("data-raw/gbsg_raw.csv")
 
 # Clean and process
-gbsg <- gbsg_raw |>
+gbsg <- gbsg_raw %>%
   mutate(
     meno = as.integer(meno),
     grade = factor(grade, levels = 1:3, 
                    labels = c("well", "moderate", "poor")),
     hormon = as.integer(hormon),
     status = as.integer(status)
-  ) |>
+  ) %>%
   arrange(pid)
 
 # Save to data/

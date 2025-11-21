@@ -1237,7 +1237,7 @@ compare_multiple_survreg <- function(...,
 #' @return The best fitting survreg model object, or NULL if none could be determined
 #' @export
 #'
-get_best_survreg_legacy <- function(comparison_result) {
+get_best_survreg <- function(comparison_result) {
   if(!inherits(comparison_result, c("multi_survreg_comparison", "survreg_comparison"))) {
     stop("Input must be output from model comparison function")
   }
@@ -1248,67 +1248,6 @@ get_best_survreg_legacy <- function(comparison_result) {
   }
 
   return(comparison_result$models[[comparison_result$best_model]])
-}
-
-
-
-#' Get Best Model from Comparison
-#'
-#' Extracts the best fitting model object from a comparison result.
-#' If no single best model can be determined, returns the Weibull model if
-#' selected by either AIC or BIC. Defaults to Weibull0 model if no model
-#' can be determined.
-#'
-#' @param comparison_result Output from compare_survreg_models or compare_multiple_survreg
-#'
-#' @return A survreg model object (defaults to Weibull0 model)
-#' @export
-#'
-get_best_survreg <- function(comparison_result) {
-  if(!inherits(comparison_result, c("multi_survreg_comparison", "survreg_comparison"))) {
-    stop("Input must be output from model comparison function")
-  }
-
-  # Determine which model name to use
-  best_name <- NULL
-
-  # First, check if there's a clear best model
-  if(!is.na(comparison_result$best_model)) {
-    best_name <- comparison_result$best_model
-  } else {
-    # No best model determined - check if Weibull selected by AIC or BIC
-    best_aic <- if("best_by_aic" %in% names(comparison_result)) {
-      comparison_result$best_by_aic
-    } else {
-      NA
-    }
-
-    best_bic <- if("best_by_bic" %in% names(comparison_result)) {
-      comparison_result$best_by_bic
-    } else {
-      NA
-    }
-
-    # Use Weibull if selected by either criterion
-    if(!is.na(best_aic) && tolower(best_aic) == "weibull") {
-      message("No single best model, but Weibull selected by AIC")
-      best_name <- best_aic
-    } else if(!is.na(best_bic) && tolower(best_bic) == "weibull") {
-      message("No single best model, but Weibull selected by BIC")
-      best_name <- best_bic
-    } else {
-      # Default to Weibull0 if no best model could be determined
-      message("No best model could be determined - defaulting to Weibull0")
-      best_name <- "Weibull0"
-    }
-  }
-
-  # Return the actual model object
-  if(!is.null(best_name) && best_name %in% names(comparison_result$models)) {
-    return(comparison_result$models[[best_name]])
-  } else {
-    stop("Model '", best_name, "' not found in comparison_result$models")
-  }
 }
 
 #' Print method for survreg_comparison objects

@@ -85,11 +85,11 @@ sg_options <- data.frame(
   check.names = FALSE
 )
 
-kable(sg_options, caption = "sg_focus Options Overview") |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
-  column_spec(1, bold = TRUE) |>
-  column_spec(2, width = "25%") |>
-  column_spec(3, width = "20%") |>
+kable(sg_options, caption = "sg_focus Options Overview") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = TRUE) %>%
+  column_spec(2, width = "25%") %>%
+  column_spec(3, width = "20%") %>%
   column_spec(4, width = "25%")
 ```
 
@@ -355,9 +355,9 @@ param_interactions <- data.frame(
   check.names = FALSE
 )
 
-kable(param_interactions, caption = "Typical Parameter Settings by sg_focus") |>
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
-  column_spec(1, bold = TRUE) |>
+kable(param_interactions, caption = "Typical Parameter Settings by sg_focus") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = TRUE) %>%
   row_spec(1:5, font_size = 12)
 ```
 

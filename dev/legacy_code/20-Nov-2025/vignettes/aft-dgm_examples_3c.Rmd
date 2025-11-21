@@ -92,7 +92,7 @@ data_summary <- data.frame(
   )
 )
 
-kable(data_summary, row.names = FALSE) |>
+kable(data_summary, row.names = FALSE) %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 ```
 
@@ -166,7 +166,7 @@ subgroup_summary <- data.frame(
 
 kable(subgroup_summary, 
       col.names = c("Criterion", "N", "Proportion"),
-      digits = 3) |>
+      digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
@@ -207,7 +207,7 @@ calibration_results <- data.frame(
 )
 
 kable(calibration_results, 
-      col.names = c("Target HR", "Optimal k_inter", "Achieved HR", "Error")) |>
+      col.names = c("Target HR", "Optimal k_inter", "Achieved HR", "Error")) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 
 
@@ -269,9 +269,9 @@ sensitivity_results <- do.call(sensitivity_analysis_k_inter, c(
 ))
 
 # Create long format for plotting
-sens_long <- sensitivity_results |>
-  select(k_inter, hr_harm, hr_no_harm, hr_overall) |>
-  pivot_longer(cols = -k_inter, names_to = "Group", values_to = "HR") |>
+sens_long <- sensitivity_results %>%
+  select(k_inter, hr_harm, hr_no_harm, hr_overall) %>%
+  pivot_longer(cols = -k_inter, names_to = "Group", values_to = "HR") %>%
   mutate(Group = case_when(
     Group == "hr_harm" ~ "Harm Subgroup",
     Group == "hr_no_harm" ~ "No-Harm Subgroup",
@@ -306,7 +306,6 @@ ggplot(sens_long, aes(x = k_inter, y = HR, color = Group)) +
 
 # Generate DGM with no interaction
 dgm_null <- generate_aft_dgm_flex(
-  select_censoring = TRUE,
   data = df_gbsg,
   n_super = 5000,
   continuous_vars = c("age", "er", "pgr"),
@@ -331,8 +330,7 @@ draw_null <- simulate_from_dgm(
   n = 700, 
   rand_ratio = 1, 
   draw_treatment = TRUE, 
-  max_entry = 36,
-  analysis_time = 48,
+  max_follow = Inf, 
   seed = 123
 )
 
@@ -347,9 +345,8 @@ null_summary <- data.frame(
             mean(draw_null$flag_harm))
 )
 
-kable(null_summary, digits = 3) |>
+kable(null_summary, digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
-
 ```
 
 ```{r, fig.width = 10, fig.height = 8}
@@ -514,7 +511,7 @@ alt_summary <- data.frame(
             mean(draw_alt$flag_harm))
 )
 
-kable(alt_summary, digits = 3) |>
+kable(alt_summary, digits = 3) %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 

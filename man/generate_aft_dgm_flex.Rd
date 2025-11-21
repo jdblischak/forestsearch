@@ -21,6 +21,7 @@ generate_aft_dgm_flex(
   k_treat = 1,
   k_inter = 1,
   n_super = 5000,
+  select_censoring = FALSE,
   cens_type = "weibull",
   cens_params = list(),
   seed = 8316951,
