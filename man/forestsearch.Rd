@@ -72,87 +72,101 @@ forestsearch(
 \item Additional covariate columns for subgroup discovery
 }}
 
-\item{n.min}{Integer. Minimum total sample size for valid subgroup. Default = 60.
-Ensures statistical stability and clinical relevance.
-Recommendations by study size:
-\itemize{
-\item Small trials (N<300): 30-50
-\item Medium trials (N=300-1000): 60-80
-\item Large trials (N>1000): 100+
-}}
+\item{outcome.name}{Character. Name of outcome column. Default "tte"}
 
-\item{hr.threshold}{Numeric. Minimum hazard ratio for initial subgroup consideration.
-Default = 1.25 (25\\% increased hazard). Range: 1.0 to 2.0+.
-Lower values (1.1-1.2) for safety surveillance or exploratory studies.
-Higher values (1.4-1.5+) for confirmatory trials or specific signatures.
-Interacts with sg_focus: use lower thresholds with "maxSG", higher with "minSG".}
+\item{event.name}{Character. Name of event column. Default "event"}
 
-\item{hr.consistency}{Numeric. Minimum hazard ratio required in split-sample validation.
-Default = 1.0 (any harmful effect). Range: 0.8 to 1.5.
-Controls validation stringency:
-\itemize{
-\item 0.8-0.9: Allows 10-20\\% effect attenuation
-\item 1.0: Effect must persist (no attenuation)
-\item 1.1+: Effect must maintain minimum clinical significance
-}}
+\item{treat.name}{Character. Name of treatment column. Default "treat"}
 
-\item{sg_focus}{Character. Determines subgroup prioritization strategy when multiple
-candidates meet consistency criteria. Options:
-\describe{
-\item{"hr"}{(Default) Prioritizes most reliable harm signal. Selection order:
-highest consistency (Pcons), largest hazard ratio, fewest factors.
-Best for: regulatory submissions, confirmatory trials, academic publications.}
-\item{"maxSG"}{Prioritizes largest affected population. Selection order:
-largest sample size, highest consistency, fewest factors.
-Best for: public health decisions, treatment guidelines, population protection.}
-\item{"minSG"}{Prioritizes most specific/smallest subgroup. Selection order:
-smallest sample size, highest consistency, fewest factors.
-Best for: precision medicine, biomarker signatures, targeted interventions.}
-\item{"hrMaxSG"}{Among subgroups with HR > hr.threshold, selects largest.
-Two-stage: filter by effect size, then maximize coverage.
-Best for: clinical guidelines balancing effect and impact.}
-\item{"hrMinSG"}{Among subgroups with HR > hr.threshold, selects most specific.
-Two-stage: filter by effect size, then maximize specificity.
-Best for: companion diagnostics, ultra-high-risk identification.}
-}}
+\item{id.name}{Character. Name of ID column. Default "id"}
 
-\item{pconsistency.threshold}{Numeric. Minimum proportion of random splits where both
-halves show HR > hr.consistency. Default = 0.90 (90\\% of splits).
-Range: 0.5 to 0.95+. Controls reproducibility:
-\itemize{
-\item 0.70-0.80: Exploratory, hypothesis-generating
-\item 0.85-0.90: Standard confirmatory analysis
-\item 0.95+: Regulatory submission, high confidence required
-}}
+\item{potentialOutcome.name}{Character. Potential outcome column. Default NULL}
 
-\item{d0.min}{Integer. Minimum events required in control arm of subgroup.
-Default = 15. Ensures stable baseline hazard estimation.}
+\item{flag_harm.name}{Character. Harm flag column. Default NULL}
 
-\item{d1.min}{Integer. Minimum events required in treatment arm of subgroup.
-Default = 15. Ensures stable treatment effect estimation.}
+\item{confounders.name}{Character vector. Confounder variables}
 
-\item{details}{Logical. Print detailed progress messages during execution.
-Default = TRUE. Set FALSE for silent operation or simulation studies.}
+\item{parallel_args}{List. Parallel processing arguments}
 
-\item{maxk}{Integer. Maximum number of factors allowed in a subgroup definition.
-Default = 2. Range: 1-5. Higher values allow more complex interactions but
-increase multiple testing and reduce interpretability.}
+\item{df.predict}{Data frame for prediction. Default NULL}
 
-\item{n.splits}{Integer. Number of random 50/50 splits for consistency evaluation.
-Default = 1000. Range: 500-5000. More splits increase precision but computation time.}
+\item{df.test}{Data frame for testing. Default NULL}
 
-\item{stop.threshold}{Numeric. Early stopping threshold for consistency.
-Default = NULL (no early stopping) or same as pconsistency.threshold.
-If specified, stops evaluation when impossible to achieve pconsistency.threshold.}
+\item{is.RCT}{Logical. Is RCT? Default TRUE}
 
-\item{nmin.grf}{Integer. Minimum node size for GRF variable importance calculation.
-Default = 60. Smaller values allow more granular splits but may overfit.}
+\item{seedit}{Integer. Random seed. Default 8316951}
 
-\item{seed}{Integer. Random seed for reproducibility. Default = NULL.
-Set explicit seed for reproducible results across runs.}
+\item{est.scale}{Character. Estimate scale. Default "hr"}
 
-\item{conf.factor}{Character vector. Names of factors to force into all models.
-Default = NULL. Use for known important confounders or stratification factors.}
+\item{use_lasso}{Logical. Use LASSO? Default TRUE}
+
+\item{use_grf}{Logical. Use GRF? Default TRUE}
+
+\item{grf_res}{GRF results object. Default NULL}
+
+\item{grf_cuts}{GRF cutpoints. Default NULL}
+
+\item{max_n_confounders}{Integer. Max confounders. Default 1000}
+
+\item{grf_depth}{Integer. GRF depth. Default 2}
+
+\item{dmin.grf}{Integer. Min node size. Default 12}
+
+\item{frac.tau}{Numeric. Tau fraction. Default 0.6}
+
+\item{conf_force}{Character vector. Force variables. Default NULL}
+
+\item{defaultcut_names}{Character vector. Default cut variables. Default NULL}
+
+\item{cut_type}{Character. Cut type. Default "default"}
+
+\item{exclude_cuts}{Character vector. Exclude from cuts. Default NULL}
+
+\item{replace_med_grf}{Logical. Replace median with GRF. Default FALSE}
+
+\item{cont.cutoff}{Integer. Continuous cutoff. Default 4}
+
+\item{conf.cont_medians}{Character vector. Median cut variables. Default NULL}
+
+\item{conf.cont_medians_force}{Character vector. Force median cuts. Default NULL}
+
+\item{n.min}{Integer. Min sample size. Default 60}
+
+\item{hr.threshold}{Numeric. HR threshold. Default 1.25}
+
+\item{hr.consistency}{Numeric. HR consistency. Default 1.0}
+
+\item{sg_focus}{Character. Focus type ("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG"). Default "hr"}
+
+\item{fs.splits}{Integer. Number of splits. Default 1000}
+
+\item{m1.threshold}{Numeric. M1 threshold. Default Inf}
+
+\item{pconsistency.threshold}{Numeric. Consistency threshold. Default 0.90}
+
+\item{showten_subgroups}{Logical. Show top 10. Default FALSE}
+
+\item{d0.min}{Integer. Min control events. Default 12}
+
+\item{d1.min}{Integer. Min treatment events. Default 12}
+
+\item{max.minutes}{Numeric. Max computation time. Default 3}
+
+\item{minp}{Numeric. Min p-value. Default 0.025}
+
+\item{details}{Logical. Show details. Default FALSE}
+
+\item{maxk}{Integer. Max factors. Default 2}
+
+\item{by.risk}{Integer. Risk bins. Default 12}
+
+\item{plot.sg}{Logical. Plot subgroups. Default FALSE}
+
+\item{plot.grf}{Logical. Plot GRF. Default FALSE}
+
+\item{max_subgroups_search}{Integer. Max subgroups to search. Default 10}
+
+\item{vi.grf.min}{Numeric. Min variable importance. Default -0.2}
 }
 \value{
 A list of class "forestsearch" containing:

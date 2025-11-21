@@ -16,89 +16,55 @@
 #'     \item \code{id}: Patient identifier (numeric or character)
 #'     \item Additional covariate columns for subgroup discovery
 #'   }
-#'
-#' @param sg_focus Character. Determines subgroup prioritization strategy when multiple
-#'   candidates meet consistency criteria. Options:
-#'   \describe{
-#'     \item{"hr"}{(Default) Prioritizes most reliable harm signal. Selection order:
-#'       highest consistency (Pcons), largest hazard ratio, fewest factors.
-#'       Best for: regulatory submissions, confirmatory trials, academic publications.}
-#'     \item{"maxSG"}{Prioritizes largest affected population. Selection order:
-#'       largest sample size, highest consistency, fewest factors.
-#'       Best for: public health decisions, treatment guidelines, population protection.}
-#'     \item{"minSG"}{Prioritizes most specific/smallest subgroup. Selection order:
-#'       smallest sample size, highest consistency, fewest factors.
-#'       Best for: precision medicine, biomarker signatures, targeted interventions.}
-#'     \item{"hrMaxSG"}{Among subgroups with HR > hr.threshold, selects largest.
-#'       Two-stage: filter by effect size, then maximize coverage.
-#'       Best for: clinical guidelines balancing effect and impact.}
-#'     \item{"hrMinSG"}{Among subgroups with HR > hr.threshold, selects most specific.
-#'       Two-stage: filter by effect size, then maximize specificity.
-#'       Best for: companion diagnostics, ultra-high-risk identification.}
-#'   }
-#'
-#' @param hr.threshold Numeric. Minimum hazard ratio for initial subgroup consideration.
-#'   Default = 1.25 (25\% increased hazard). Range: 1.0 to 2.0+.
-#'   Lower values (1.1-1.2) for safety surveillance or exploratory studies.
-#'   Higher values (1.4-1.5+) for confirmatory trials or specific signatures.
-#'   Interacts with sg_focus: use lower thresholds with "maxSG", higher with "minSG".
-#'
-#' @param hr.consistency Numeric. Minimum hazard ratio required in split-sample validation.
-#'   Default = 1.0 (any harmful effect). Range: 0.8 to 1.5.
-#'   Controls validation stringency:
-#'   \itemize{
-#'     \item 0.8-0.9: Allows 10-20\% effect attenuation
-#'     \item 1.0: Effect must persist (no attenuation)
-#'     \item 1.1+: Effect must maintain minimum clinical significance
-#'   }
-#'
-#' @param pconsistency.threshold Numeric. Minimum proportion of random splits where both
-#'   halves show HR > hr.consistency. Default = 0.90 (90\% of splits).
-#'   Range: 0.5 to 0.95+. Controls reproducibility:
-#'   \itemize{
-#'     \item 0.70-0.80: Exploratory, hypothesis-generating
-#'     \item 0.85-0.90: Standard confirmatory analysis
-#'     \item 0.95+: Regulatory submission, high confidence required
-#'   }
-#'
-#' @param n.min Integer. Minimum total sample size for valid subgroup. Default = 60.
-#'   Ensures statistical stability and clinical relevance.
-#'   Recommendations by study size:
-#'   \itemize{
-#'     \item Small trials (N<300): 30-50
-#'     \item Medium trials (N=300-1000): 60-80
-#'     \item Large trials (N>1000): 100+
-#'   }
-#'
-#' @param d0.min Integer. Minimum events required in control arm of subgroup.
-#'   Default = 15. Ensures stable baseline hazard estimation.
-#'
-#' @param d1.min Integer. Minimum events required in treatment arm of subgroup.
-#'   Default = 15. Ensures stable treatment effect estimation.
-#'
-#' @param n.splits Integer. Number of random 50/50 splits for consistency evaluation.
-#'   Default = 1000. Range: 500-5000. More splits increase precision but computation time.
-#'
-#' @param stop.threshold Numeric. Early stopping threshold for consistency.
-#'   Default = NULL (no early stopping) or same as pconsistency.threshold.
-#'   If specified, stops evaluation when impossible to achieve pconsistency.threshold.
-#'
-#' @param maxk Integer. Maximum number of factors allowed in a subgroup definition.
-#'   Default = 2. Range: 1-5. Higher values allow more complex interactions but
-#'   increase multiple testing and reduce interpretability.
-#'
-#' @param nmin.grf Integer. Minimum node size for GRF variable importance calculation.
-#'   Default = 60. Smaller values allow more granular splits but may overfit.
-#'
-#' @param details Logical. Print detailed progress messages during execution.
-#'   Default = TRUE. Set FALSE for silent operation or simulation studies.
-#'
-#' @param seed Integer. Random seed for reproducibility. Default = NULL.
-#'   Set explicit seed for reproducible results across runs.
-#'
-#' @param conf.factor Character vector. Names of factors to force into all models.
-#'   Default = NULL. Use for known important confounders or stratification factors.
-#'
+#' @param outcome.name Character. Name of outcome column. Default "tte"
+#' @param event.name Character. Name of event column. Default "event"
+#' @param treat.name Character. Name of treatment column. Default "treat"
+#' @param id.name Character. Name of ID column. Default "id"
+#' @param potentialOutcome.name Character. Potential outcome column. Default NULL
+#' @param flag_harm.name Character. Harm flag column. Default NULL
+#' @param confounders.name Character vector. Confounder variables
+#' @param parallel_args List. Parallel processing arguments
+#' @param df.predict Data frame for prediction. Default NULL
+#' @param df.test Data frame for testing. Default NULL
+#' @param is.RCT Logical. Is RCT? Default TRUE
+#' @param seedit Integer. Random seed. Default 8316951
+#' @param est.scale Character. Estimate scale. Default "hr"
+#' @param use_lasso Logical. Use LASSO? Default TRUE
+#' @param use_grf Logical. Use GRF? Default TRUE
+#' @param grf_res GRF results object. Default NULL
+#' @param grf_cuts GRF cutpoints. Default NULL
+#' @param max_n_confounders Integer. Max confounders. Default 1000
+#' @param grf_depth Integer. GRF depth. Default 2
+#' @param dmin.grf Integer. Min node size. Default 12
+#' @param frac.tau Numeric. Tau fraction. Default 0.6
+#' @param conf_force Character vector. Force variables. Default NULL
+#' @param defaultcut_names Character vector. Default cut variables. Default NULL
+#' @param cut_type Character. Cut type. Default "default"
+#' @param exclude_cuts Character vector. Exclude from cuts. Default NULL
+#' @param replace_med_grf Logical. Replace median with GRF. Default FALSE
+#' @param cont.cutoff Integer. Continuous cutoff. Default 4
+#' @param conf.cont_medians Character vector. Median cut variables. Default NULL
+#' @param conf.cont_medians_force Character vector. Force median cuts. Default NULL
+#' @param n.min Integer. Min sample size. Default 60
+#' @param hr.threshold Numeric. HR threshold. Default 1.25
+#' @param hr.consistency Numeric. HR consistency. Default 1.0
+#' @param sg_focus Character. Focus type ("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG"). Default "hr"
+#' @param fs.splits Integer. Number of splits. Default 1000
+#' @param m1.threshold Numeric. M1 threshold. Default Inf
+#' @param pconsistency.threshold Numeric. Consistency threshold. Default 0.90
+#' @param showten_subgroups Logical. Show top 10. Default FALSE
+#' @param d0.min Integer. Min control events. Default 12
+#' @param d1.min Integer. Min treatment events. Default 12
+#' @param max.minutes Numeric. Max computation time. Default 3
+#' @param minp Numeric. Min p-value. Default 0.025
+#' @param details Logical. Show details. Default FALSE
+#' @param maxk Integer. Max factors. Default 2
+#' @param by.risk Integer. Risk bins. Default 12
+#' @param plot.sg Logical. Plot subgroups. Default FALSE
+#' @param plot.grf Logical. Plot GRF. Default FALSE
+#' @param max_subgroups_search Integer. Max subgroups to search. Default 10
+#' @param vi.grf.min Numeric. Min variable importance. Default -0.2
+#
 #' @return A list of class "forestsearch" containing:
 #'   \describe{
 #'     \item{sg.harm}{Primary selected subgroup based on sg_focus criterion}
@@ -232,8 +198,6 @@
 #' \code{\link{forestsearch_bootstrap_dofuture}} for bootstrap inference
 #' \code{\link{sg_tables}} for results tabulation
 #' \code{\link{plot_subgroup}} for graphical displays
-#'
-#' @export
 #' @importFrom survival coxph Surv
 #' @importFrom grf causal_survival_forest variable_importance
 #' @importFrom glmnet cv.glmnet
