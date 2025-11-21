@@ -12,7 +12,7 @@
 \item{...}{Additional arguments (currently unused)}
 }
 \value{
-A list with summary information
+Invisibly returns the input object
 }
 \description{
 Summary Method for forestsearch Objects
