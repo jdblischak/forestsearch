@@ -59,6 +59,11 @@ devtools::check()
 devtools::clean_dll()
 
 
+# Run these before CRAN submission
+devtools::check(cran = TRUE)     # Full CRAN validation
+devtools::check_rhub()            # Check on multiple platforms
+devtools::check_win_devel()       # Windows checks
+
 
 tools::showNonASCIIfile("~/Documents/GitHub/forestsearch/R/summary_utility_functions.R")
 
