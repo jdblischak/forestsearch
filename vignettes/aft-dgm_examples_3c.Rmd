@@ -397,6 +397,7 @@ df_gbsg$erlog <- log(df_gbsg$er+1)
 
 dgm_spline <- generate_aft_dgm_flex(
   data = df_gbsg,
+  select_censoring = TRUE,
   continuous_vars = c("age", "size", "pgr","erlog"),
   factor_vars = c("meno", "grade"),
   set_beta_spec = list(set_var = c("z_meno"), beta_var = -log(4)),
