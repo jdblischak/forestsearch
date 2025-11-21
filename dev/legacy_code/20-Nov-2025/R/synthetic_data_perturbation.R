@@ -349,10 +349,6 @@ detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = 
 }
 
 
-# ================================================================================
-# Wrapper function specifically for GBSG dataset
-# ================================================================================
-
 #' Generate Synthetic GBSG Data using Generalized Bootstrap
 #'
 #' @param n Number of observations
@@ -363,8 +359,15 @@ detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = 
 #' @export
 
 generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0.1) {
-  library(survival)
-  data(cancer)
+
+  # Check if survival package is available
+  if (!requireNamespace("survival", quietly = TRUE)) {
+    stop("Package 'survival' is required for this function. Please install it with: install.packages('survival')")
+  }
+
+  # Load gbsg data into local environment
+  gbsg <- NULL  # Avoid R CMD check NOTE
+  data("gbsg", package = "survival", envir = environment())
 
   synthetic_data <- generate_bootstrap_synthetic(
     data = gbsg,

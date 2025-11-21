@@ -331,7 +331,7 @@ cox_ahr_cde_analysis <- function(
        type = "l", lwd = 2, col = "darkgreen",
        xlab = paste(z_name, "threshold"),
        ylab = "AHR",
-       main = paste("AHR for", z_name, ">= threshold"),
+       main = paste("AHR for", z_name, "≥ threshold"),
        ylim = range(c(0.4, 2, ahr_curve_pos), na.rm = TRUE))
 
   abline(h = 1, lty = 2, col = "gray")
@@ -361,7 +361,7 @@ cox_ahr_cde_analysis <- function(
        type = "l", lwd = 2, col = "darkorange",
        xlab = paste(z_name, "threshold"),
        ylab = "AHR",
-       main = paste("AHR for", z_name, "<= threshold"),
+       main = paste("AHR for", z_name, "≤ threshold"),
        ylim = range(c(0.4, 2, ahr_curve_neg), na.rm = TRUE))
 
   abline(h = 1, lty = 2, col = "gray")
@@ -391,12 +391,12 @@ cox_ahr_cde_analysis <- function(
   abline(h = hr_threshold, lty = 2, col = "red", lwd = 1)
   abline(v = optimal_cutpoint, lty = 2, col = "green", lwd = 2)
 
-  legend_items <- c("AHR (z>=)", "AHR (z<=)")
+  legend_items <- c("AHR (z≥)", "AHR (z≤)")
   legend_cols <- c("darkgreen", "darkorange")
   legend_ltys <- c(1, 1)
 
   if (has_cde) {
-    legend_items <- c(legend_items, "CDE (z>=)", "CDE (z<=)")
+    legend_items <- c(legend_items, "CDE (z≥)", "CDE (z≤)")
     legend_cols <- c(legend_cols, "purple", "brown")
     legend_ltys <- c(legend_ltys, 2, 2)
   }

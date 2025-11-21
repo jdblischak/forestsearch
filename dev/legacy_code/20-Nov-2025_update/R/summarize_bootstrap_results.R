@@ -354,19 +354,19 @@ summarize_bootstrap_results <- function(sgharm, boot_results, create_plots = FAL
 
       if (avg_sec < 5) {
         performance <- "Excellent"
-        emoji <- "\u2713\u2713\u2713"
+        emoji <- "✓✓✓"
       } else if (avg_sec < 15) {
         performance <- "Good"
-        emoji <- "\u2713\u2713"
+        emoji <- "✓✓"
       } else if (avg_sec < 30) {
         performance <- "Acceptable"
-        emoji <- "\u2713"
+        emoji <- "✓"
       } else if (avg_sec < 60) {
         performance <- "Slow"
-        emoji <- "\u26A0"
+        emoji <- "⚠"
       } else {
         performance <- "Very Slow"
-        emoji <- "\u26A0\u26A0"
+        emoji <- "⚠⚠"
       }
 
       cat(sprintf("  Performance rating:            %s %s\n", emoji, performance))
@@ -376,13 +376,13 @@ summarize_bootstrap_results <- function(sgharm, boot_results, create_plots = FAL
       if (avg_sec > 30) {
         cat("\n  Recommendations for improvement:\n")
         if (!is.null(fs_stats) && fs_stats$mean > 0.5) {
-          cat("    - Consider reducing max.minutes in forestsearch\n")
-          cat("    - Consider reducing maxk if currently > 2\n")
+          cat("    • Consider reducing max.minutes in forestsearch\n")
+          cat("    • Consider reducing maxk if currently > 2\n")
         }
         if (nb_boots > 500) {
-          cat("    - Consider reducing nb_boots for initial testing\n")
+          cat("    • Consider reducing nb_boots for initial testing\n")
         }
-        cat("    - Ensure sufficient parallel workers are allocated\n")
+        cat("    • Ensure sufficient parallel workers are allocated\n")
       }
     }
     cat("\n")

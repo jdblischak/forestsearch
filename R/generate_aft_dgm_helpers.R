@@ -1180,7 +1180,7 @@ compare_multiple_survreg <- function(...,
       cat("\n", convergence_summary$Model[i],
           " (", models[[i]]$dist, "):\n", sep = "")
       cat("  Status: ", ifelse(convergence_summary$Converged[i],
-                               "✓ Converged", "✗ Failed"), "\n")
+                               "\u2713 Converged", "✗ Failed"), "\n")
       if(!convergence_summary$Converged[i] && convergence_summary$Issues[i] != "") {
         cat("  Issues: ", convergence_summary$Issues[i], "\n")
       }

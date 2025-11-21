@@ -123,7 +123,7 @@ format_subgroup_summary_tables <- function(subgroup_summary, nb_boots) {
         )
       ) |>
       gt::tab_footnote(
-        footnote = gt::md("**Highlighted rows** appear in >=20% of successful iterations"),
+        footnote = gt::md("**Highlighted rows** appear in ≥20% of successful iterations"),
         locations = gt::cells_column_labels(columns = Percent)
       )
   }
@@ -138,7 +138,7 @@ format_subgroup_summary_tables <- function(subgroup_summary, nb_boots) {
       gt::gt() |>
       gt::tab_header(
         title = gt::md("**Common Specific Factor Definitions**"),
-        subtitle = "Specific factor definitions appearing in >=20% of successful iterations"
+        subtitle = "Specific factor definitions appearing in ≥20% of successful iterations"
       ) |>
       gt::cols_label(
         Rank = "Rank",
@@ -245,7 +245,7 @@ format_subgroup_summary_tables <- function(subgroup_summary, nb_boots) {
 
         # Add helpful footnote
         gt::tab_footnote(
-          footnote = "Color coding: Green (>=0.85), Yellow (0.7-0.85), Red (<0.7)",
+          footnote = "Color coding: Green (≥0.85), Yellow (0.7-0.85), Red (<0.7)",
           locations = gt::cells_column_labels(columns = `Consistency Range`)
         )
     }

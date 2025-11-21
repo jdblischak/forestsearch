@@ -57,6 +57,11 @@ devtools::check()
 devtools::clean_dll()
 
 
+
+tools::showNonASCIIfile("~/Documents/GitHub/forestsearch/R/bootstrap_summaries_helpers.R")
+
+
+
 # gitignore additions
 #.Rproj.user
 #vignettes/results/

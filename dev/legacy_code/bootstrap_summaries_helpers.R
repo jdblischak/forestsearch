@@ -61,13 +61,13 @@ format_bootstrap_table <- function(FSsg_tab, nb_boots, est.scale = "hr",
   # Handle HR column (might be "HR (95% CI)" or similar)
   hr_col <- grep("HR.*CI", col_names, value = TRUE)[1]
   if (!is.na(hr_col) && length(hr_col) > 0) {
-    labels_list[[hr_col]] <- gt::md("HR<br/>(95% CI)<sup>\u2020</sup>")
+    labels_list[[hr_col]] <- gt::md("HR<br/>(95% CI)<sup>†</sup>")
   }
 
   # Handle adjusted HR column (might be "HR*" or similar)
   hr_adj_col <- grep("HR\\*", col_names, value = TRUE)[1]
   if (!is.na(hr_adj_col) && length(hr_adj_col) > 0) {
-    labels_list[[hr_adj_col]] <- gt::md("HR<sup>\u2021</sup><br/>(95% CI)")
+    labels_list[[hr_adj_col]] <- gt::md("HR<sup>‡</sup><br/>(95% CI)")
   }
 
   # Create the gt table
@@ -737,7 +737,7 @@ format_bootstrap_timing_table <- function(timing_list, nb_boots, boot_success_ra
           projected_min <- overall$avg_minutes_per_boot * 1000
           sprintf("%.2f min (%.2f hrs)", projected_min, projected_min / 60)
         } else {
-          "--"
+          "—"
         }
       ),
       stringsAsFactors = FALSE
@@ -829,19 +829,19 @@ format_bootstrap_timing_table <- function(timing_list, nb_boots, boot_success_ra
     avg_sec <- overall$avg_seconds_per_boot
 
     if (avg_sec < 5) {
-      performance <- "Excellent \u2713\u2713\u2713"
+      performance <- "Excellent ✓✓✓"
       perf_color <- "#d4edda"
     } else if (avg_sec < 15) {
-      performance <- "Good \u2713\u2713"
+      performance <- "Good ✓✓"
       perf_color <- "#d1ecf1"
     } else if (avg_sec < 30) {
-      performance <- "Acceptable \u2713"
+      performance <- "Acceptable ✓"
       perf_color <- "#fff3cd"
     } else if (avg_sec < 60) {
-      performance <- "Slow \u26A0"
+      performance <- "Slow ⚠"
       perf_color <- "#f8d7da"
     } else {
-      performance <- "Very Slow \u26A0\u26A0"
+      performance <- "Very Slow ⚠⚠"
       perf_color <- "#f8d7da"
     }
 
@@ -944,19 +944,19 @@ format_bootstrap_timing_table <- function(timing_list, nb_boots, boot_success_ra
 
     if (!is.null(fs_stats) && fs_stats$mean > 0.5) {
       recommendations <- paste0(recommendations,
-                                "- Consider reducing `max.minutes` in forestsearch\n",
-                                "- Consider reducing `maxk` if currently > 2\n"
+                                "• Consider reducing `max.minutes` in forestsearch\n",
+                                "• Consider reducing `maxk` if currently > 2\n"
       )
     }
 
     if (nb_boots > 500) {
       recommendations <- paste0(recommendations,
-                                "- Consider reducing `nb_boots` for initial testing\n"
+                                "• Consider reducing `nb_boots` for initial testing\n"
       )
     }
 
     recommendations <- paste0(recommendations,
-                              "- Ensure sufficient parallel workers are allocated"
+                              "• Ensure sufficient parallel workers are allocated"
     )
 
     tbl <- tbl |>
@@ -1025,19 +1025,19 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
   # Determine success rate color coding
   if (success_rate >= 0.90) {
     success_color <- "#d4edda"  # Green
-    success_rating <- "Excellent \u2713\u2713\u2713"
+    success_rating <- "Excellent ✓✓✓"
   } else if (success_rate >= 0.75) {
     success_color <- "#d1ecf1"  # Blue
-    success_rating <- "Good \u2713\u2713"
+    success_rating <- "Good ✓✓"
   } else if (success_rate >= 0.50) {
     success_color <- "#fff3cd"  # Yellow
-    success_rating <- "Acceptable \u2713"
+    success_rating <- "Acceptable ✓"
   } else if (success_rate >= 0.25) {
     success_color <- "#f8d7da"  # Light red
-    success_rating <- "Poor \u26A0"
+    success_rating <- "Poor ⚠"
   } else {
     success_color <- "#f8d7da"  # Red
-    success_rating <- "Very Poor \u26A0\u26A0"
+    success_rating <- "Very Poor ⚠⚠"
   }
 
   diagnostics_rows <- list()
@@ -1090,7 +1090,7 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
         sprintf("%.2f (%.2f, %.2f)",
                 H_estimates$H2, H_estimates$H2_lower, H_estimates$H2_upper),
         sprintf("%.1f%%", H_bias_impact),
-        sprintf("%.2f -> %.2f", H_ci_width_raw, H_ci_width_bc)
+        sprintf("%.2f → %.2f", H_ci_width_raw, H_ci_width_bc)
       ),
       stringsAsFactors = FALSE
     )
@@ -1109,7 +1109,7 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
         sprintf("%.2f (%.2f, %.2f)",
                 Hc_estimates$H2, Hc_estimates$H2_lower, Hc_estimates$H2_upper),
         sprintf("%.1f%%", Hc_bias_impact),
-        sprintf("%.2f -> %.2f", Hc_ci_width_raw, Hc_ci_width_bc)
+        sprintf("%.2f → %.2f", Hc_ci_width_raw, Hc_ci_width_bc)
       ),
       stringsAsFactors = FALSE
     )
@@ -1201,7 +1201,7 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
           if ("prop_maxk" %in% names(results)) {
             sprintf("%.1f%%", mean(results$prop_maxk, na.rm = TRUE) * 100)
           } else {
-            "--"
+            "—"
           }
         ),
         stringsAsFactors = FALSE
@@ -1281,7 +1281,7 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
         locations = gt::cells_body(columns = Metric, rows = Metric == "Bias correction impact")
       ) |>
       gt::tab_footnote(
-        footnote = gt::md("**CI Width Change**: Confidence interval width before -> after bias correction"),
+        footnote = gt::md("**CI Width Change**: Confidence interval width before → after bias correction"),
         locations = gt::cells_body(columns = Metric, rows = Metric == "CI width change")
       )
   }
@@ -1306,26 +1306,26 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
 
   if (success_rate >= 0.90) {
     interpretation <- paste0(interpretation,
-                             "\u2713 **Excellent stability**: Subgroup is consistently identified across bootstrap samples.\n"
+                             "✓ **Excellent stability**: Subgroup is consistently identified across bootstrap samples.\n"
     )
   } else if (success_rate >= 0.75) {
     interpretation <- paste0(interpretation,
-                             "\u2713 **Good stability**: Subgroup is reliably identified in most bootstrap samples.\n"
+                             "✓ **Good stability**: Subgroup is reliably identified in most bootstrap samples.\n"
     )
   } else if (success_rate >= 0.50) {
     interpretation <- paste0(interpretation,
-                             "\u26A0 **Moderate stability**: Subgroup identification is somewhat unstable. Consider:\n",
-                             "  - Increasing sample size\n",
-                             "  - Adjusting consistency threshold\n",
-                             "  - Examining failed iterations for patterns\n"
+                             "⚠ **Moderate stability**: Subgroup identification is somewhat unstable. Consider:\n",
+                             "  • Increasing sample size\n",
+                             "  • Adjusting consistency threshold\n",
+                             "  • Examining failed iterations for patterns\n"
     )
   } else {
     interpretation <- paste0(interpretation,
-                             "\u26A0 **Poor stability**: Subgroup is rarely identified. Consider:\n",
-                             "  - Reviewing subgroup criteria (n.min, hr.threshold)\n",
-                             "  - Increasing sample size significantly\n",
-                             "  - Simplifying search (reduce maxk)\n",
-                             "  - Examining if subgroup is real or spurious\n"
+                             "⚠ **Poor stability**: Subgroup is rarely identified. Consider:\n",
+                             "  • Reviewing subgroup criteria (n.min, hr.threshold)\n",
+                             "  • Increasing sample size significantly\n",
+                             "  • Simplifying search (reduce maxk)\n",
+                             "  • Examining if subgroup is real or spurious\n"
     )
   }
 
@@ -1333,15 +1333,15 @@ format_bootstrap_diagnostics_table <- function(diagnostics, nb_boots, results,
   if (!is.null(results) && length(H_valid) > 0) {
     if (H_cv < 10) {
       interpretation <- paste0(interpretation,
-                               "\n\u2713 **Low variability**: Bootstrap estimates are precise (CV < 10%).\n"
+                               "\n✓ **Low variability**: Bootstrap estimates are precise (CV < 10%).\n"
       )
     } else if (H_cv < 25) {
       interpretation <- paste0(interpretation,
-                               "\n\u2713 **Moderate variability**: Bootstrap estimates show acceptable precision.\n"
+                               "\n✓ **Moderate variability**: Bootstrap estimates show acceptable precision.\n"
       )
     } else {
       interpretation <- paste0(interpretation,
-                               "\n\u26A0 **High variability**: Bootstrap estimates are imprecise (CV >= 25%). ",
+                               "\n⚠ **High variability**: Bootstrap estimates are imprecise (CV ≥ 25%). ",
                                "Consider increasing nb_boots or sample size.\n"
       )
     }

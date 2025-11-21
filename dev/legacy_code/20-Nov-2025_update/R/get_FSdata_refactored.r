@@ -391,7 +391,7 @@ get_FSdata <- function(df.analysis, use_lasso = FALSE, use_grf = FALSE, grf_cuts
   }
 
   if(details){
-    cat("\u2713 All ", length(names_new), " factors validated as 0/1\n", sep = "")
+    cat("✓ All ", length(names_new), " factors validated as 0/1\n", sep = "")
     cat("===== END CONSOLIDATED CUT EVALUATION =====\n\n")
   }
 

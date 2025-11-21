@@ -263,7 +263,7 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
     sg_found$Pcons_bin <- cut(
       sg_found$Pcons,
       breaks = c(0, 0.5, 0.7, 0.8, 0.89,  0.95, 1.0),
-      labels = c("<0.5", "0.5-0.7", "0.7-0.8", "0.8-0.89", "0.89-0.95", ">=0.95"),
+      labels = c("<0.5", "0.5-0.7", "0.7-0.8", "0.8-0.89", "0.89-0.95", "≥0.95"),
       include.lowest = TRUE
     )
 
@@ -287,7 +287,7 @@ summarize_bootstrap_subgroups <- function(results, nb_boots,
   if ("N_sg" %in% names(sg_found) && sum(!is.na(sg_found$N_sg)) > 0) {
     # Create bins
     size_breaks <- c(0, 50, 100, 150, 200, 300, Inf)
-    size_labels <- c("<50", "50-99", "100-149", "150-199", "200-299", ">=300")
+    size_labels <- c("<50", "50-99", "100-149", "150-199", "200-299", "≥300")
 
     sg_found$N_sg_bin <- cut(
       sg_found$N_sg,
