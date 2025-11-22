@@ -5,7 +5,7 @@
 \alias{forestsearch-package}
 \title{forestsearch: What the Package Does (One Line, Title Case)}
 \description{
-What the package does (one paragraph).
+Implements advanced statistical methods for exploratory subgroup identification in clinical trials with survival endpoints. Provides tools for identifying patient subgroups with differential treatment effects using machine learning approaches including Generalized Random Forests (GRF), LASSO regularization, and exhaustive combinatorial search algorithms. Features bootstrap bias correction using infinitesimal jackknife methods to address selection bias in post-hoc analyses. Designed for clinical researchers conducting exploratory subgroup analyses in randomized controlled trials, particularly for multi-regional clinical trials (MRCT) requiring regional consistency evaluation. Supports both accelerated failure time (AFT) and Cox proportional hazards models with comprehensive diagnostic and visualization tools. Methods are described in León et al. (2024) \doi{10.1002/sim.10163}.
 }
 \seealso{
 Useful links:
