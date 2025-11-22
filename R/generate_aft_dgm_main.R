@@ -41,6 +41,17 @@
 #'   execution. Default is TRUE
 #' @param standardize Logical indicating whether to standardize continuous variables.
 #'   Default is FALSE
+#' @param continuous_vars_cens Character vector of continuous variable names to be
+#'   used for censoring model. If NULL, uses same as continuous_vars. Default NULL
+#' @param factor_vars_cens Character vector of factor variable names to be used
+#'   for censoring model. If NULL, uses same as factor_vars. Default NULL
+#' @param set_beta_spec List with elements 'set_var' and 'beta_var' for manually
+#'   setting specific beta coefficients. Default list(set_var = NULL, beta_var = NULL)
+#' @param select_censoring Logical indicating whether to fit censoring model from
+#'   data. If FALSE, censoring is not modeled. Default FALSE
+#' @param spline_spec List specifying spline configuration for treatment effect.
+#'   Must include 'var' (variable name), 'knot', 'zeta', and 'log_hrs' (vector of
+#'   length 3). Default NULL (no spline)
 #'
 #' @details
 #' ## Subgroup Cutpoint Specifications

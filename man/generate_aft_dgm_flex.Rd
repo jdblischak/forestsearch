@@ -39,6 +39,15 @@ standardized and included as covariates}
 \item{factor_vars}{Character vector of factor/categorical variable names to be
 converted to dummy variables (largest value as reference)}
 
+\item{continuous_vars_cens}{Character vector of continuous variable names to be
+used for censoring model. If NULL, uses same as continuous_vars. Default NULL}
+
+\item{factor_vars_cens}{Character vector of factor variable names to be used
+for censoring model. If NULL, uses same as factor_vars. Default NULL}
+
+\item{set_beta_spec}{List with elements 'set_var' and 'beta_var' for manually
+setting specific beta coefficients. Default list(set_var = NULL, beta_var = NULL)}
+
 \item{outcome_var}{Character string specifying the name of the outcome/time variable}
 
 \item{event_var}{Character string specifying the name of the event/status variable
@@ -68,6 +77,9 @@ Default is 1 (no modification)}
 \item{n_super}{Integer specifying size of super population to generate.
 Default is 5000}
 
+\item{select_censoring}{Logical indicating whether to fit censoring model from
+data. If FALSE, censoring is not modeled. Default FALSE}
+
 \item{cens_type}{Character string specifying censoring distribution: "weibull"
 or "uniform". Default is "weibull"}
 
@@ -81,6 +93,10 @@ execution. Default is TRUE}
 
 \item{standardize}{Logical indicating whether to standardize continuous variables.
 Default is FALSE}
+
+\item{spline_spec}{List specifying spline configuration for treatment effect.
+Must include 'var' (variable name), 'knot', 'zeta', and 'log_hrs' (vector of
+length 3). Default NULL (no spline)}
 }
 \value{
 An object of class \code{c("aft_dgm_flex", "list")} containing:

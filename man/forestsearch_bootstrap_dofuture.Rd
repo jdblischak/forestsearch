@@ -32,12 +32,6 @@ or "sequential"
 \item \code{show_message}: Logical. Show parallel setup messages
 }
 If empty list, inherits settings from original forestsearch call.}
-
-\item{create_summary}{Logical. If \code{TRUE}, generates enhanced summary
-output with formatted tables and diagnostics. Default: \code{TRUE}.}
-
-\item{create_plots}{Logical. If \code{TRUE}, generates diagnostic plots
-of bootstrap distributions. Requires \code{ggplot2}. Default: \code{FALSE}.}
 }
 \value{
 List with the following components:

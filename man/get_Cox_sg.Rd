@@ -12,6 +12,9 @@ get_Cox_sg(df_sg, cox.formula, est.loghr = TRUE, cox_initial = log(1))
 \item{cox.formula}{Cox model formula.}
 
 \item{est.loghr}{Logical. Is estimate on log(HR) scale?}
+
+\item{cox_initial}{Optional pre-fitted Cox model object to use instead of
+fitting a new model. Default NULL}
 }
 \value{
 List with estimate and standard error.

@@ -5,6 +5,8 @@
 #' Function is utilized throughout codebase
 #'
 #' @param df_sg Data frame for subgroup.
+#' @param cox_initial Optional pre-fitted Cox model object to use instead of
+#'   fitting a new model. Default NULL
 #' @param cox.formula Cox model formula.
 #' @param est.loghr Logical. Is estimate on log(HR) scale?
 #' @return List with estimate and standard error.

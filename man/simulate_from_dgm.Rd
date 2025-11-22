@@ -26,6 +26,15 @@ entire super population}
 \item{rand_ratio}{Numeric specifying the randomization ratio (treatment:control).
 Default is 1 (1:1 allocation)}
 
+\item{entry_var}{Character string specifying the name of an entry time variable
+in the data. If NULL, entry times are simulated uniformly. Default NULL}
+
+\item{max_entry}{Numeric specifying maximum entry time for staggered entry.
+Entry times are simulated as Uniform(0, max_entry). Default 24}
+
+\item{analysis_time}{Numeric specifying the calendar time at which analysis
+occurs. Follow-up time is calculated as analysis_time - entry_time. Default 48}
+
 \item{cens_adjust}{Numeric adjustment to censoring distribution on log scale.
 Positive values increase censoring, negative values decrease it. Default is 0}
 
@@ -34,9 +43,6 @@ If TRUE (default), reassigns treatment according to rand_ratio. If FALSE,
 keeps original treatment assignments from super population}
 
 \item{seed}{Integer random seed for reproducibility. Default is NULL (no seed set)}
-
-\item{max_follow}{Numeric specifying maximum follow-up time for administrative
-censoring. Default is Inf (no administrative censoring)}
 }
 \value{
 A data.frame containing simulated survival data with columns:

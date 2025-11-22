@@ -6,6 +6,8 @@
 #' @param boot_results List. Output from forestsearch_bootstrap_dofuture()
 #' @param create_plots Logical. Generate diagnostic plots (default: TRUE)
 #' @param est.scale Character. "hr" or "1/hr" for effect scale
+#' @param sgharm The selected subgroup object (sg.harm) from forestsearch results
+#'   containing subgroup definition and estimates
 #'
 #' @return List with formatted table, diagnostics, timing analysis, and plots
 #' @export

@@ -6,12 +6,16 @@
 #'
 #' @param dgm An object of class "aft_dgm_flex" created by
 #'   \code{\link{generate_aft_dgm_flex}}
+#' @param entry_var Character string specifying the name of an entry time variable
+#'   in the data. If NULL, entry times are simulated uniformly. Default NULL
+#' @param max_entry Numeric specifying maximum entry time for staggered entry.
+#'   Entry times are simulated as Uniform(0, max_entry). Default 24
+#' @param analysis_time Numeric specifying the calendar time at which analysis
+#'   occurs. Follow-up time is calculated as analysis_time - entry_time. Default 48
 #' @param n Integer specifying the sample size. If NULL (default), uses the
 #'   entire super population
 #' @param rand_ratio Numeric specifying the randomization ratio (treatment:control).
 #'   Default is 1 (1:1 allocation)
-#' @param max_follow Numeric specifying maximum follow-up time for administrative
-#'   censoring. Default is Inf (no administrative censoring)
 #' @param cens_adjust Numeric adjustment to censoring distribution on log scale.
 #'   Positive values increase censoring, negative values decrease it. Default is 0
 #' @param draw_treatment Logical indicating whether to redraw treatment assignment.

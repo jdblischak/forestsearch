@@ -12,6 +12,9 @@ summarize_bootstrap_results(
 )
 }
 \arguments{
+\item{sgharm}{The selected subgroup object (sg.harm) from forestsearch results
+containing subgroup definition and estimates}
+
 \item{boot_results}{List. Output from forestsearch_bootstrap_dofuture()}
 
 \item{create_plots}{Logical. Generate diagnostic plots (default: TRUE)}
