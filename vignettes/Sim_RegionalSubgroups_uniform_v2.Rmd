@@ -1,0 +1,638 @@
+---
+title: "Subgroup extreme effects under uniform benefit"
+author: "Larry Leon"
+date: ""
+output: html_document
+---
+  
+```{=latex}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{enumerate}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor={blue},citecolor={black},urlcolor={blue},runcolor={blue}]{hyperref}
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#.libPaths("C:/Users/leolarr2/OneDrive - Merck Sharp & Dohme, Corp/documents/MyRlibrary")
+
+options(warn = -1)
+
+rm(list=ls())
+
+library(tinytex)
+library(survival)
+
+library(knitr)
+#library(ggplot2)
+#library(data.table)
+#library(table1)
+
+library(randomizr)
+library(gt)
+
+
+# 3 regional subgroups allowing for differential effects
+
+# First log.hrs is for treatment
+# 2nd for region 1
+# 3rd for region 2
+# 4th for region 3
+get_dgm_stratified <- function(df,log.hrs=log(c(0.75,0.75,0.75,0.75)),strata_tte=NULL){
+
+  loghr.0 <- log.hrs[1]
+  loghr.z1 <- log.hrs[2]
+  loghr.z2 <- log.hrs[3]
+  loghr.z3 <- log.hrs[4]
+
+  
+  # Create interactions with subgroup indicators z1,z2,z3
+  dfa2<-within(df,{
+    z1.treat <- z1*treat
+    z2.treat <- z2*treat
+    z3.treat <- z3*treat
+  })
+
+  # strata 
+  if(!is.null(strata_tte)){  
+    aa <- paste("strata(",eval(strata_tte),")")
+    bb <- c("Surv(tte,event) ~ treat + z1 + z1.treat + z2 + z2.treat + z3 + z3.treat +")
+    weib.formula <- as.formula(paste(bb,aa))
+  }
+  
+  if(is.null(strata_tte)){
+    weib.formula <- as.formula("Surv(tte,event) ~ treat + z1 + z1.treat + z2 + z2.treat + z3 + z3.treat")
+  }
+  
+  fit.weibk <- survreg(weib.formula, dist='weibull', data=dfa2)
+  
+  # Censoring model independent of covariates (i.e., common censoring distribution)
+  fitC.weib <- survreg(Surv(tte,1-event) ~ 1, dist='weibull', data=dfa2)
+  tauC <- c(fitC.weib$scale)
+  muC <- c(coef(fitC.weib)[1])
+  
+  # Relative log(hr) scale
+  # With stratification the hr's will depend on the stratum (scale) 
+  # To simplify we will take median ("tau_approx" below)
+  
+  mu <- c(coef(fit.weibk)[1])
+  gamma <- c(coef(fit.weibk)[c(-1)])
+  tau <- c(fit.weibk$scale)  
+  
+  # Return as strataO --> outcome stratification
+  # As opposed to randomization stratification which 
+  # will be included in sim() function below
+  
+  if(!is.null(strata_tte)){
+    # Outcome stratificaton
+    strataO <- dfa2[,c(strata_tte)]
+    # Extract scales corresponding to strataO
+    aa <- names(tau)
+    tau_ids <- unlist(lapply(strataO,function(x){grep(x,aa)}))
+    tau.strataO <- tau[tau_ids]
+    if(length(tau.strataO)!=nrow(dfa2)) stop("strata_tte not uniquely identified via matching")
+    tau.approx <- median(tau.strataO)
+    dfa2$tau.strataO <- tau.strataO
+  }
+  
+  if(is.null(strata_tte)){
+    strataO <- "All"  
+    tau.strataO <- tau 
+    tau.approx <- tau
+    dfa2$tau.strataO <- tau
+    }
+  
+  # Re-define to satisfy log(hrs) pattern 
+  
+  # Weibull hazard-ratio parameters
+  b0 <- c(-gamma)/tau.approx
+  # solve for b1,b3,b5,b7
+  b0[1] <- loghr.0
+  b0[3] <- (loghr.z1-b0[1])
+  b0[5] <- (loghr.z2-b0[1])
+  b0[7] <- (loghr.z3-b0[1])
+  
+  # Re-define gamma on AFT (log(T)) parameterization 
+  gamma.true <- -b0*tau.approx 
+  # Transform back for beta.true
+  beta.true <- (-1)*gamma.true/tau.approx
+return(list(df_super=dfa2,gamma.true=gamma.true,beta.true=beta.true,mu=mu,tau=tau,muC=muC,tauC=tauC,strata_tte=strata_tte,tau.approx=tau.approx))
+}
+
+
+draw_sim_stratified <- function(dgm,ss=1,Ndraw=nrow(dgm$df_super),strata_rand=c("stratar"),details=TRUE){
+
+df_super <- dgm$df_super
+
+var_names <- c(strata_rand,c("z1","z2","z3","z1.treat","z2.treat","z3.treat"))
+if(all(var_names %in% names(df_super)) != TRUE) stop("strata_rand and region variables not in dgm$df_super")   
+
+  # Outcomes
+  # Regression parameters on AFT scale (gamma)
+  gamma.true <- dgm$gamma.true
+  mu <- dgm$mu
+  tau <- dgm$tau
+  # Censoring
+  muC <- dgm$muC 
+  tauC <- dgm$tauC
+  
+  strata_tte <- dgm$strata_tte
+  
+  set.seed(8316951+ss*1000)
+  
+  # Sampling from df_super if Ndraw differs from size of df_super
+  # Otherwise simulated dataset dfsim is initiated as df_super
+  if(Ndraw!=nrow(df_super)){
+    dfNew <- data.table::copy(df_super)  
+    id_sample <- sample(c(1:nrow(dfNew)),size=Ndraw,replace=TRUE)
+    df_super <- dfNew[id_sample,]
+  }
+  
+  # These are outcome taus for each subject
+  tau.strataO <- df_super$tau.strataO
+  
+  N <- nrow(df_super)
+  
+  # "treat" is a placeholder  
+  zmat <- as.matrix(df_super[,c("treat","z1","z1.treat","z2","z2.treat","z3","z3.treat")])
+
+  # Initiate as population with covariates 
+  # Outcomes and treatment assignment appended below
+  dfsim <- df_super 
+  
+  # Randomization stratification
+  strataR <- df_super[,c(strata_rand)]
+  
+  # Outcome stratification
+  if(!is.null(strata_tte)) strataO <- df_super[,c(strata_tte)]
+  
+  if(is.null(strata_tte))  strataO <- "All"  
+
+  # Generate (counter-factual "potential") outcomes under both conditions 
+  
+  # Set treatment to 1
+  zmat.1 <- zmat
+  zmat.1[,"treat"] <- 1.0
+  zmat.1[,"z1.treat"] <- zmat.1[,"z1"]
+  zmat.1[,"z2.treat"] <- zmat.1[,"z2"]
+  zmat.1[,"z3.treat"] <- zmat.1[,"z3"]
+  
+  # Set treatment to 0
+  zmat.0 <- zmat
+  zmat.0[,"treat"] <- 0.0
+  zmat.0[,"z1.treat"] <- 0.0
+  zmat.0[,"z2.treat"] <- 0.0
+  zmat.0[,"z3.treat"] <- 0.0
+  
+  # error term (log-scale [linear predictor scale])
+  epsilon <- log(rexp(N))
+  
+  # Setting treat=1
+  # log(Y) AFT parameterization
+  # psi.true are AFT parameters 
+  eta1 <- mu + c(zmat.1%*%gamma.true)
+  # Weibull log(hazard ratio) setting treat=1
+  # and excluding mu and w*bw (since taking difference below)
+  phi1 <- (-1)*c(zmat.1%*%gamma.true)/tau.strataO
+  log.Y1 <- eta1 + tau.strataO*epsilon
+  
+  # Setting treat=0
+  eta0 <- mu + c(zmat.0%*%gamma.true)
+  log.Y0 <- eta0 + tau.strataO*epsilon
+  phi0 <- (-1)*c(zmat.0%*%gamma.true)/tau.strataO
+  
+  # Potential outcome log(hr) difference
+  loghr.po <- phi1-phi0
+  
+  # Randomize per strataR
+   blocks <- strataR
+  
+  # Randomize treatment
+  Zr <- block_ra(blocks=blocks)
+  
+  log.Yr <- Zr*log.Y1 + (1-Zr)*log.Y0
+  
+  Yr <- exp(log.Yr)
+  
+  # At this point censoring is completely independent
+  epsilonC <- log(rexp(N))
+  log.YC <- muC + tauC*epsilonC
+  
+  log.YrC <- Zr*log.YC+(1-Zr)*log.YC 
+  
+  YrC <- exp(log.YrC)
+  
+  # Observed censored outcomes
+  
+  dfsim$event.sim <- ifelse(Yr<=YrC,1,0)
+  dfsim$y.sim <- pmin(Yr,YrC)
+  dfsim$treat.sim <- Zr
+  dfsim$strata.simR <- strataR
+  dfsim$strata.simO <- strataO
+  
+  dfsim$loghr.po <- loghr.po
+  dfsim$log.Y1 <- log.Y1
+  dfsim$log.Y0 <- log.Y0
+
+  if(details & ss <= 10) cat("% censored =",mean(1-dfsim$event.sim),"\n")
+  
+  # If checking compare simulated estimates with super-population
+  
+  if(details){
+    cat("Stratification parm (taus) df_super",c(tau),"\n")
+    # strata 
+    aa <- paste("strata(",eval("strata.simO"),")")
+    bb <- c("Surv(y.sim,event.sim) ~ treat.sim + z1 + z1.treat + z2 + z2.treat + z3 + z3.treat +")
+    weib.formula <- as.formula(paste(bb,aa))
+    fitit <- survreg(weib.formula, dist='weibull', data=dfsim)
+    fittau <- c(fitit$scale)
+    cat("Stratification parm (taus) simulated=",c(fittau),"\n")
+    # Check loghr.po = (log.Y1-log.Y0)/tau.strata0
+    dcheck <- loghr.po - (log.Y0-log.Y1)/tau.strataO
+    cat("Max |loghr.po - (log.Y0-log.Y1)/tau| = ",c(max(abs(round(dcheck,12)))),"\n")
+    bhat.weib <- -(1)*coef(fitit)[c(-1)]/fittau
+    # Compare to Cox 
+    fit.cox <- coxph(weib.formula, data=dfsim)
+    fits <- cbind(bhat.weib,coef(fit.cox))
+    
+    rownames(fits) <- c("treat","z1","z1.treat","z2","z2.treat","z3","z3.treat")
+    colnames(fits) <- c("Weibull","Cox")
+    
+    fits <- data.table::data.table(fits,keep.rownames=TRUE)
+    print(fits)
+    
+    # Check AHRs
+    # overall
+    ahr_empirical <- with(dfsim,exp(mean(loghr.po)))
+    cat("Overall AHR=",c(ahr_empirical),"\n")
+    # subgroup z1=1
+    ahr_z1.1 <- with(subset(dfsim,z1==1),exp(mean(loghr.po)))
+    # subgroup z1=0
+    ahr_z1.0 <- with(subset(dfsim,z1==0),exp(mean(loghr.po)))
+    cat("AHR Z1=1, Z1=0",c(ahr_z1.1,ahr_z1.0),"\n")
+    # subgroup z2=1
+    ahr_z2.1 <- with(subset(dfsim,z2==1),exp(mean(loghr.po)))
+    # subgroup z2=0
+    ahr_z2.0 <- with(subset(dfsim,z2==0),exp(mean(loghr.po)))
+    cat("AHR Z2=1, Z2=0",c(ahr_z2.1,ahr_z2.0),"\n")
+    # subgroup z3=1
+    ahr_z3.1 <- with(subset(dfsim,z3==1),exp(mean(loghr.po)))
+    # subgroup z3=0
+    ahr_z3.0 <- with(subset(dfsim,z3==0),exp(mean(loghr.po)))
+    cat("AHR Z3=1, Z3=0",c(ahr_z3.1,ahr_z3.0),"\n")
+    # RoW
+    ahr_z4.1 <- with(subset(dfsim,z4==1),exp(mean(loghr.po)))
+    ahr_z4.0 <- with(subset(dfsim,z4==0),exp(mean(loghr.po)))
+    cat("AHR Z4=1 (RoW), Z4=0 (non-RoW)",c(ahr_z4.1,ahr_z4.0),"\n")
+
+# Two analyses: Standard ITT un-adjusted, Strata by R
+aa <- paste("strata(",eval("strata.simR"),")")
+bb <- c("Surv(y.sim,event.sim) ~ treat.sim")
+coxmod1 <- as.formula(bb)
+bb <- c("Surv(y.sim,event.sim) ~ treat.sim +")
+coxmod2 <- as.formula(paste(bb,aa))
+fit1 <- summary(coxph(coxmod1, data=dfsim))$conf.int
+fit2 <- summary(coxph(coxmod2, data=dfsim))$conf.int
+ cat("Cox ITT: Un-adjusted, sR",c(fit1[1],fit2[1]),"\n")
+}
+return(dfsim)
+}
+
+
+
+```
+
+
+
+# Weibull AFT/Cox model with biomarker effects
+
+## Brief Review
+For the Weibull distribution with shape parameter $\nu$ and scale parameter $\theta$ the
+density, cdf, survival, hazard and cumulative hazard functions are:
+\begin{eqnarray*}
+f(t) &=& \nu \theta^{-\nu}t^{\nu-1}\exp(-(t/\theta)^{\nu}), \cr F(t)
+&=& \int_{0}^{t}\nu \theta^{-\nu}s^{\nu-1}\exp(-(s/\theta)^{\nu})ds
+\cr &=& \int_{0}^{(t/\theta)^{\nu}}e^{-w}dw \cr & &
+(w=(s/\theta)^{\nu},dw=\nu s^{\nu-1}\theta^{-\nu}ds) \cr
+&=&1-\exp(-(t/\theta)^{\nu}), \cr S(t) &=& \exp(-(t/\theta)^{\nu}),
+\cr \lambda(t)&=&\nu \theta^{-\nu}t^{\nu-1}, \cr \Lambda(t) &=&
+-\log(S(t))=(t/\theta)^{\nu}.
+\end{eqnarray*}
+Note that here we define the density to correspond with R's definition.
+For shape parameter $\nu \in (0,1)$ the hazard is strictly decreasing in $t \geq 0$,
+whereas for $\nu >1$ the hazard is strictly increasing in $t \geq 0$.  
+
+### Note: $\Lambda(T) \sim E(1)$
+
+The cumulative hazard function $\Lambda(\cdot)$ evaluated at $T$, $\Lambda(T)$ as a random variable, has cdf
+$$\eqalign{ \Pr(\Lambda(T) \leq t) &=\Pr(-\log(1-F(T)) \leq t) =\Pr(1-F(T) \geq e^{-t}) \cr
+&=\Pr(T \leq F^{-1}(1-e^{-t})) =F(F^{-1}(1-e^{-t}))  = 1-e^{-t}, \cr}$$
+\noindent
+which is the CDF of the exponential distribution, $E(1)$ (say). 
+
+
+In the following we use 
+
+\begin{equation}
+\tag{1}
+\Lambda(T) \sim E(1)
+\end{equation}
+\noindent
+to represent the Weibull regression model as an AFT model which is also a Cox model. 
+
+Now, $\Lambda(T)=(T/\theta)^{\nu}$ and write
+$W=-\log(S(T))=\Lambda(T)=(T/\theta)^{\nu}$, where from (1), $W \sim E(1)$.  That is
+$\log(W)=\nu(\log(T)-\log(\theta))$ can be expressed as
+
+\begin{equation}
+\tag{2}
+\log(T)=\log(\theta)+ \tau \log(W) := \log(\theta) + \tau \epsilon,
+\end{equation}
+\noindent
+where $\tau=1/\nu$ and it is easy to show that $\epsilon=\log(W)$ has the ``extreme
+value'' distribution with density $f_{\epsilon}(x)=\exp(x-e^{x})$ for $x \in {\cal R}$.
+Here the range of $\log(T) \in {\cal R}$ is un-restricted.  The *survReg* routine uses the parameterization $(2)$ and therefore estimates
+$\log(\theta)$ and $\tau=1/\nu$.
+
+To incorporate covariates $L$ (say) we specify
+$$\lambda(t;L)=\big(\nu \theta^{-\nu}t^{\nu-1} \big) \exp(L'\beta)
+:= \lambda_{0}(t)\exp(L'\beta),$$
+\noindent
+where $\lambda_{0}(t)$ is the hazard, say, for $T_{0} \sim \hbox{Weibull}(\nu,\theta)$.
+This is a special case of the proportional hazards model. The chf (conditional chf with covariate vector
+$L$) is $\Lambda(t;Z)=(t/\theta)^{\nu}\exp(L'\beta)$ so that
+analogous to above this leads to the representation
+
+\begin{equation}
+\tag{3}
+\log(T) =\log(\theta)+\tau[-L'\beta+\epsilon] =\log(\theta)+L'\gamma + \tau \epsilon,
+\end{equation}
+\noindent
+where $\gamma=-\tau\beta$, with $\tau$ and $\epsilon$ defined in (2).  R *survReg* uses this AFT parameterization so that the estimated components of
+$\gamma$, $\gamma_{p}$ say, are that of $-\tau{\times}\beta_{p}$ for $p=1,\ldots,m$ ($m$ is dimension of $\beta$).
+
+When fitting the AFT model (3) via suvreg we therefore transform parameters $\hat\gamma$ to the Weibull hazard-ratio parameterization (2) via
+
+\begin{equation}
+\tag{4}
+\hat\beta = -\hat\gamma / \hat{\tau}.
+\end{equation}
+
+
+As an illustration we compare the *survReg* model fits for the case-study dataset.  
+
+```{r loadData}
+load("outdata/df0_ITT_859.Rdata")
+dfcase <- df0_itt
+# Create 3 regions z1, z2, z3
+# regneu, regasia, regnus 
+# z4 = RoW relative to eu,asia,us
+  dfcase<-within(dfcase,{
+    z1 <- ifelse(regneu=="EU",1,0)
+    z2  <- ifelse(regasia=="Asia",1,0)
+    z3  <- ifelse(regnus=="US",1,0)
+    z4 <- 1-(z1+z2+z3)
+    treat <- combo
+    tte <- os_time
+    event <- os_event
+  })
+```
+  
+```{r}
+# Comparing Weibull vs Cox 
+# This is just for illustration to show conversion of Weibull parameters from 
+# AFT regression to Weibull hazard 
+fit.weib_ex <- survreg(Surv(tte,event) ~ treat + z1 + z2 + z3, dist='weibull', data=dfcase)
+tauhat <- fit.weib_ex$scale
+# convert regression parms to Weibull hazard-ratio
+bhat.weib <- -(1)*coef(fit.weib_ex)[-c(1)]/tauhat
+# Compare to Cox 
+fit.cox_ex <- coxph(Surv(tte,event) ~ treat + z1 + z2 + z3, data=dfcase)
+res <- cbind(bhat.weib,coef(fit.cox_ex))
+res <- as.data.frame(res)
+colnames(res)<-c("Weibull","Cox")
+res |> gt() |>
+fmt_number(columns=1:2,decimals=6) |>
+tab_header(title="Comparing Weibull to Cox hazard ratio estimates",
+subtitle="Case-study dataset")
+
+```
+  
+  
+## Regional subgroup effects  
+
+We now outline how potential outcomes are simulated according to parameters fit to the case-study dataset but with parameters specified to induce (regional) subgroup effects.  That is, causal treatment effects (on log(hazard-ratio) scale) that follow 
+an interaction model.
+
+We consider a Weibull model with treatment and (regional indicator) covariates where we write the linear predictor of the Cox model $L'\beta$ (say) as 
+
+\begin{equation}
+L'\beta  := \beta_{1}\hbox{Treat} + \beta_{2}\hbox{Z1} + \beta_{3}\hbox{Z1}\hbox{Treat} + \beta_{4}\hbox{Z2} + \beta_{5}\hbox{Z2}\hbox{Treat} 
++ \beta_{6}\hbox{Z3} + \beta_{7}\hbox{Z3}\hbox{Treat}. 
+\end{equation}
+
+Following the potential-outcome approach let $l_{x,z}$ denote subject's hazard-function "had they followed treatment regimen $Treat=x$ while belonging to region $Z=z$" (say).   That is, for subject within region $Z=z$ we can simulate 
+their survival outcomes under both treatment ($x=1$) and control ($x=0$) conditions.   Let $\beta^{0} = (\beta_{1}^{0},\ldots,\beta_{7}^{0})'$ denote the true coefficients and denote the hazard function as 
+
+$$\lambda_{x,z}(t) = \lambda_{0}(t)\exp(l_{x,z}), \quad \hbox{say}.$$  
+
+
+The log of the hazard ratio for region $z1$ under treatment ($x=1$) relative to control ($x=0$) is given by 
+
+\begin{equation}
+\psi^{0}(z1) := \log(\lambda_{1,z1}(t)/\lambda_{0,z1}(t)) = \beta^{0}_{1} + \beta^{0}_{3}z1,
+\end{equation}
+
+and analogously for $z2$, and $z3$.
+
+
+## Causal log-hazard-ratio
+
+Log hazard-ratio parameters $(\beta^{0}_{1},\beta^{0}_{3},\beta^{0}_{5}, \beta^{0}_{7})$ can be chosen to generate "treatment effect patterns" by specifying $\psi^{0}(z)$ values.  For example, for $z1$, 
+$\beta^{0}_{3}= \psi^{0}(z1)-\beta^{0}_{1}$.
+
+
+The function *get_dgm_stratified* generates treatment effects corresponding to $\psi^{0}()$ according to desired "subgroup effects" as follows.
+
+- Let $X$ and $Z$ denote the treatment and regional indicator variables in the case-study dataset, form the covariates $L:=(X,Z1,Z1X,Z2,Z2X,Z3,Z3X)$;
+- Fit the Weibull model (recall on AFT scale) to get $\log(\hat\theta)$, $\hat\tau=1/\hat{\nu}$, and $\hat\gamma$ corresponding to $L$;
+- $\hat\gamma$ is in terms of the AFT parameterization 
+- Next transform to the Weibull (Cox) log hazard-ratio parameterization: $\hat\beta = -\hat\gamma/\hat\tau$
+- Set "true" parameters $\theta^{0}=\hat\theta$, and $\tau^{0}=\hat\tau$
+- Initialize the "true" parameter $\beta^{0} = \hat\beta$ and re-define parameters 1, 3, 5, and 7 in order to satisfy specified $\psi^{0}$'s:
+$\beta^{0}[1] = \psi^{0}(0)$, $\beta^{0}[3] = (\psi^{0}(z1) - \beta^{0}[1])$, etc;
+- Form corresponding $\gamma^{0}= -\beta^{0}\tau^{0}$
+- For simulations we use the AFT parameterization to generate $\log(T)$ outcomes according to $\log(T) = \log(\theta^{0}) + L'\gamma^{0} + \tau^{0}\epsilon$ where recall $\epsilon$ has the ``extreme value'' distribution.
+
+
+  
+```{r}  
+# Check uniform effects
+# Note first parameter of log.hrs[1] is overall conditional treatment
+# z1=1,z2=1,z3=1 effects log.hrs[j] for j=1,2,3 (resp.)
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(0.75,0.75,0.75,0.75)))
+# Here the interaction parameters should all be zero
+dgm$gamma.true[c("z1.treat","z2.treat","z3.treat")]
+# Check overall treatment = log(0.75) --> exp(b1)=0.75
+exp(dgm$beta.true[1])
+# Draw a large sample
+df_example <- draw_sim_stratified(dgm=dgm,ss=123,Ndraw=10000,strata_rand="stratar",details=TRUE)
+
+# Check differential treatment effects 
+# Note that the overall treatment effect (AHR) will differ from 0.75 "in proportion to subgroup prevalence"
+#z1 hr=0.85
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(0.75,0.85,0.75,0.75)))
+df_example <- draw_sim_stratified(dgm=dgm,ss=123,Ndraw=10000,strata_rand="stratar",details=TRUE)
+
+#z2 hr=0.85
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(0.75,0.75,0.85,0.75)))
+df_example <- draw_sim_stratified(dgm=dgm,ss=123,Ndraw=10000,strata_rand="stratar",details=TRUE)
+
+#z3 hr=0.85
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(0.75,0.75,0.75,0.85)))
+df_example <- draw_sim_stratified(dgm=dgm,ss=123,Ndraw=10000,strata_rand="stratar",details=TRUE)
+
+# Setting log.hrs[1] to stronger than z_{j}=1 (j=1,2,3) will induce differential effects 
+# the complementary subgroups (i.e., the z_{j}=0's)
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(0.5,0.75,0.75,0.75)))
+df_example <- draw_sim_stratified(dgm=dgm,ss=123,Ndraw=10000,strata_rand="stratar",details=TRUE)
+```
+
+
+
+# Simulations with 8 subgroup analyses 
+
+z1=1 subgroup and its complement (z1=0), z2=1, z2=0, z3=1, z3=0, RoW (z1=0 & z2=0 & z3=0), and non-RoW (combining asia, eu, us) 
+
+
+## Under uniform effects hr=0.7
+
+
+```{r, echo=TRUE}
+sims <- 2000
+
+hr_uniform <- 0.7
+
+hr_itt <- rep(NA,sims)
+# max(hr) across 6 subgroup estimates
+max_HRs <- rep(NA,sims)
+threshold1 <- 0.80
+threshold2 <- 0.90
+threshold3 <- 1.0
+# max(hr) >= threshold1
+count_thresholds1 <- rep(NA,sims)
+# max(hr) >= threshold2
+count_thresholds2 <- rep(NA,sims)
+# max(hr) >= threshold3
+count_thresholds3 <- rep(NA,sims)
+# censoring %
+pcensors <- rep(NA,sims)
+
+# Store 6 subgroup estimates: The regional subgroups (zj=1, j=1,2,3) and their complements (zj=0)
+# But also include "RoW" w.r.t. z1,z2, and z3;  That is, z1=0 & z2=0 & z3=0
+est_sgs <- matrix(NA,nrow=sims,ncol=8)
+colnames(est_sgs) <- c("z1=1","z1=0","z2=1","z2=0","z3=1","z3=0","RoW","non-RoW")
+
+aa <- paste("strata(",eval("strata.simR"),")")
+bb <- c("Surv(y.sim,event.sim) ~ treat.sim")
+coxmod1 <- as.formula(bb)
+# non-stratifed
+bb <- c("Surv(y.sim,event.sim) ~ treat.sim +")
+# stratified
+coxmod2 <- as.formula(paste(bb,aa))
+# In simulations use non-stratified for subgroups
+
+# recall first parameter of log.hrs[1] is overall conditional treatment
+# z1=1,z2=1,z3=1 effects log.hrs[j] for j=1,2,3 (resp.)
+dgm <- get_dgm_stratified(df=dfcase,log.hrs=log(c(hr_uniform,hr_uniform,hr_uniform,hr_uniform)))
+
+for(ss in 1:sims){
+
+details <- FALSE
+
+if(ss <= 5) details <- TRUE
+  
+dfsim <- draw_sim_stratified(dgm=dgm,ss,strata_rand="stratar",details=details)
+
+pcensors[ss] <- mean(1-dfsim$event.sim)
+
+# Overall ITT
+fit <- summary(coxph(coxmod1, data=dfsim))$conf.int
+hr_itt[ss] <- c(fit[1])
+
+# Subgroup analyses
+
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z1==1)))$conf.int
+est_sgs[ss,"z1=1"] <- c(fit[1])
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z1==0)))$conf.int
+est_sgs[ss,"z1=0"] <- c(fit[1])
+
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z2==1)))$conf.int
+est_sgs[ss,"z2=1"] <- c(fit[1])
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z2==0)))$conf.int
+est_sgs[ss,"z2=0"] <- c(fit[1])
+
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z3==1)))$conf.int
+est_sgs[ss,"z3=1"] <- c(fit[1])
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z3==0)))$conf.int
+est_sgs[ss,"z3=0"] <- c(fit[1])
+
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z4==1)))$conf.int
+est_sgs[ss,"RoW"] <- c(fit[1])
+
+fit <- summary(coxph(coxmod1, data=subset(dfsim,z4==0)))$conf.int
+est_sgs[ss,"non-RoW"] <- c(fit[1])
+
+max_HRs[ss] <- max(c(est_sgs[ss,]))
+
+count_thresholds1[ss] <- c(max_HRs[ss] >= threshold1)
+count_thresholds2[ss] <- c(max_HRs[ss] >= threshold2)
+count_thresholds3[ss] <- c(max_HRs[ss] >= threshold3)
+
+}
+
+
+```
+
+
+
+```{r}
+
+cat("# of simulations=",c(sims),"\n")
+cat("Avg % censoring=",c(mean(pcensors)),"\n")
+
+cat("Threshold 1=",c(threshold1),"\n")
+cat("% of ITT >= thresh1=",mean(ifelse(hr_itt >= threshold1,1,0)),"\n")
+cat("% of Maxhrs >= thresh1=",mean(ifelse(max_HRs >= threshold1,1,0)),"\n")
+
+
+cat("Threshold 2=",c(threshold2),"\n")
+cat("% of ITT >= thresh2 =",mean(ifelse(hr_itt >= threshold2,1,0)),"\n")
+cat("% of Maxhrs >= thresh2 =",mean(ifelse(max_HRs >= threshold2,1,0)),"\n")
+
+cat("Threshold 3=",c(threshold3),"\n")
+cat("% of ITT >= thresh3 =",mean(ifelse(hr_itt >= threshold3,1,0)),"\n")
+cat("% of Maxhrs >= thresh3 =",mean(ifelse(max_HRs >= threshold3,1,0)),"\n")
+
+cat("Quantiles of max(HRs)","\n")
+print(quantile(max_HRs))
+
+cat("Quantiles of ITT HR","\n")
+print(quantile(hr_itt))
+
+par(mfrow=c(1,2))
+hist(hr_itt)
+hist(max_HRs)
+
+
+```
+
+
