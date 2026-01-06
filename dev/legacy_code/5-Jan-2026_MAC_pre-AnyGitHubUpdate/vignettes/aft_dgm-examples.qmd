@@ -1,0 +1,622 @@
+---
+title: "Subgroup Identification Analysis"
+subtitle: "Applications to consistency analyses in MRCTs"
+author: "Larry Leon"
+toc: true
+number-sections: true
+toc-depth: 3
+format: 
+  html:
+    self-contained: true
+    code-fold: true
+    bibliography: references.bib
+    fig_caption: yes
+    keep_tex: yes
+    latex_engine: xelatex
+    citation_package: natbib
+    fig_width: 10
+    fig_height: 8
+    fontsize: 10pt
+    extra_dependencies: "subfig"
+---
+
+
+```{r Setup, message=FALSE}
+# Set options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center',
+  fig.retina = 2
+)
+rm(list=ls())
+library(tinytex)
+library(ggplot2)
+library(table1)
+
+library(gt)
+
+# test these packages
+# just for testing any conflicts
+# library(tidyverse)
+# library(plyr)
+# library(dplyr)
+# library(glmnet)
+
+library(survival)
+library(data.table)
+library(randomForest)
+library(grf)
+library(policytree)
+library(DiagrammeR)
+
+library(grid)
+library(forestploter)
+library(randomizr)
+
+# library(devtools)
+# install_github("larry-leon/weightedsurv", force = TRUE)
+# install_github("larry-leon/forestsearch", force = TRUE)
+
+
+library(forestsearch)
+library(weightedsurv)
+
+#help(forestsearch)
+
+#help(generate_aft_dgm_flex)
+
+# Set theme for plots
+theme_set(theme_minimal(base_size = 12))
+
+```
+# Introduction
+
+This document provides executable examples for the `generate_aft_dgm_flex()` function, demonstrating various use cases for creating synthetic survival data with flexible subgroup definitions.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(survival)
+library(ggplot2)
+
+# Load example data
+data(gbsg, package = "survival")
+
+# Preview the data
+head(gbsg)
+```
+
+# Example 1: Basic Usage with Fixed Cutpoints
+
+This example demonstrates the simplest usage with fixed value cutpoints.
+
+```{r example1}
+# Create DGM with fixed cutpoints
+dgm1 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("er", "meno"),
+  subgroup_cuts = list(
+    er = 20,         # Fixed value: er <= 20
+    meno = 0         # Factor level: meno == 0
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  n_super = 5000,
+  seed = 123,
+  verbose = TRUE
+)
+
+```
+
+## Visualize Subgroup Definition
+
+```{r example1_viz}
+# Check subgroup distribution
+df_super <- dgm1$df_super
+
+# Plot ER distribution by subgroup
+ggplot(df_super, aes(x = z_er, fill = factor(flag_harm))) +
+  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+  geom_vline(xintercept = 20, linetype = "dashed", color = "red", linewidth = 1) +
+  labs(
+    title = "ER Distribution by Subgroup Status",
+    x = "ER (Estrogen Receptor)",
+    y = "Count",
+    fill = "Harm Subgroup"
+  ) +
+  scale_fill_manual(
+    values = c("0" = "steelblue", "1" = "darkorange"),
+    labels = c("0" = "No-harm", "1" = "Harm")
+  ) +
+  theme_minimal()
+
+# Summary statistics
+cat("\nSubgroup Summary:\n")
+cat("Harm subgroup size:", dgm1$subgroup_info$size, "\n")
+cat("Harm subgroup proportion:", round(dgm1$subgroup_info$proportion, 3), "\n")
+cat("Overall HR:", round(dgm1$hazard_ratios$overall, 3), "\n")
+cat("Harm subgroup HR:", round(dgm1$hazard_ratios$harm_subgroup, 3), "\n")
+cat("No-harm subgroup HR:", round(dgm1$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+# Example 2: Quantile-Based Cutpoints
+
+This example uses quantile-based cutpoints to define subgroups.
+
+```{r example2}
+# Create DGM with quantile cutpoints
+dgm2 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("er", "pgr", "nodes"),
+  subgroup_cuts = list(
+    er = list(type = "quantile", value = 0.25),    # Bottom 25%
+    pgr = list(type = "quantile", value = 0.33),   # Bottom 33%
+    nodes = list(type = "quantile", value = 0.50)  # Bottom 50%
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.0,
+  n_super = 5000,
+  seed = 456,
+  verbose = TRUE
+)
+
+# Compare subgroup definitions
+cat("\nSubgroup Definitions:\n")
+for (var in names(dgm2$subgroup_info$definitions)) {
+  cat(var, ":", dgm2$subgroup_info$definitions[[var]], "\n")
+}
+```
+
+
+# Example 3: Function-Based Cutpoints
+
+This example uses statistical functions (median, mean) to define cutpoints.
+
+```{r example3}
+# Create DGM with function-based cutpoints
+dgm3 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("age", "size"),
+  subgroup_cuts = list(
+    age = list(type = "function", fun = median),
+    size = list(type = "function", fun = mean)
+  ),
+  model = "alt",
+  k_treat = 0.8,
+  k_inter = 1.8,
+  n_super = 5000,
+  seed = 789,
+  verbose = TRUE
+)
+
+# Hazard ratio comparison
+cat("\nHazard Ratios:\n")
+cat("Overall:", round(dgm3$hazard_ratios$overall, 3), "\n")
+cat("Harm subgroup:", round(dgm3$hazard_ratios$harm_subgroup, 3), "\n")
+cat("No-harm subgroup:", round(dgm3$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+# Example 4: Range-Based Cutpoints
+
+This example defines subgroups using value ranges.
+
+```{r example4}
+# Create DGM with range cutpoints
+dgm4 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("age", "nodes"),
+  subgroup_cuts = list(
+    age = list(type = "range", min = 40, max = 60),
+    nodes = list(type = "range", min = 0, max = 5)
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.5,
+  n_super = 5000,
+  seed = 101,
+  verbose = TRUE
+)
+
+# Visualize age range subgroup
+df_super4 <- dgm4$df_super
+
+ggplot(df_super4, aes(x = z_age, y = z_nodes, color = factor(flag_harm))) +
+  geom_point(alpha = 0.3, size = 2) +
+  geom_rect(
+    aes(xmin = 40, xmax = 60, ymin = 0, ymax = 5),
+    fill = NA, color = "red", linewidth = 1, linetype = "dashed",
+    inherit.aes = FALSE
+  ) +
+  labs(
+    title = "Subgroup Definition by Age and Nodes Range",
+    x = "Age (years)",
+    y = "Number of Nodes",
+    color = "Harm Subgroup"
+  ) +
+  scale_color_manual(
+    values = c("0" = "steelblue", "1" = "darkorange"),
+    labels = c("0" = "No-harm", "1" = "Harm")
+  ) +
+  theme_minimal()
+```
+
+# Example 5: Greater-Than Cutpoints
+
+This example uses "greater than" specifications for subgroup definition.
+
+```{r example5}
+# Create DGM with "greater than" cutpoints
+dgm5 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("nodes", "size"),
+  subgroup_cuts = list(
+    nodes = list(type = "greater", quantile = 0.75),  # Top 25%
+    size = list(type = "greater", value = 30)          # size > 30
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  n_super = 5000,
+  seed = 202,
+  verbose = TRUE
+)
+
+# Summary
+cat("\nSubgroup characteristics:\n")
+cat("Definition:", dgm5$subgroup_info$definitions$nodes, "\n")
+cat("Definition:", dgm5$subgroup_info$definitions$size, "\n")
+cat("Proportion:", round(dgm5$subgroup_info$proportion, 3), "\n")
+```
+
+# Example 6: Multiple Factor Values
+
+This example shows how to define subgroups using multiple categorical values.
+
+```{r example6}
+# Create DGM with multiple factor values
+dgm6 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade", "meno"),
+  subgroup_cuts = list(
+    grade = list(type = "multiple", values = c(2, 3)),  # Grade 2 or 3
+    meno = 0  # Premenopausal
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.8,
+  n_super = 5000,
+  seed = 303,
+  verbose = TRUE
+)
+
+# Tabulate subgroup membership
+df_super6 <- dgm6$df_super
+table(Grade = df_super6$z_grade_1, Meno = df_super6$z_meno, Harm = df_super6$flag_harm)
+```
+
+# Example 7: Null Model (No Subgroup Effects)
+
+This example demonstrates the null model where there are no subgroup-specific effects.
+
+```{r example7}
+# Create null model DGM
+dgm7_null <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = NULL,  # No subgroups
+  subgroup_cuts = NULL,
+  model = "null",  # Null model
+  k_treat = 1.0,
+  n_super = 5000,
+  seed = 404,
+  verbose = TRUE
+)
+
+# Compare with alternative model
+dgm7_alt <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("er"),
+  subgroup_cuts = list(er = 20),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.0,
+  n_super = 5000,
+  seed = 404,
+  verbose = TRUE
+)
+
+# Compare hazard ratios
+comparison <- data.frame(
+  Model = c("Null", "Alternative"),
+  Overall_HR = c(
+    dgm7_null$hazard_ratios$overall,
+    dgm7_alt$hazard_ratios$overall
+  ),
+  Harm_HR = c(
+    NA,
+    dgm7_alt$hazard_ratios$harm_subgroup
+  ),
+  NoHarm_HR = c(
+    NA,
+    dgm7_alt$hazard_ratios$no_harm_subgroup
+  )
+)
+
+print(comparison)
+```
+
+# Example 8: Effect Modifiers (k_treat and k_inter)
+
+This example demonstrates how to modify treatment effects using k_treat and k_inter.
+
+```{r example8}
+# Create multiple DGMs with different effect modifiers
+create_dgm_with_effects <- function(k_t, k_i, seed_val) {
+  generate_aft_dgm_flex(
+    data = gbsg,
+    continuous_vars = c("age", "nodes", "er"),
+    factor_vars = c("meno"),
+    outcome_var = "rfstime",
+    event_var = "status",
+    treatment_var = "hormon",
+    subgroup_vars = c("er"),
+    subgroup_cuts = list(er = 20),
+    model = "alt",
+    k_treat = k_t,
+    k_inter = k_i,
+    n_super = 5000,
+    seed = seed_val,
+    verbose = FALSE
+  )
+}
+
+# Create scenarios
+scenarios <- list(
+  list(k_treat = 1.0, k_inter = 1.0, name = "Baseline"),
+  list(k_treat = 1.5, k_inter = 1.0, name = "Increased treatment"),
+  list(k_treat = 1.0, k_inter = 2.0, name = "Increased interaction"),
+  list(k_treat = 0.7, k_inter = 1.5, name = "Decreased treatment + increased interaction")
+)
+
+results <- data.frame(
+  Scenario = character(),
+  k_treat = numeric(),
+  k_inter = numeric(),
+  Overall_HR = numeric(),
+  Harm_HR = numeric(),
+  NoHarm_HR = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (i in seq_along(scenarios)) {
+  s <- scenarios[[i]]
+  dgm_temp <- create_dgm_with_effects(s$k_treat, s$k_inter, 500 + i)
+  
+  results <- rbind(results, data.frame(
+    Scenario = s$name,
+    k_treat = s$k_treat,
+    k_inter = s$k_inter,
+    Overall_HR = round(dgm_temp$hazard_ratios$overall, 3),
+    Harm_HR = round(dgm_temp$hazard_ratios$harm_subgroup, 3),
+    NoHarm_HR = round(dgm_temp$hazard_ratios$no_harm_subgroup, 3)
+  ))
+}
+
+print(results)
+
+# Visualize
+library(tidyr)
+library(dplyr)
+
+results_long <- results %>%
+  select(-k_treat, -k_inter) %>%
+  pivot_longer(
+    cols = c(Overall_HR, Harm_HR, NoHarm_HR),
+    names_to = "Population",
+    values_to = "HR"
+  )
+
+ggplot(results_long, aes(x = Scenario, y = HR, fill = Population)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  labs(
+    title = "Hazard Ratios Across Different Effect Modifier Scenarios",
+    x = "Scenario",
+    y = "Hazard Ratio",
+    fill = "Population"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+# Example 9: Simulating Data from DGM
+
+This example shows how to generate simulated datasets from a DGM.
+
+```{r example9}
+# Create DGM
+dgm9 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("er", "meno"),
+  subgroup_cuts = list(er = 20, meno = 0),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  n_super = 10000,
+  seed = 999,
+  verbose = FALSE
+)
+
+# Simulate datasets with different parameters
+sim1 <- simulate_from_dgm(
+  dgm = dgm9,
+  n = 500,
+  rand_ratio = 1,
+  max_entry = 12,
+  analysis_time = 48,
+  cens_adjust = 0,
+  draw_treatment = TRUE,
+  seed = 111
+)
+
+sim2 <- simulate_from_dgm(
+  dgm = dgm9,
+  n = 500,
+  rand_ratio = 2,  # 2:1 randomization
+  max_entry = 24,
+  analysis_time = 48,
+  cens_adjust = log(1.5),  # More censoring
+  draw_treatment = TRUE,
+  seed = 222
+)
+
+# Compare simulated datasets
+cat("\nSimulation 1 (1:1 randomization, less censoring):\n")
+cat("Sample size:", nrow(sim1), "\n")
+cat("Treatment allocation:", table(sim1$treat_sim), "\n")
+cat("Events:", sum(sim1$event_sim), "(", 
+    round(100 * mean(sim1$event_sim), 1), "%)\n")
+cat("Harm subgroup:", sum(sim1$flag_harm), "(", 
+    round(100 * mean(sim1$flag_harm), 1), "%)\n\n")
+
+cat("Simulation 2 (2:1 randomization, more censoring):\n")
+cat("Sample size:", nrow(sim2), "\n")
+cat("Treatment allocation:", table(sim2$treat_sim), "\n")
+cat("Events:", sum(sim2$event_sim), "(", 
+    round(100 * mean(sim2$event_sim), 1), "%)\n")
+cat("Harm subgroup:", sum(sim2$flag_harm), "(", 
+    round(100 * mean(sim2$flag_harm), 1), "%)\n")
+```
+
+
+# Example 10: Standardized vs Non-Standardized Covariates
+
+This example compares models with and without covariate standardization.
+
+```{r example10}
+# Without standardization
+dgm10_nostd <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes"),
+  factor_vars = c("meno"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("age"),
+  subgroup_cuts = list(age = 50),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  standardize = FALSE,  # No standardization
+  n_super = 5000,
+  seed = 1001,
+  verbose = FALSE
+)
+
+# With standardization
+dgm10_std <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes"),
+  factor_vars = c("meno"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("age"),
+  subgroup_cuts = list(age = 50),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  standardize = TRUE,  # Standardize
+  n_super = 5000,
+  seed = 1001,
+  verbose = FALSE
+)
+
+# Compare coefficients
+cat("Without standardization - gamma coefficients:\n")
+print(round(dgm10_nostd$model_params$gamma, 4))
+
+cat("\nWith standardization - gamma coefficients:\n")
+print(round(dgm10_std$model_params$gamma, 4))
+
+cat("\nHazard ratios are consistent:\n")
+cat("No standardization - Overall HR:", 
+    round(dgm10_nostd$hazard_ratios$overall, 3), "\n")
+cat("With standardization - Overall HR:", 
+    round(dgm10_std$hazard_ratios$overall, 3), "\n")
+```
+
+# Summary
+
+This document demonstrated 10 key use cases for `generate_aft_dgm_flex()`:
+
+1. **Basic usage** with fixed cutpoints
+2. **Quantile-based** cutpoints
+3. **Function-based** cutpoints (median, mean)
+4. **Range-based** cutpoints
+5. **Greater-than** cutpoints
+6. **Multiple categorical** values
+7. **Null vs alternative** models
+8. **Effect modifiers** (k_treat, k_inter)
+9. **Simulating datasets** from DGM
+10. **Standardization** effects
+
+Each example can be adapted for specific research needs by adjusting:
+
+- Covariate selections
+- Subgroup definitions
+- Effect modifiers
+- Sample sizes
+- Censoring mechanisms
+- Random seeds for reproducibility
+
+```{r session_info}
+sessionInfo()
+```
+

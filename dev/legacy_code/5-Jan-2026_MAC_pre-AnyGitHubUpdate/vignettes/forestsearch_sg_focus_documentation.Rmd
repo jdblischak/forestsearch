@@ -1,0 +1,695 @@
+---
+title: "ForestSearch Function Documentation: sg_focus Parameter Guide"
+author: "ForestSearch Package Documentation"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    number_sections: true
+    code_folding: show
+    theme: cosmo
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 6,
+  comment = "#>"
+)
+
+# Load required libraries
+library(knitr)
+library(kableExtra)
+library(DiagrammeR)
+```
+
+# Function Overview
+
+## forestsearch()
+
+The `forestsearch()` function implements a comprehensive statistical framework for identifying subgroups with differential treatment effects in survival analysis. It combines multiple methodologies including Generalized Random Forests (GRF), LASSO regularization, exhaustive combinatorial search, and bootstrap bias correction.
+
+```r
+forestsearch(
+  df.analysis,
+  sg_focus = "hr",
+  hr.threshold = 1.25,
+  hr.consistency = 1.0,
+  pconsistency.threshold = 0.90,
+  n.min = 60,
+  d0.min = 15,
+  d1.min = 15,
+  n.splits = 1000,
+  ...
+)
+```
+
+# The sg_focus Parameter: Detailed Guide
+
+## Overview
+
+The `sg_focus` parameter determines **which subgroup to prioritize** when multiple candidates meet consistency criteria. It embodies different clinical and statistical philosophies about identifying treatment harm.
+
+## Parameter Options Summary
+
+```{r options-table, echo=FALSE}
+sg_options <- data.frame(
+  Option = c("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG"),
+  Philosophy = c(
+    "Most reliable harm signal",
+    "Protect most patients",
+    "Identify highest risk",
+    "Balance impact and effect",
+    "Specific serious risk"
+  ),
+  Priority = c(
+    "Statistical reliability",
+    "Population coverage",
+    "Specificity/precision",
+    "Effect + Coverage",
+    "Effect + Specificity"
+  ),
+  `Best For` = c(
+    "Regulatory submissions",
+    "Public health decisions",
+    "Precision medicine",
+    "Clinical guidelines",
+    "Biomarker development"
+  ),
+  check.names = FALSE
+)
+
+kable(sg_options, caption = "sg_focus Options Overview") |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
+  column_spec(1, bold = TRUE) |>
+  column_spec(2, width = "25%") |>
+  column_spec(3, width = "20%") |>
+  column_spec(4, width = "25%")
+```
+
+## Detailed Option Descriptions
+
+### sg_focus = "hr" (Default)
+
+**Statistical Goal:** Identify the subgroup with the **most reliable evidence of harm**
+
+**Selection Priority:**
+1. Highest consistency rate (Pcons)
+2. Largest hazard ratio (HR)
+3. Smallest number of factors (K)
+
+**When to Use:**
+- Regulatory submissions requiring robust evidence
+- Confirmatory trials where reliability is paramount
+- Academic publications requiring statistical rigor
+- When false positives are more costly than false negatives
+
+**Example Implementation:**
+
+```r
+# FDA submission for cardiovascular safety
+result <- forestsearch(
+  df.analysis = cvd_trial,
+  sg_focus = "hr",              # Prioritize statistical reliability
+  hr.threshold = 1.3,           # Clinically meaningful threshold
+  pconsistency.threshold = 0.95,# Very high confidence required
+  hr.consistency = 1.15,        # Effect must persist in validation
+  n.min = 100,
+  d0.min = 20,
+  d1.min = 20
+)
+
+# Typical output with sg_focus="hr":
+# Selected: Subgroup with Pcons=0.96, HR=2.1, n=150
+# Even if larger subgroups exist with lower consistency
+```
+
+### sg_focus = "maxSG"
+
+**Statistical Goal:** Identify the **largest subgroup** meeting minimum criteria
+
+**Selection Priority:**
+1. Largest sample size (N)
+2. Highest consistency rate (Pcons)
+3. Smallest number of factors (K)
+
+**When to Use:**
+- Public health interventions
+- Treatment guidelines for health systems
+- When population impact is the primary concern
+- Post-market surveillance
+
+**Example Implementation:**
+
+```r
+# Health system treatment guidelines
+result <- forestsearch(
+  df.analysis = population_data,
+  sg_focus = "maxSG",           # Maximize patients protected
+  hr.threshold = 1.2,           # Lower threshold acceptable
+  pconsistency.threshold = 0.85,# Moderate confidence OK
+  hr.consistency = 1.0,         # Any persistent effect
+  n.min = 80,
+  d0.min = 15,
+  d1.min = 15
+)
+
+# Example output comparison:
+# Subgroup A: HR=1.3, n=200, Pcons=0.91 (age > 65)
+# Subgroup B: HR=1.8, n=80,  Pcons=0.93 (age > 65 + diabetic)
+# Subgroup C: HR=2.5, n=30,  Pcons=0.95 (age > 65 + diabetic + CKD)
+# With sg_focus="maxSG", selects Subgroup A (200 patients)
+```
+
+### sg_focus = "minSG"
+
+**Statistical Goal:** Identify the **smallest, most specific subgroup** with consistent harm
+
+**Selection Priority:**
+1. Smallest sample size (N)
+2. Highest consistency rate (Pcons)
+3. Smallest number of factors (K)
+
+**When to Use:**
+- Precision medicine applications
+- Biomarker signature development
+- When minimizing treatment restrictions is important
+- Identifying ultra-high-risk patients
+
+**Example Implementation:**
+
+```r
+# Precision oncology biomarker identification
+result <- forestsearch(
+  df.analysis = cancer_trial,
+  sg_focus = "minSG",           # Most specific risk profile
+  hr.threshold = 1.5,           # High threshold for specificity
+  pconsistency.threshold = 0.85,# Moderate confidence acceptable
+  hr.consistency = 1.25,        # Strong effect required
+  n.min = 30,                   # Allow smaller subgroups
+  d0.min = 8,
+  d1.min = 8
+)
+
+# Using same example subgroups as above:
+# With sg_focus="minSG", selects Subgroup C
+# (Most specific: 30 patients with all 3 risk factors)
+```
+
+### sg_focus = "hrMaxSG"
+
+**Statistical Goal:** Among subgroups with **meaningful harm** (HR > threshold), find the **largest**
+
+**Two-Stage Selection Process:**
+1. Filter: Only subgroups with clinically important harm
+2. Select: The largest subgroup from filtered set
+
+**When to Use:**
+- Clinical practice guidelines
+- Regulatory decisions with effect size thresholds
+- Balancing clinical significance with population impact
+- Treatment recommendations
+
+**Example Implementation:**
+
+```r
+# Clinical guidelines balancing effect and impact
+result <- forestsearch(
+  df.analysis = trial_data,
+  sg_focus = "hrMaxSG",         # Large group with meaningful harm
+  hr.threshold = 1.5,           # Meaningful harm threshold
+  pconsistency.threshold = 0.90,# High confidence
+  hr.consistency = 1.2,         # Substantial effect required
+  n.min = 60,
+  d0.min = 15,
+  d1.min = 15
+)
+
+# Selection process with HR threshold = 1.5:
+# Subgroup A: HR=1.3, n=200 → EXCLUDED (HR < 1.5)
+# Subgroup B: HR=1.8, n=80  → INCLUDED
+# Subgroup C: HR=2.5, n=30  → INCLUDED
+# Final selection: Subgroup B (largest among HR > 1.5)
+```
+
+### sg_focus = "hrMinSG"
+
+**Statistical Goal:** Among subgroups with **meaningful harm**, find the **most specific**
+
+**Two-Stage Selection Process:**
+1. Filter: Only subgroups with clinically important harm
+2. Select: The smallest/most specific from filtered set
+
+**When to Use:**
+- Biomarker signature development
+- Ultra-high-risk patient identification
+- Companion diagnostic development
+- Targeted safety restrictions
+
+**Example Implementation:**
+
+```r
+# Biomarker signature for treatment exclusion
+result <- forestsearch(
+  df.analysis = biomarker_trial,
+  sg_focus = "hrMinSG",         # Specific group with high harm
+  hr.threshold = 2.0,           # Very high harm threshold
+  pconsistency.threshold = 0.90,# High confidence
+  hr.consistency = 1.5,         # Strong persistent effect
+  n.min = 25,                   # Allow very specific subgroups
+  d0.min = 7,
+  d1.min = 7
+)
+
+# Using same filtering as hrMaxSG but opposite selection:
+# Final selection: Subgroup C (smallest among HR > threshold)
+```
+
+## Decision Flowchart
+
+```{r flowchart, echo=FALSE, fig.height=8, fig.width=10}
+grViz("
+digraph sg_focus_decision {
+  graph [layout = dot, rankdir = TB]
+  
+  # Node definitions
+  node [shape = rectangle, style = filled, fillcolor = lightblue]
+  
+  start [label = 'Clinical/Statistical\\nObjective', shape = ellipse, fillcolor = yellow]
+  
+  q1 [label = 'Primary Goal?', shape = diamond, fillcolor = lightyellow]
+  
+  reliability [label = 'Maximum\\nReliability', fillcolor = lightgreen]
+  population [label = 'Population\\nImpact', fillcolor = lightgreen]
+  precision [label = 'Precision\\nMedicine', fillcolor = lightgreen]
+  balance [label = 'Balance Effect\\n& Coverage', fillcolor = lightgreen]
+  
+  hr [label = 'sg_focus = \"hr\"\\nMost reliable signal', fillcolor = lightcoral]
+  maxsg [label = 'sg_focus = \"maxSG\"\\nProtect most patients', fillcolor = lightcoral]
+  minsg [label = 'sg_focus = \"minSG\"\\nHighest risk profile', fillcolor = lightcoral]
+  hrmaxsg [label = 'sg_focus = \"hrMaxSG\"\\nLarge harmful group', fillcolor = lightcoral]
+  hrminsg [label = 'sg_focus = \"hrMinSG\"\\nSpecific harmful group', fillcolor = lightcoral]
+  
+  # Edge definitions
+  start -> q1
+  
+  q1 -> reliability [label = 'Statistical\\nRigor']
+  q1 -> population [label = 'Public\\nHealth']
+  q1 -> precision [label = 'Targeted\\nTherapy']
+  q1 -> balance [label = 'Clinical\\nGuidelines']
+  
+  reliability -> hr
+  population -> maxsg
+  precision -> minsg
+  
+  balance -> hrmaxsg [label = 'Emphasize\\nCoverage']
+  balance -> hrminsg [label = 'Emphasize\\nSpecificity']
+}
+")
+```
+
+## Internal Algorithm Details
+
+### Sorting Logic Implementation
+
+```r
+# The internal sorting logic for each sg_focus option:
+
+sort_subgroups <- function(result_table, sg_focus) {
+  
+  if (sg_focus == "hr") {
+    # Sort by: Consistency ↓, Hazard Ratio ↓, Factors ↑
+    setorder(result_table, -Pcons, -hr, K)
+    
+  } else if (sg_focus %in% c("maxSG", "hrMaxSG")) {
+    # Sort by: Sample Size ↓, Consistency ↓, Factors ↑
+    setorder(result_table, -N, -Pcons, K)
+    
+  } else if (sg_focus %in% c("minSG", "hrMinSG")) {
+    # Sort by: Sample Size ↑, Consistency ↓, Factors ↑
+    setorder(result_table, N, -Pcons, K)
+  }
+  
+  return(result_table)
+}
+```
+
+### Interaction with Other Parameters
+
+```{r parameter-interaction, echo=FALSE}
+param_interactions <- data.frame(
+  sg_focus = c("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG"),
+  `Typical hr.threshold` = c("1.25 (moderate)", "1.10 (low)", "1.50 (high)", 
+                              "1.30 (moderate)", "1.50 (high)"),
+  `Typical hr.consistency` = c("1.10 (strict)", "0.90 (lenient)", "1.00 (moderate)",
+                                "1.10 (strict)", "1.20 (very strict)"),
+  `Typical pconsistency.threshold` = c("0.90 (high)", "0.85 (moderate)", "0.85 (moderate)",
+                                        "0.90 (high)", "0.90 (high)"),
+  `Typical n.min` = c("60-100", "80-120", "30-50", "60-100", "25-40"),
+  check.names = FALSE
+)
+
+kable(param_interactions, caption = "Typical Parameter Settings by sg_focus") |>
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) |>
+  column_spec(1, bold = TRUE) |>
+  row_spec(1:5, font_size = 12)
+```
+
+## Statistical Considerations
+
+### Power Trade-offs
+
+Each `sg_focus` option implies different power characteristics:
+
+- **maxSG**: Higher statistical power (larger n) but potentially diluted effect size
+- **minSG**: Lower statistical power but potentially stronger, more homogeneous effect
+- **hr**: Balanced power based on consistency, not size
+- **hrMaxSG/hrMinSG**: Power depends on effect size threshold
+
+### Multiple Testing Implications
+
+All `sg_focus` options evaluate the same candidate subgroups during discovery:
+- No additional multiple testing burden between options
+- Choice affects only **which** subgroup is selected as primary
+- Secondary analyses can report alternative sg_focus results
+
+### Clinical Utility Functions
+
+Each `sg_focus` option implicitly optimizes a different utility function:
+
+```r
+# Implicit utility functions for each approach:
+
+utility_hr <- function(subgroup) {
+  # Maximize: consistency × effect_size
+  subgroup$Pcons * log(subgroup$hr)
+}
+
+utility_maxSG <- function(subgroup) {
+  # Maximize: affected_population × (effect > threshold)
+  subgroup$N * as.numeric(subgroup$hr > hr.threshold)
+}
+
+utility_minSG <- function(subgroup) {
+  # Maximize: specificity × effect_size
+  (1/subgroup$N) * subgroup$hr
+}
+
+utility_hrMaxSG <- function(subgroup) {
+  # Maximize: population × effect (conditional on meaningful harm)
+  ifelse(subgroup$hr > hr.threshold, subgroup$N * subgroup$hr, 0)
+}
+
+utility_hrMinSG <- function(subgroup) {
+  # Maximize: specificity × effect (conditional on meaningful harm)
+  ifelse(subgroup$hr > hr.threshold, (1/subgroup$N) * subgroup$hr, 0)
+}
+```
+
+## Practical Examples by Study Context
+
+### Example 1: Phase II Safety Study
+
+```r
+# Early safety signal detection
+# Goal: Find most reliable evidence of potential harm
+
+result <- forestsearch(
+  df.analysis = phase2_data,
+  sg_focus = "hr",              # Reliability paramount
+  hr.threshold = 1.2,           # Lower threshold for safety
+  hr.consistency = 1.0,         # Any persistent effect
+  pconsistency.threshold = 0.85,# Moderate consistency OK
+  n.min = 40,                   # Smaller samples acceptable
+  d0.min = 10,
+  d1.min = 10,
+  n.splits = 1000,
+  conf_type = "approximate"     # Faster for exploratory
+)
+```
+
+### Example 2: Phase III Regulatory Submission
+
+```r
+# FDA submission for new drug approval
+# Goal: Robust evidence meeting regulatory standards
+
+result <- forestsearch(
+  df.analysis = phase3_data,
+  sg_focus = "hr",              # Maximum reliability
+  hr.threshold = 1.3,           # Clinically meaningful
+  hr.consistency = 1.15,        # Must maintain effect
+  pconsistency.threshold = 0.95,# Very high confidence
+  n.min = 100,                  # Substantial sample required
+  d0.min = 25,
+  d1.min = 25,
+  n.splits = 2000,              # Extra splits for robustness
+  conf_type = "bootstrap",      # Most accurate CI
+  n.boot = 1000
+)
+```
+
+### Example 3: Public Health Implementation
+
+```r
+# Health system treatment guidelines
+# Goal: Protect maximum number of patients
+
+result <- forestsearch(
+  df.analysis = population_data,
+  sg_focus = "maxSG",           # Population coverage
+  hr.threshold = 1.15,          # Lower threshold acceptable
+  hr.consistency = 0.95,        # Some attenuation OK
+  pconsistency.threshold = 0.80,# Moderate confidence
+  n.min = 100,                  # Need representative samples
+  d0.min = 20,
+  d1.min = 20,
+  n.splits = 1000
+)
+```
+
+### Example 4: Precision Medicine Biomarker
+
+```r
+# Companion diagnostic development
+# Goal: Identify specific ultra-high-risk signature
+
+result <- forestsearch(
+  df.analysis = biomarker_data,
+  sg_focus = "hrMinSG",         # Specific + harmful
+  hr.threshold = 2.0,           # High harm threshold
+  hr.consistency = 1.5,         # Strong persistent effect
+  pconsistency.threshold = 0.90,# High confidence
+  n.min = 25,                   # Very specific groups OK
+  d0.min = 7,
+  d1.min = 7,
+  n.splits = 1000,
+  maxk = 5                      # Allow complex signatures
+)
+```
+
+### Example 5: Comparative Effectiveness Research
+
+```r
+# Academic study comparing treatment strategies
+# Goal: Balance clinical significance with generalizability
+
+result <- forestsearch(
+  df.analysis = effectiveness_data,
+  sg_focus = "hrMaxSG",         # Balance effect and coverage
+  hr.threshold = 1.4,           # Substantial difference
+  hr.consistency = 1.2,         # Meaningful persistence
+  pconsistency.threshold = 0.90,# Good confidence
+  n.min = 75,                   # Moderate sample size
+  d0.min = 18,
+  d1.min = 18,
+  n.splits = 1000
+)
+```
+
+## Output Structure and Interpretation
+
+### Accessing Results by sg_focus
+
+```r
+# The forestsearch output contains results for all sg_focus options:
+fs_result <- forestsearch(df.analysis = data, sg_focus = "hr", ...)
+
+# Main result (based on chosen sg_focus):
+primary_subgroup <- fs_result$sg.harm
+
+# But all options are computed and available:
+all_hr_results <- fs_result$grp.consistency$out_hr      # HR-focused ranking
+all_maxSG_results <- fs_result$grp.consistency$out_maxSG # Size-focused (large)
+all_minSG_results <- fs_result$grp.consistency$out_minSG # Size-focused (small)
+
+# Each contains:
+# - sg.harm: The selected subgroup for that approach
+# - full.results: All evaluated subgroups with that sorting
+# - consistency.stats: Detailed consistency metrics
+```
+
+### Interpreting Different sg_focus Results
+
+```r
+# Example comparison of results:
+compare_sg_focus <- function(fs_result) {
+  
+  comparison <- data.frame(
+    Approach = c("hr", "maxSG", "minSG"),
+    Selected_N = c(
+      fs_result$grp.consistency$out_hr$sg.harm$N,
+      fs_result$grp.consistency$out_maxSG$sg.harm$N,
+      fs_result$grp.consistency$out_minSG$sg.harm$N
+    ),
+    Selected_HR = c(
+      fs_result$grp.consistency$out_hr$sg.harm$hr,
+      fs_result$grp.consistency$out_maxSG$sg.harm$hr,
+      fs_result$grp.consistency$out_minSG$sg.harm$hr
+    ),
+    Selected_Pcons = c(
+      fs_result$grp.consistency$out_hr$sg.harm$Pcons,
+      fs_result$grp.consistency$out_maxSG$sg.harm$Pcons,
+      fs_result$grp.consistency$out_minSG$sg.harm$Pcons
+    )
+  )
+  
+  return(comparison)
+}
+
+# Usage:
+comparison_table <- compare_sg_focus(fs_result)
+print(comparison_table)
+```
+
+## Sensitivity Analysis Framework
+
+### Recommended Approach for sg_focus Selection
+
+```r
+# Run sensitivity analysis across all sg_focus options:
+run_sg_focus_sensitivity <- function(data, base_params) {
+  
+  sg_options <- c("hr", "maxSG", "minSG", "hrMaxSG", "hrMinSG")
+  
+  results <- lapply(sg_options, function(opt) {
+    res <- forestsearch(
+      df.analysis = data,
+      sg_focus = opt,
+      hr.threshold = base_params$hr.threshold,
+      hr.consistency = base_params$hr.consistency,
+      pconsistency.threshold = base_params$pconsistency.threshold,
+      n.min = base_params$n.min,
+      d0.min = base_params$d0.min,
+      d1.min = base_params$d1.min,
+      details = FALSE
+    )
+    
+    return(list(
+      sg_focus = opt,
+      subgroup = res$sg.harm,
+      n_found = nrow(res$grp.consistency[[paste0("out_", opt)]]$full.results)
+    ))
+  })
+  
+  return(results)
+}
+
+# Example usage:
+base_params <- list(
+  hr.threshold = 1.25,
+  hr.consistency = 1.0,
+  pconsistency.threshold = 0.90,
+  n.min = 60,
+  d0.min = 15,
+  d1.min = 15
+)
+
+sensitivity_results <- run_sg_focus_sensitivity(trial_data, base_params)
+```
+
+## Common Questions and Troubleshooting
+
+### Q: How do I choose the right sg_focus?
+
+**A:** Consider your primary objective:
+- **Regulatory approval?** → Use "hr" for maximum reliability
+- **Public health policy?** → Use "maxSG" for population impact
+- **Biomarker development?** → Use "minSG" or "hrMinSG" for specificity
+- **Clinical guidelines?** → Use "hrMaxSG" for balanced approach
+
+### Q: Can I report multiple sg_focus results?
+
+**A:** Yes, but:
+1. Pre-specify primary sg_focus in protocol/SAP
+2. Report others as sensitivity analyses
+3. Be transparent about selection rationale
+4. Adjust for multiplicity if treating as co-primary
+
+### Q: Why might different sg_focus options identify completely different subgroups?
+
+**A:** This occurs when trade-offs between size, effect, and consistency vary substantially:
+- Small subgroups may have larger effects
+- Large subgroups may have more moderate but consistent effects
+- The "best" choice depends on clinical context
+
+### Q: How does sg_focus interact with bootstrap confidence intervals?
+
+**A:** The bootstrap respects the sg_focus selection:
+- Each bootstrap sample re-runs the full algorithm
+- Selection criterion (sg_focus) is applied consistently
+- CIs reflect uncertainty under chosen philosophy
+
+## Best Practices and Recommendations
+
+### 1. Pre-specification
+Always pre-specify sg_focus in your statistical analysis plan based on study objectives
+
+### 2. Sensitivity Analysis
+Report primary sg_focus result and include others as sensitivity analyses
+
+### 3. Clinical Context
+Choose sg_focus based on how results will be used:
+- Individual patient decisions → "minSG" or "hrMinSG"
+- Population health decisions → "maxSG" or "hrMaxSG"
+- Research/regulatory → "hr"
+
+### 4. Parameter Harmony
+Align other parameters with sg_focus choice:
+- "maxSG" → Lower thresholds, larger n.min
+- "minSG" → Higher thresholds, smaller n.min
+- "hr" → Balanced parameters
+
+### 5. Transparent Reporting
+Document and justify sg_focus selection in methods section
+
+## Summary
+
+The `sg_focus` parameter in `forestsearch()` provides a flexible framework for prioritizing different aspects of subgroup identification:
+
+- **"hr"**: Maximizes statistical reliability
+- **"maxSG"**: Maximizes population coverage
+- **"minSG"**: Maximizes specificity
+- **"hrMaxSG"**: Balances coverage with effect size
+- **"hrMinSG"**: Balances specificity with effect size
+
+Each option represents a valid statistical and clinical perspective on the fundamental question: "Which patients should avoid this treatment?" The choice depends on your study's goals, the clinical context, and how the results will be applied in practice.
+
+## References
+
+Key methodological papers and regulatory guidance:
+
+1. FDA Guidance on Enrichment Strategies for Clinical Trials
+2. EMA Guideline on the Investigation of Subgroups in Confirmatory Clinical Trials
+3. ICMJE Recommendations for Reporting Subgroup Analyses
+4. Statistical Considerations for Subgroup Analyses in Clinical Trials (relevant citations)
+
+---
+
+*This documentation is part of the ForestSearch R package. For additional information, see the package vignettes and help files.*

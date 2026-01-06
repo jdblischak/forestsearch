@@ -1,0 +1,518 @@
+---
+title: "AFT DGM Example: Grade-Based Subgroup Analysis"
+subtitle: "Demonstration of Categorical Variable Subgroup Definitions"
+author: "Larry Leon"
+date: today
+toc: true
+number-sections: true
+toc-depth: 3
+format: 
+  html:
+    self-contained: true
+    code-fold: true
+    fig_caption: yes
+    fig_width: 10
+    fig_height: 7
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+# Set options
+knitr::opts_chunk$set(
+
+echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center',
+  fig.retina = 2
+)
+
+rm(list = ls())
+
+# Load required packages
+library(survival)
+library(ggplot2)
+library(data.table)
+library(gt)
+library(dplyr)
+library(tidyr)
+
+# Load forestsearch package (assumes it's installed)
+library(forestsearch)
+
+# Set theme for plots
+theme_set(theme_minimal(base_size = 12))
+```
+
+# Introduction
+
+This document demonstrates the use of `generate_aft_dgm_flex()` with **categorical variables as the sole subgroup-defining factor**. Specifically, we focus on tumor `grade` from the German Breast Cancer Study Group (GBSG) dataset.
+
+Tumor grade is a clinically relevant categorical variable with three levels:
+
+- **Grade 1**: Well-differentiated (low grade)
+- **Grade 2**: Moderately differentiated (intermediate grade)
+- **Grade 3**: Poorly differentiated (high grade)
+
+Higher grade tumors are generally associated with worse prognosis, making this an interesting candidate for exploring treatment effect heterogeneity.
+
+# Data Overview
+
+```{r data_overview}
+# Load GBSG data
+data(gbsg, package = "survival")
+
+# Examine grade distribution
+cat("=== GBSG Dataset Overview ===\n")
+cat("Total observations:", nrow(gbsg), "\n")
+cat("Variables:", ncol(gbsg), "\n\n")
+
+cat("=== Grade Distribution ===\n")
+grade_table <- table(gbsg$grade)
+grade_prop <- prop.table(grade_table)
+
+for (g in names(grade_table)) {
+  cat(sprintf("Grade %s: n = %d (%.1f%%)\n", 
+              g, grade_table[g], 100 * grade_prop[g]))
+}
+
+# Visualize grade distribution
+ggplot(gbsg, aes(x = factor(grade), fill = factor(grade))) +
+  geom_bar(alpha = 0.8) +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_fill_manual(
+    values = c("1" = "#2E86AB", "2" = "#A23B72", "3" = "#F18F01"),
+    labels = c("1" = "Grade 1 (Low)", "2" = "Grade 2 (Intermediate)", "3" = "Grade 3 (High)")
+  ) +
+  labs(
+    title = "Distribution of Tumor Grade in GBSG Dataset",
+    x = "Tumor Grade",
+    y = "Count",
+    fill = "Grade"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+## Grade and Treatment Interaction
+
+```{r grade_treatment_overview}
+# Cross-tabulation of grade and treatment
+cat("\n=== Grade by Treatment (Hormone Therapy) ===\n")
+print(table(Grade = gbsg$grade, Hormon = gbsg$hormon))
+
+# Kaplan-Meier by grade
+km_grade <- survfit(Surv(rfstime, status) ~ grade, data = gbsg)
+
+# Plot
+plot(km_grade, col = c("#2E86AB", "#A23B72", "#F18F01"), lwd = 2,
+     xlab = "Time (days)", ylab = "Recurrence-Free Survival",
+     main = "Kaplan-Meier Curves by Tumor Grade")
+legend("topright", legend = c("Grade 1", "Grade 2", "Grade 3"),
+       col = c("#2E86AB", "#A23B72", "#F18F01"), lwd = 2)
+
+# Cox model with grade interaction
+cox_interaction <- coxph(Surv(rfstime, status) ~ hormon * factor(grade), data = gbsg)
+cat("\n=== Cox Model: Treatment x Grade Interaction ===\n")
+print(summary(cox_interaction))
+```
+
+# Example 1: High-Grade Subgroup (Grade 3)
+
+This example defines the "harm" subgroup as patients with high-grade (Grade 3) tumors.
+
+```{r example1_grade3}
+# Create DGM with Grade 3 as harm subgroup
+dgm_grade3 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade"),
+  subgroup_cuts = list(
+    grade = 3  # Grade 3 only (high-grade tumors)
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.8,  # Treatment harm modifier in high-grade subgroup
+  n_super = 5000,
+  seed = 1111,
+  verbose = TRUE
+)
+
+# Summary statistics
+cat("\n=== Subgroup Summary (Grade 3) ===\n")
+cat("Subgroup definition:", dgm_grade3$subgroup_info$definitions$grade, "\n")
+cat("Subgroup size (super pop):", dgm_grade3$subgroup_info$size, "\n")
+cat("Subgroup proportion:", round(dgm_grade3$subgroup_info$proportion, 3), "\n")
+
+cat("\n=== Hazard Ratios ===\n")
+cat("Overall HR:", round(dgm_grade3$hazard_ratios$overall, 3), "\n")
+cat("High-grade (harm) HR:", round(dgm_grade3$hazard_ratios$harm_subgroup, 3), "\n")
+cat("Lower-grade (no-harm) HR:", round(dgm_grade3$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+## Visualize Grade 3 Subgroup
+
+```{r example1_viz}
+df_super1 <- dgm_grade3$df_super
+
+# Create summary by subgroup
+subgroup_summary <- df_super1 %>%
+  group_by(flag_harm) %>%
+  summarise(
+    n = n(),
+    mean_age = mean(z_age, na.rm = TRUE),
+    mean_nodes = mean(z_nodes, na.rm = TRUE),
+    mean_er = mean(z_er, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Display
+subgroup_summary %>%
+  mutate(
+    Subgroup = ifelse(flag_harm == 1, "Grade 3 (Harm)", "Grade 1-2 (No-harm)"),
+    n = format(n, big.mark = ",")
+  ) %>%
+  select(Subgroup, n, mean_age, mean_nodes, mean_er) %>%
+  gt() %>%
+  tab_header(
+    title = "Characteristics by Subgroup Status",
+    subtitle = "Super Population (n = 5,000)"
+  ) %>%
+  fmt_number(columns = c(mean_age, mean_nodes, mean_er), decimals = 2) %>%
+  cols_label(
+    Subgroup = "Subgroup",
+    n = "N",
+    mean_age = "Mean Age (std)",
+    mean_nodes = "Mean Nodes (std)",
+    mean_er = "Mean ER (std)"
+  )
+```
+
+# Example 2: Low-Grade Subgroup (Grade 1)
+  
+This example defines the subgroup as patients with low-grade (Grade 1) tumors, representing a potentially treatment-sensitive population.
+
+```{r example2_grade1}
+# Create DGM with Grade 1 as harm subgroup
+dgm_grade1 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade"),
+  subgroup_cuts = list(
+    grade = 1  # Grade 1 only (low-grade tumors)
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 0.5,  # Treatment benefit modifier in low-grade subgroup
+  n_super = 5000,
+  seed = 2222,
+  verbose = TRUE
+)
+
+# Summary
+cat("\n=== Subgroup Summary (Grade 1) ===\n")
+cat("Subgroup definition:", dgm_grade1$subgroup_info$definitions$grade, "\n")
+cat("Subgroup size:", dgm_grade1$subgroup_info$size, "\n")
+cat("Subgroup proportion:", round(dgm_grade1$subgroup_info$proportion, 3), "\n")
+
+cat("\n=== Hazard Ratios ===\n")
+cat("Overall HR:", round(dgm_grade1$hazard_ratios$overall, 3), "\n")
+cat("Low-grade (subgroup) HR:", round(dgm_grade1$hazard_ratios$harm_subgroup, 3), "\n")
+cat("Higher-grade (complement) HR:", round(dgm_grade1$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+# Example 3: Multiple Grade Values (Grade 2-3)
+
+This example defines the subgroup using multiple categorical values - intermediate to high-grade tumors.
+
+```{r example3_grade23}
+# Create DGM with Grade 2-3 as harm subgroup
+dgm_grade23 <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade"),
+  subgroup_cuts = list(
+    grade = list(type = "multiple", values = c(2, 3))  # Grade 2 or 3
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 1.5,
+  n_super = 5000,
+  seed = 3333,
+  verbose = TRUE
+)
+
+# Summary
+cat("\n=== Subgroup Summary (Grade 2-3) ===\n")
+cat("Subgroup definition:", dgm_grade23$subgroup_info$definitions$grade, "\n")
+cat("Subgroup size:", dgm_grade23$subgroup_info$size, "\n")
+cat("Subgroup proportion:", round(dgm_grade23$subgroup_info$proportion, 3), "\n")
+
+cat("\n=== Hazard Ratios ===\n")
+cat("Overall HR:", round(dgm_grade23$hazard_ratios$overall, 3), "\n")
+cat("Grade 2-3 (harm) HR:", round(dgm_grade23$hazard_ratios$harm_subgroup, 3), "\n")
+cat("Grade 1 (no-harm) HR:", round(dgm_grade23$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+# Example 4: Comparing All Grade-Based Scenarios
+
+```{r example4_comparison}
+# Create comparison table
+comparison_results <- data.frame(
+  Scenario = c(
+    "Grade 3 only (High)",
+    "Grade 1 only (Low)",
+    "Grade 2-3 (Intermediate-High)"
+  ),
+  Subgroup_Prop = c(
+    dgm_grade3$subgroup_info$proportion,
+    dgm_grade1$subgroup_info$proportion,
+    dgm_grade23$subgroup_info$proportion
+  ),
+  k_inter = c(1.8, 0.5, 1.5),
+  Overall_HR = c(
+    dgm_grade3$hazard_ratios$overall,
+    dgm_grade1$hazard_ratios$overall,
+    dgm_grade23$hazard_ratios$overall
+  ),
+  Subgroup_HR = c(
+    dgm_grade3$hazard_ratios$harm_subgroup,
+    dgm_grade1$hazard_ratios$harm_subgroup,
+    dgm_grade23$hazard_ratios$harm_subgroup
+  ),
+  Complement_HR = c(
+    dgm_grade3$hazard_ratios$no_harm_subgroup,
+    dgm_grade1$hazard_ratios$no_harm_subgroup,
+    dgm_grade23$hazard_ratios$no_harm_subgroup
+  )
+)
+
+# Display as gt table
+comparison_results %>%
+  gt() %>%
+  tab_header(
+    title = "Comparison of Grade-Based Subgroup Scenarios",
+    subtitle = "AFT DGM with Different Interaction Effects"
+  ) %>%
+  fmt_number(columns = c(Subgroup_Prop), decimals = 3) %>%
+  fmt_number(columns = c(Overall_HR, Subgroup_HR, Complement_HR), decimals = 3) %>%
+  cols_label(
+    Scenario = "Scenario",
+    Subgroup_Prop = "Subgroup Proportion",
+    k_inter = "k_inter",
+    Overall_HR = "Overall HR",
+    Subgroup_HR = "Subgroup HR",
+    Complement_HR = "Complement HR"
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "#FFF3CD"),
+    locations = cells_body(columns = Subgroup_HR)
+  )
+
+# Visualize
+comparison_long <- comparison_results %>%
+  select(Scenario, Overall_HR, Subgroup_HR, Complement_HR) %>%
+  pivot_longer(
+    cols = c(Overall_HR, Subgroup_HR, Complement_HR),
+    names_to = "Population",
+    values_to = "HR"
+  ) %>%
+  mutate(
+    Population = factor(Population, 
+                       levels = c("Overall_HR", "Subgroup_HR", "Complement_HR"),
+                       labels = c("Overall", "Subgroup", "Complement"))
+  )
+
+ggplot(comparison_long, aes(x = Scenario, y = HR, fill = Population)) +
+  geom_bar(stat = "identity", position = "dodge", alpha = 0.8) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red", linewidth = 1) +
+  scale_fill_manual(values = c("Overall" = "#2E86AB", "Subgroup" = "#F18F01", "Complement" = "#A23B72")) +
+  labs(
+    title = "Hazard Ratios by Grade-Based Subgroup Definition",
+    subtitle = "Red dashed line indicates HR = 1 (no effect)",
+    x = "Scenario",
+    y = "Hazard Ratio",
+    fill = "Population"
+  ) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1)) +
+  coord_cartesian(ylim = c(0, max(comparison_long$HR) * 1.1))
+```
+
+# Example 5: Simulating Data from Grade-Based DGM
+
+```{r example5_simulation}
+# Use the Grade 3 DGM to simulate datasets
+dgm_for_sim <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade"),
+  subgroup_cuts = list(grade = 3),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.0,  # Strong interaction effect
+  n_super = 10000,
+  seed = 5555,
+  verbose = FALSE
+)
+
+# Simulate multiple datasets
+set.seed(999)
+n_sims <- 5
+sim_results <- list()
+
+for (i in 1:n_sims) {
+  sim_data <- simulate_from_dgm(
+    dgm = dgm_for_sim,
+    n = 700,
+    rand_ratio = 1,
+    max_entry = 12,
+    analysis_time = 60,
+    cens_adjust = 0,
+    draw_treatment = TRUE,
+    seed = 1000 + i
+  )
+  
+  # Calculate observed HRs
+  hr_overall <- exp(coef(coxph(Surv(y_sim, event_sim) ~ treat_sim, data = sim_data)))
+  hr_subgroup <- exp(coef(coxph(Surv(y_sim, event_sim) ~ treat_sim, 
+                                data = subset(sim_data, flag_harm == 1))))
+  hr_complement <- exp(coef(coxph(Surv(y_sim, event_sim) ~ treat_sim, 
+                                  data = subset(sim_data, flag_harm == 0))))
+  
+  sim_results[[i]] <- data.frame(
+    Simulation = i,
+    N = nrow(sim_data),
+    N_subgroup = sum(sim_data$flag_harm),
+    Event_rate = mean(sim_data$event_sim),
+    HR_overall = hr_overall,
+    HR_subgroup = hr_subgroup,
+    HR_complement = hr_complement
+  )
+}
+
+# Combine results
+sim_summary <- do.call(rbind, sim_results)
+
+# Display
+sim_summary %>%
+  gt() %>%
+  tab_header(
+    title = "Simulation Results from Grade 3 Subgroup DGM",
+    subtitle = sprintf("True HRs: Overall=%.2f, Subgroup=%.2f, Complement=%.2f",
+                      dgm_for_sim$hazard_ratios$overall,
+                      dgm_for_sim$hazard_ratios$harm_subgroup,
+                      dgm_for_sim$hazard_ratios$no_harm_subgroup)
+  ) %>%
+  fmt_number(columns = c(Event_rate), decimals = 3) %>%
+  fmt_number(columns = c(HR_overall, HR_subgroup, HR_complement), decimals = 3)
+
+# Summary statistics across simulations
+cat("\n=== Simulation Summary ===\n")
+cat("Mean observed HR (overall):", round(mean(sim_summary$HR_overall), 3), 
+    "vs True:", round(dgm_for_sim$hazard_ratios$overall, 3), "\n")
+cat("Mean observed HR (subgroup):", round(mean(sim_summary$HR_subgroup), 3), 
+    "vs True:", round(dgm_for_sim$hazard_ratios$harm_subgroup, 3), "\n")
+cat("Mean observed HR (complement):", round(mean(sim_summary$HR_complement), 3), 
+    "vs True:", round(dgm_for_sim$hazard_ratios$no_harm_subgroup, 3), "\n")
+```
+
+# Example 6: Grade Combined with Continuous Variable
+
+For completeness, this example shows grade combined with a continuous variable.
+
+```{r example6_combined}
+# Grade 3 AND high nodes
+dgm_combined <- generate_aft_dgm_flex(
+  data = gbsg,
+  continuous_vars = c("age", "size", "nodes", "pgr", "er"),
+  factor_vars = c("meno", "grade"),
+  outcome_var = "rfstime",
+  event_var = "status",
+  treatment_var = "hormon",
+  subgroup_vars = c("grade", "nodes"),
+  subgroup_cuts = list(
+    grade = 3,  # High grade
+    nodes = list(type = "greater", quantile = 0.5)  # Above median nodes
+  ),
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.2,
+  n_super = 5000,
+  seed = 6666,
+  verbose = TRUE
+)
+
+# Summary
+cat("\n=== Combined Subgroup (Grade 3 AND High Nodes) ===\n")
+cat("Grade definition:", dgm_combined$subgroup_info$definitions$grade, "\n")
+cat("Nodes definition:", dgm_combined$subgroup_info$definitions$nodes, "\n")
+cat("Combined subgroup size:", dgm_combined$subgroup_info$size, "\n")
+cat("Combined subgroup proportion:", round(dgm_combined$subgroup_info$proportion, 3), "\n")
+
+cat("\n=== Hazard Ratios ===\n")
+cat("Overall HR:", round(dgm_combined$hazard_ratios$overall, 3), "\n")
+cat("Combined subgroup HR:", round(dgm_combined$hazard_ratios$harm_subgroup, 3), "\n")
+cat("Complement HR:", round(dgm_combined$hazard_ratios$no_harm_subgroup, 3), "\n")
+
+# Visualize
+df_combined <- dgm_combined$df_super
+
+ggplot(df_combined, aes(x = z_nodes, fill = factor(flag_harm))) +
+  geom_histogram(bins = 30, alpha = 0.6, position = "identity") +
+  facet_wrap(~ paste("Grade", ifelse(z_grade_1 == 1, "1", 
+                                     ifelse(z_grade_2 == 1, "2", "3")))) +
+  scale_fill_manual(
+    values = c("0" = "steelblue", "1" = "darkorange"),
+    labels = c("0" = "Complement", "1" = "Subgroup")
+  ) +
+  labs(
+    title = "Distribution of Standardized Nodes by Grade and Subgroup Status",
+    subtitle = "Subgroup: Grade 3 AND Nodes > median",
+    x = "Nodes (standardized)",
+    y = "Count",
+    fill = "Status"
+  )
+```
+
+# Summary
+
+This document demonstrated several approaches to defining subgroups based on the categorical variable `grade`:
+
+| Example | Subgroup Definition | Proportion | Key Finding |
+|---------|---------------------|------------|-------------|
+| 1 | Grade 3 only | ~30% | High-grade tumors as harm subgroup |
+| 2 | Grade 1 only | ~10% | Low-grade tumors (benefit subgroup) |
+| 3 | Grade 2-3 | ~90% | Combined intermediate-high grades |
+| 4 | Comparison | Various | Effect of k_inter on HRs |
+| 5 | Simulation | ~30% | Validation of DGM performance |
+| 6 | Grade 3 + Nodes | ~15% | Combined categorical + continuous |
+
+## Key Takeaways
+
+1. **Categorical variables work well as subgroup factors** - The `generate_aft_dgm_flex()` function correctly handles single categorical values and multiple values.
+
+2. **Subgroup proportion matters** - Grade 1 alone yields a small subgroup (~10%), while Grade 2-3 yields a large one (~90%). Choose definitions that create meaningful subgroup sizes.
+
+3. **Effect modifiers (k_inter) control treatment heterogeneity** - Values > 1 indicate harm in the subgroup; values < 1 indicate benefit.
+
+4. **Simulations validate the DGM** - Observed HRs from simulated data closely match the true values from the DGM.
+
+5. **Combining categorical and continuous variables** creates more refined subgroups but reduces subgroup size.
+
+```{r session_info}
+sessionInfo()
+```

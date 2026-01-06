@@ -1,0 +1,248 @@
+---
+title: "AFT dgm examples"
+output: 
+  html_document:
+         code_folding: hide
+vignette: >
+  %\VignetteIndexEntry{AFT Dgm Examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r}
+# Set options
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center',
+  fig.retina = 2
+)
+
+# Load required libraries
+library(survival)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(purrr)
+library(broom)
+library(gridExtra)
+
+library(gt)
+
+library(weightedsurv)
+
+library(forestsearch)
+library(doFuture)
+library(doRNG)
+
+# Set theme for plots
+theme_set(theme_minimal(base_size = 12))
+
+# library(devtools)
+# install_github("larry-leon/forestsearch")
+# install_github("larry-leon/weightedsurv")
+
+library(forestsearch)
+
+
+```
+
+```{r, fig.width = 10, fig.height = 7}
+# Load GBSG data
+data(cancer)
+
+
+gbsg$tte <- gbsg$rfstime/30.4375
+gbsg$event <- gbsg$status
+gbsg$treat <- gbsg$hormon
+
+# synth1 <- generate_bootstrap_synthetic(
+#     data = gbsg,
+#     continuous_vars = c("age", "size", "nodes", "pgr", "er", "tte"),
+#     cat_vars = c("meno", "treat", "event"),
+#     ordinal_vars = c("grade"),
+#     id_var = "pid",
+#     n = 1000,
+#     seed = 123,
+#     noise_level = 0.01
+#   )
+
+
+pre_process <- detect_variable_types(gbsg, max_unique_for_cat = 3, exclude_vars = c("pid", "rfstime", "status","hormon"))
+  
+  synth2 <- generate_bootstrap_synthetic(
+    data = pre_process$data_subset,
+    continuous_vars = pre_process$continuous_vars,
+    cat_vars = pre_process$cat_vars,
+    id_var = "pid",
+    n = 700,
+    seed = 456, noise_level = 0.01,
+  )
+  
+  
+
+  synth3 <- generate_bootstrap_with_noise(
+  data = gbsg,
+  seed = 456,
+  noise_level = 0.01
+)
+  
+  
+  
+dfc1 <- df_counting(
+  df = synth1, 
+  tte.name = "tte", 
+  event.name = "event", 
+  treat.name = "treat"
+)
+
+dfc2 <- df_counting(
+  df = synth2, 
+  tte.name = "tte", 
+  event.name = "event", 
+  treat.name = "treat"
+)
+
+
+dfc3 <- df_counting(
+  df = synth3, 
+  tte.name = "tte", 
+  event.name = "event", 
+  treat.name = "treat"
+)
+
+
+dfc0 <- df_counting(
+  df = gbsg, 
+  tte.name = "tte", 
+  event.name = "event", 
+  treat.name = "treat"
+)
+
+
+# Create KM plot
+par(mfrow=c(1,2))
+
+plot_weighted_km(dfc0, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
+title(main = "GBSG")
+
+plot_weighted_km(dfc2, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
+title(main = "Synthetic GBSG")
+
+
+# plot_weighted_km(dfc2, conf.int = TRUE, show.logrank = TRUE, ymax = 1.05)
+# title(main = "Synthetic GBSG 2")
+
+
+# package/
+# ├── data/           # Processed .rda files (what users access)
+# ├── data-raw/       # Raw data and processing scripts
+# ├── R/              # Package functions
+# ├── man/            # Documentation
+# └── inst/extdata/   # External data files (CSV, etc.)
+
+  
+# In data-raw/prepare_data.R
+library(usethis)
+
+# Load and prepare your data
+gbsg <- read.csv("data-raw/gbsg_raw.csv")
+# ... data cleaning steps ...
+
+# Save to data/ folder
+usethis::use_data(gbsg, overwrite = TRUE)
+
+# For multiple datasets
+usethis::use_data(gbsg, another_dataset, overwrite = TRUE)  
+  
+# Create data-raw directory
+usethis::use_data_raw("gbsg")
+
+# This creates data-raw/gbsg.R
+# Edit this file to include your data processing code:
+
+## code to prepare `gbsg` dataset goes here
+library(readr)
+library(dplyr)
+
+# Read raw data
+gbsg_raw <- read_csv("data-raw/gbsg_raw.csv")
+
+# Clean and process
+gbsg <- gbsg_raw |>
+  mutate(
+    meno = as.integer(meno),
+    grade = factor(grade, levels = 1:3, 
+                   labels = c("well", "moderate", "poor")),
+    hormon = as.integer(hormon),
+    status = as.integer(status)
+  ) |>
+  arrange(pid)
+
+# Save to data/
+usethis::use_data(gbsg, overwrite = TRUE)
+
+
+```
+
+```{r, fig.width = 10, fig.height = 8}
+
+dfa <- gbsg
+
+# Create distribution plots
+p1 <- ggplot(dfa, aes(x = age)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Age Distribution", x = "Age (years)", y = "Count")
+
+p2 <- ggplot(dfa, aes(x = log1p(er))) +
+  geom_histogram(bins = 30, fill = "darkgreen", alpha = 0.7) +
+  labs(title = "Estrogen Receptor (log scale)", x = "log(ER + 1)", y = "Count")
+
+p3 <- ggplot(dfa, aes(x = log1p(pgr))) +
+  geom_histogram(bins = 30, fill = "darkred", alpha = 0.7) +
+  labs(title = "Progesterone Receptor (log scale)", x = "log(PGR + 1)", y = "Count")
+
+p4 <- ggplot(dfa, aes(x = factor(meno), fill = factor(hormon))) +
+  geom_bar(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("0" = "coral", "1" = "steelblue"),
+                    labels = c("No Hormone", "Hormone")) +
+  labs(title = "Treatment by Menopausal Status", 
+       x = "Menopausal Status", y = "Count", fill = "Treatment")
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+
+```{r, fig.width = 10, fig.height = 8}
+
+dfa <- synth2
+
+# Create distribution plots
+p1 <- ggplot(dfa, aes(x = age)) +
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  labs(title = "Age Distribution", x = "Age (years)", y = "Count")
+
+p2 <- ggplot(dfa, aes(x = log1p(er))) +
+  geom_histogram(bins = 30, fill = "darkgreen", alpha = 0.7) +
+  labs(title = "Estrogen Receptor (log scale)", x = "log(ER + 1)", y = "Count")
+
+p3 <- ggplot(dfa, aes(x = log1p(pgr))) +
+  geom_histogram(bins = 30, fill = "darkred", alpha = 0.7) +
+  labs(title = "Progesterone Receptor (log scale)", x = "log(PGR + 1)", y = "Count")
+
+p4 <- ggplot(dfa, aes(x = factor(meno), fill = factor(treat))) +
+  geom_bar(position = "dodge", alpha = 0.7) +
+  scale_fill_manual(values = c("0" = "coral", "1" = "steelblue"),
+                    labels = c("No Hormone", "Hormone")) +
+  labs(title = "Treatment by Menopausal Status", 
+       x = "Menopausal Status", y = "Count", fill = "Treatment")
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+
+
+
