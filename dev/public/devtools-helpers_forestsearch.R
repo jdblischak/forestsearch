@@ -1,4 +1,5 @@
 library(usethis)
+
 library(devtools)
 
 # Step 1: Create the package structure
@@ -219,4 +220,14 @@ devtools::test()
 
 # Check package
 devtools::check()
+
+# Search all R files in your package
+grep -rn "enumerate" ~/path/to/ForestSearch/R/ --include="*.R"
+
+# Or from the package root
+cd ~/path/to/ForestSearch
+grep -rn "enumerate" R/
+
+
+
 

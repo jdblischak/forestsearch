@@ -230,6 +230,11 @@ After installing the fixed files:
 ## Testing the Fixes
 
 ```r
+
+# Replacing generate_aft
+
+
+
 # Test 1: enumerate() fix
 library(survival)
 data(cancer)
