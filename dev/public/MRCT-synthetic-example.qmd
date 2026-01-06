@@ -22,9 +22,14 @@ format:
 
 
 ```{r Setup, message=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = 'center',
+  fig.retina = 2
+)
 
-options(warn = -1)
 
 rm(list=ls())
 
@@ -52,8 +57,17 @@ library(grid)
 library(forestploter)
 library(randomizr)
 
+
+#library(devtools)
+#install_github("larry-leon/weightedsurv", force = TRUE)
+
+
 library(forestsearch)
 library(weightedsurv)
+
+# Set theme for plots
+theme_set(theme_minimal(base_size = 12))
+
 
 
 ```
