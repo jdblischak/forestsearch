@@ -1,0 +1,238 @@
+\Sexpr{set_parent("forestSearch_SIM-Rev1_v0.Rnw")}
+
+<<echo=FALSE>>=
+opts_chunk$set (warning = FALSE, message = FALSE, tidy=TRUE, echo=FALSE, dev = 'pdf')
+options(warn=-1)
+@
+
+<<echo=FALSE>>=
+rm(list=ls())
+library(knitr)
+library(kableExtra)
+library(data.table)
+library(survival)
+
+codepath<-c("../../R/")
+source(paste0(codepath,"source_forestsearch_v0.R"))
+source_fs_functions(file_loc=codepath)
+
+# Simulation setup
+# and underlying dgm's
+gbsg_cens<-round(1-mean(gbsg$status),2)
+
+# M1 
+# noise = 0
+load(file="../simulations_results/oc_sims=20000_m4a-Noise=0_N=700_null_ktreat=0.9_v0A.Rdata")
+res1_0_null <- res
+oc1_0_null <- oc.tab
+dgm1_null <- dgm
+p1_Any_null <- round(pAnyH.approx2,3)
+hr1_null_itt <- round(dgm$hr.Hc.true,2)
+
+# rmst(tau) 
+# taup := plim(tau)
+taup <- with(subset(res1_0_null,analysis=="GRF"),round(mean(taumax),1))
+taup1_null <- taup
+
+m1.taup <- with(subset(dgm1_null$df.super_rand,treat==1),mean(pmin(Ts,taup)))
+m0.taup <- with(subset(dgm1_null$df.super_rand,treat==0),mean(pmin(Ts,taup)))
+rmst1_null <- round(m1.taup - m0.taup,1)
+
+# Surv diff (24)
+S1a <- with(subset(dgm1_null$df.super_rand,treat==1),mean(Ts >= 24))
+S0a <- with(subset(dgm1_null$df.super_rand,treat==0),mean(Ts >= 24))
+d1_null_24 <- S1a -S0a
+
+S1b <- with(subset(dgm1_null$df.super_rand,treat==1),mean(Ts >= 36))
+S0b <- with(subset(dgm1_null$df.super_rand,treat==0),mean(Ts >= 36))
+d1_null_36 <- S1b -S0b
+
+# noise = 3
+load(file="../simulations_results/oc_sims=20000_m4a-Noise=3_N=700_null_ktreat=0.9_v0A.Rdata")
+oc1_3_null <- oc.tab
+
+# m1 alternative
+load(file="../simulations_results/oc_sims=20000_m4a-Noise=0_N=700_alt_ktreat=0.9_hrH=2_v0A.Rdata")
+res1_0_alt <- res
+oc1_0_alt <- oc.tab
+dgm1_alt <- dgm
+p1_Any_alt <- round(pAnyH.approx2,2)
+pH1 <- round(100*mean(dgm$df.super_rand$flag.harm),0)
+nH1 <- round(700*mean(dgm$df.super_rand$flag.harm),0)
+hr1_H <- round(dgm$hr.H.true,2)
+hr1_Hc <- round(dgm$hr.Hc.true,2)
+hr1_itt <- round(dgm$hr.causal,2) 
+
+taup <- with(subset(res1_0_alt,analysis=="GRF"),round(mean(taumax),1))
+taup1_alt <- taup 
+
+# H subgroup
+H_m1.taup <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==1),mean(pmin(Ts,taup)))
+H_m0.taup <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==1),mean(pmin(Ts,taup)))
+H_rmst1_alt <- round(H_m1.taup - H_m0.taup,1)
+
+# Surv diff (24)
+S1a <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==1),mean(Ts >= 24))
+S0a <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==1),mean(Ts >= 24))
+H_d1_alt_24 <- S1a -S0a
+
+S1b <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==1),mean(Ts >= 36))
+S0b <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==1),mean(Ts >= 36))
+H_d1_alt_36 <- S1b -S0b
+
+
+# H^c subgroup
+Hc_m1.taup <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==0),mean(pmin(Ts,taup)))
+Hc_m0.taup <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==0),mean(pmin(Ts,taup)))
+Hc_rmst1_alt <- round(Hc_m1.taup - Hc_m0.taup,1)
+
+# Surv diff (24)
+S1a <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==0),mean(Ts >= 24))
+S0a <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==0),mean(Ts >= 24))
+Hc_d1_alt_24 <- S1a -S0a
+
+S1b <- with(subset(dgm1_alt$df.super_rand,treat==1 & flag.harm==0),mean(Ts >= 36))
+S0b <- with(subset(dgm1_alt$df.super_rand,treat==0 & flag.harm==0),mean(Ts >= 36))
+Hc_d1_alt_36 <- S1b -S0b
+
+
+load(file="../simulations_results/oc_sims=20000_m4a-Noise=3_N=700_alt_ktreat=0.9_hrH=2_v0A.Rdata")
+oc1_3_alt <- oc.tab
+
+# M2 
+# noise = 0
+load(file="../simulations_results/oc_sims=20000_m4aB-Noise=0_N=500_null_ktreat=0.9_v0A.Rdata")
+res2_0_null <- res
+oc2_0_null <- oc.tab
+dgm2_null <- dgm
+p2_Any_null <- round(pAnyH.approx2,3)
+hr2_null_itt <- round(dgm$hr.Hc.true,2)
+
+# m2 alternative
+load(file="../simulations_results/oc_sims=20000_m4aB-Noise=0_N=500_alt_ktreat=0.9_hrH=2_v0A.Rdata")
+res2_0_alt <- res
+oc2_0_alt <- oc.tab
+dgm2_alt <- dgm
+p2_Any_alt <- round(pAnyH.approx2,2)
+pH2 <- round(100*mean(dgm$df.super_rand$flag.harm),0)
+nH2 <- round(500*mean(dgm$df.super_rand$flag.harm),0)
+hr2_H <- round(dgm$hr.H.true,2)
+hr2_Hc <- round(dgm$hr.Hc.true,2)
+hr2_itt <- round(dgm$hr.causal,2) 
+
+# rmst(tau) 
+# taup := plim(tau)
+taup <- with(subset(res2_0_null,analysis=="GRF"),round(mean(taumax),1))
+taup2_null <- taup
+
+m1.taup <- with(subset(dgm2_null$df.super_rand,treat==1),mean(pmin(Ts,taup)))
+m0.taup <- with(subset(dgm2_null$df.super_rand,treat==0),mean(pmin(Ts,taup)))
+rmst2_null <- round(m1.taup - m0.taup,1)
+
+
+# M3 
+# noise = 0
+load(file="../simulations_results/oc_sims=20000_m4c-Noise=0_N=300_null_ktreat=1.5_v0A.Rdata")
+res3_0_null <- res
+oc3_0_null <- oc.tab
+dgm3_null <- dgm
+p3_Any_null <- round(pAnyH.approx2,3)
+hr3_null_itt <- round(dgm$hr.Hc.true,2)
+
+# rmst(tau) 
+# taup := plim(tau)
+taup <- with(subset(res3_0_null,analysis=="GRF"),round(mean(taumax),1))
+taup3_null <- taup
+
+m1.taup <- with(subset(dgm3_null$df.super_rand,treat==1),mean(pmin(Ts,taup)))
+m0.taup <- with(subset(dgm3_null$df.super_rand,treat==0),mean(pmin(Ts,taup)))
+rmst3_null <- round(m1.taup - m0.taup,1)
+
+# m3 alternative
+load(file="../simulations_results/oc_sims=20000_m4c-Noise=0_N=300_alt_ktreat=1.5_hrH=2_v0A.Rdata")
+res3_0_alt <- res
+oc3_0_alt <- oc.tab
+dgm3_alt <- dgm
+p3_Any_alt <- round(pAnyH.approx2,2)
+pH3 <- round(100*mean(dgm$df.super_rand$flag.harm),0)
+nH3 <- round(300*mean(dgm$df.super_rand$flag.harm),0)
+hr3_H <- round(dgm$hr.H.true,2)
+hr3_Hc <- round(dgm$hr.Hc.true,2)
+hr3_itt <- round(dgm$hr.causal,2) 
+
+
+load(file="../simulations_results/oc_sims=20000_m4c-Noise=5_N=300_null_ktreat=1.5_v0A.Rdata")
+oc3_5_null <- oc.tab
+load(file="../simulations_results/oc_sims=20000_m4c-Noise=5_N=300_alt_ktreat=1.5_hrH=2_v0A.Rdata")
+oc3_5_alt <- oc.tab
+
+
+# Censoring in simulations
+# Censoring is identical regardless of analysis
+temp <- subset(res1_0_null,analysis=="FSl")
+pcens_sims<-round(mean(temp$p.cens),2)
+Nsims<-"20,000"
+pH_super<-round(mean(dgm1_alt$df.super_rand$flag.harm),2)
+
+
+# M3 summary of taus
+
+df_m3_summary <- subset(res3_0_alt,analysis=="GRF")
+tau_min <- round(with(df_m3_summary,min(taumax)),0)
+tau_max <- round(with(df_m3_summary,max(taumax)),0)
+tau_median <- round(with(df_m3_summary,median(taumax)),0)
+
+df_m3_summary <- subset(res3_0_alt,analysis=="GRF.60")
+tau_minb <- round(with(df_m3_summary,min(taumax)),0)
+tau_maxb <- round(with(df_m3_summary,max(taumax)),0)
+tau_medianb <- round(with(df_m3_summary,median(taumax)),0)
+@
+
+
+
+\section{Discussion} \label{sec:discuss}
+
+We have proposed a relatively simple and transparent approach for subgroup identification based on Cox hazard ratio estimation criteria indicative of detrimental effects.  We utilize optional GRF and lasso procedures for selecting candidate factors (binary splits) which are the basis for defining subgroups.
+GRF is itself a subgroup identification procedure which targets RMST, whereas our use of lasso is for Cox model covariate (prognostic) selection.  In general, any well-defined algorithm can be implemented such as (pre-defined) clinical, and health technology assessment\cite{Agboola_2023} considerations and/or various machine learning algorithms for censored data.  In applications, choices for components of the FS algorithm may be better suited than others.  In particular, in our simulations we found the lasso to help mitigate false-discovery when analyses include baseline factors that are completely random noise. However such random noise seems extreme in clinical trials when baseline factors generally have some degree of prognostic value; nevertheless, the lasso may aid in algorithmic stability.  In addition, whether to maximize the consistency rate or to choose the largest subgroup with a high consistency rate (e.g., at least $90\%$) may differ in stability.  While the proposed CV evaluation cannot establish optimality of a chosen algorithm, it can discern between the quality and stability of algorithms.  The bootstrap bias-correction and variance estimation procedure for the resulting FS Cox hazard ratios would incorporate the chosen algorithm; however if several FS algorithms are evaluated this (exploratory) iterative aspect would not be taken into account.  
+
+The operating characteristics for scenarios/criteria of interest can be quickly approximated via equation (\ref{pHat_approx}). For example if looser/tighter control of the type-1 error is desired the screening and splitting consistency thresholds can be adjusted.  In our simulations we have found the screening and splitting consistency thresholds of $1.25$ and $1.0$ (resp.) have good operating characteristics for identification as well as estimation.  The splitting consistency criteria is similar in spirit to cross-validation, however in contrast to prediction, our relatively simpler goal is to have independent assessments for evidence of harm which is provided by both independent random splits having hazard ratio estimates $\geq 1.0$ across repeated sample splitting.  
+
+Our main application is subgroup analyses for survival outcomes.  In oncology applications the gold-standard primary analysis is the Cox model\cite{FK_2019} usually stratified by randomization stratification factors.  To simplify we have considered the basic Cox model analysis with only the treatment arm as a covariate which is commonly used in oncology forest plot analyses; and is the ``most common approach to analysis''.\cite{ACR_2015}  However, adjusted Cox models\cite{Loh_2018} can also be used either by stratification, direct covariate adjustment (with care to account for any subgroup redundancies in the model) or propensity score-weighting.\cite{Cole_2004}  In addition to bootstrap bias-corrected Cox model estimates, other summaries can also be provided such as RMST and Kaplan-Meier survival curves (e.g., across pre-defined timepoints).  For these summaries the bias-correction and variance estimation procedure described for the Cox model hazard ratios can be applied in an analogous manner.
+
+With our basic Cox model analysis we are targeting marginal hazard ratio effects, which as Aalen et al\cite{ACR_2015} describe can be quite different than the {\it controlled direct effect (CDE)} of treatment.  In their simulation study (See Table 1\citealp{ACR_2015}) the basic Cox model was biased (over-estimated) for the ITT analysis in the presence of a single binary covariate factor which was ``a highly influential risk factor'' (Cox regression effect of $\log(4)$ = $\Sexpr{round(log(4),3)}$).   In our simulations the largest discrepancy between the marginal and CDE effects, $\theta^{\dagger}(\cdot)$ vs $\theta^{\ddagger}(\cdot)$, were under model $M_3$ where $\theta^{\dagger}(H)= 2.0$, $\theta^{\ddagger}(H)=2.56$, $\theta^{\dagger}(H^{c})= 0.56$, and $\theta^{\ddagger}(H^{c})=0.49$.   The largest covariate effect under $M_3$ was $\beta_{5}= 0.782$ corresponding to the binary factor $Z_4$ in model (\ref{dgm0}).   Under $M_3$ the \% relative bias and coverage of $\hat\theta^{*}(\widehat{H})$ for $\theta^{\ddagger}(\widehat{H})$ was approximately $-11.6 \%$ and $89\%$. 
+
+While subgroups corresponding to the maximum (detrimental) hazard ratio estimate will generally be subgroup candidates, the proposed consistency criteria for identification does not necessarily correspond to the maximum.  Recent work by Guo et al\cite{GH2021,GW2023} (see also Wang and He\cite{WangHe_2023}) considers de-biased inference for subgroups corresponding to the maximum (best-selected subgroup) treatment estimate.  However, their approach is not an identification procedure per se but utilized for inference via bootstrap calibration when a limited set of subgroups are examined; in their simulations a maximum of 12 pre-specified subgroups are considered, whereas in our three applications (simulated and two real data) the number of subgroups meeting the FS criteria was 70, 263, and $1,635$, respectively.  Zhao et al\cite{Zhao_2023} employ the aforementioned bootstrap calibration\cite{GH2021} in their subgroup identification approach for non-censored continuous outcomes with candidate subgroups estimated via penalized regression with a maximum of $2N$ candidate subgroups through thresholding (in our setup, $K=N$, $L=2N$).    
+
+
+In our simulation setting the FS and $\grfb$ approaches generally outperform the virtual twins approach in terms of controlling the type-1 error, power, and classification accuracy.  
+The virtual twins analyses compared survival differences at 24 and 36 months while $\grfb$ evaluated RMST over a median horizon of $\Sexpr{tau_medianb}$ months (range of $\Sexpr{tau_minb}$-$\Sexpr{tau_maxb}$) 
+and $\grfa$ compared survival differences over a median of $\Sexpr{tau_median}$ months (range of $\Sexpr{tau_min}$-$\Sexpr{tau_max}$).  In contrast the FS approach based on the Cox model conducts comparisons 
+across the entirety of follow-up.  We have considered $\grfb$ due to the fairly heavy censoring which, generated by a Weibull model based on the observed \gbsg{} data, depended on covariates with an overall censoring rate of approximately $\Sexpr{100*pcens_sims}\%$.  
+
+The FS approach had favorable performance overall in view of the elevated type-1 errors for GRF, especially under models $M_1$ and $M_2$. When random noise factors were included in the analyses the GRF approach was more susceptible to falsely identifying subgroups.  The $\fsl$ approach was the most stable with a slight decrease in performance, while $\fslg$ inherits an increased type-1 error by the utilization of $\grfb$, but to a much lesser extent than $\grfb$ itself.  Under $M_3$, 
+when there was the strongest ITT treatment effect under the null, the type-1 errors for GRF were dramatically decreased (from $\approx 60\%$ to $13\%$ under $M_3$).  Under the nulls of $M_1-M_3$ the ITT treatment differences with respect to RMST were $\approx$ $\Sexpr{rmst1_null}$, $\Sexpr{rmst2_null}$, and $\Sexpr{rmst3_null}$ months.  The ITT Cox marginal effects $\hplimitt$ were $\approx 0.7$ under $M_1$ and $M_2$ and $0.55$ under $M_3$.   While $\hplimitt$ values in the range of $0.55$ is plausible, it seems 
+more prudent to consider $\hplimitt$'s in the range of $0.7$ as more realistic in most oncology trials.  Accordingly, although a limited simulation study, the FS approach may strike a more favorable balance between falsely identifying subgroups and reasonable accuracy when large subgroup effects are present.  In terms of estimation, the $\fslg$ bootstrap bias-corrected estimators tend to be conservative: Under-estimating both $\hplim$ and $\Hhplim$ (``conservative for harm'') while over-estimating both $\hcplim$ and $\Hhcplim$ (``conservative for benefit''), except for under model $M_3$ where the relative bias for $\Hhcplim$ was $\hat{b}^{\ddagger} \approx -4.8 \%$.   Though conservative, the coverage rates for $\hchatB$ were $\geq 93\%$ for each target, and the oracle coverage rates $\hat{C}^{oracle}$ for $\hhatB$ and $\hchatB$ were $\geq 95\%$. That is, the bias-corrected versions of $\widehat{H}$ and $\widehat{H}^{c}$ covered ($\geq 95\%$) their respective oracle counterparts.
+
+In principle our approach is exploratory and could be used to guide future trial development.  We believe exploratory subgroup 
+identification is valuable even when pre-specified subgroups are of interest (e.g., biomarkers).  As Zhao et al\cite{ZSE2022} write ``A priori subgroup analyses are
+free of selection bias and are frequently used in clinical trials and other observational studies. They do discover some effect modification, often convincingly, from the data, but since the potential
+effect modifiers are determined a priori rather than using the data, many real effect modifiers may remain undetected''.  In our data analysis applications we consider available data sources to evaluate the plausibility of our subgroup findings.  Patient-level meta-analyses of randomized trials\cite{Davies_2011,HTCG_1999} seems the most feasible and robust avenue for independent `validation' of subgroup results.  However in clinical trials investigating novel therapies/indications there may not be directly relevant data sources available.  The consideration of observational (e.g., real-world data) 
+sources could be helpful; see Wang et al\cite{Wang_2023,Sheldrick_2023} for a recent example and methods for utilizing insurance claims databases.  While not an independent (external) evaluation, the proposed cross-validation assessments provide some (internal) diagnostic value.
+
+The subgroup findings from our analyses of the breast cancer and HIV trials could inform patient consultation.  In the breast cancer trial, comparing hormonal therapy (tamoxifen) to chemotherapy, 
+the estimated (bias-corrected) hazard ratio for subjects with positive estrogen levels (representing approximately $88\%$ of the study population) was $0.64$ ($0.44$, $0.93$) which suggests a slightly stronger benefit relative to the ITT population ($0.64$ vs $0.69$). Though not dramatic, this could 
+increase patients' confidence ("relative to ITT"); in contrast, patients with zero estrogen may want to consider alternatives (We note tamoxifen with low levels of estrogen seems controversial.\cite{Manna_2016,Yu_2021}).  In the HIV trial, comparing the combination of zidovudine and didanosine to monotherapy didanosine, the benefiting subgroup was generally comprised of subjects who were treatment naive or who had recent zidovudine use (within 30 days of study treatment initiation) but with less than a year of prior antiretroviral therapy.  For these subjects, the estimated hazard ratio of $0.59$ ($0.37$, $0.94$) was relatively more substantial compared to the estimated hazard ratio of $0.84$ for the ITT population.
+In terms of future trials, these findings could inform study designs such as inclusion criteria (e.g., consider excluding subjects with zero estrogen levels from tamoxifen trials) and/or randomization stratification factors, as well as testing strategies (e.g., pre-specify testing in the [zidovudine plus didanosine] benefiting subgroup described above).  However, in general, we would caution against extrapolating 
+findings to comparisons of regimens besides the control regimens that were studied in the trials.
+
+ 
+Subgroup analyses in Phase 2 trials can be the most actionable and impactful to inform Phase 3 study designs and analyses including: testing strategy; randomization stratification factors; and forest plot subgroup specifications. 
+In particular, if there exists a sub-population that could potentially be harmed then identification in Phase 2 could mitigate the risk in later development (e.g., by implementing exclusion criteria/recommendations).  Realistically, only substantial heterogeneous treatment effects can be identified and well estimated in Phase 2 settings; nevertheless, our simulation results under models $M_{2}$ ($N=500$) and $M_{3}$ ($N=300$) suggests potential.
+On the other hand, in Phase 3 registrational trials the pre-specified subgroup (forest plot) results may suggest potential lack-of-benefit in a subgroup.\cite{AT_2021}  A comprehensive evaluation of subgroups, targeting large effects, 
+may reveal a more accurate characterization than the pre-specified subgroups.  Additionally, in multi-regional clinical trials the establishment of consistency\cite{YSS_2018} can be challenging; the identification of marked subgroup effects 
+ in the global trial could inform the evaluation of independent regional trials.
+ 
+Future work will be to extend the inclusion of GRF to additional machine learning methods for censored data so that ``a collection of machine learning'' approaches for FS candidate selection could be evaluated; where regardless of the (algorithmic) source of candidate selection, the resulting FS estimation is in terms of the proposed bootstrap bias-corrected Cox model.   
+While our bootstrap bias-correction and variance estimation appears to work well, it would be interesting to evaluate the applicability of the Guo et al\cite{GH2021} bootstrap calibration procedure to our setting which generally involves a large collection of subgroup candidates.
+
+ 

@@ -1,0 +1,215 @@
+\Sexpr{set_parent("forestSearch_SIM-Rev1_v0.Rnw")}
+
+
+<<echo=FALSE>>=
+opts_chunk$set (warning = FALSE, message = FALSE, tidy=TRUE, echo=FALSE, dev = 'pdf')
+options(warn=-1)
+@
+  
+<<echo=FALSE>>=
+# to cite
+#cm <- citation(package="speff2trial")
+#print(cm, bibtex=TRUE)
+rm(list=ls())
+# For KM plots
+codepath<-c("../../R/")
+source(paste0(codepath,"source_forestsearch_v0.R"))
+source_fs_functions(file_loc=codepath)
+
+library(survival)
+#library(speff2trial)
+
+load(file="../applications/actg-175/output/actg175_v0.Rdata")
+# Analysis dataset
+df <- fs.est$df.est
+
+df0.fs<-subset(fs.est$df.pred,treat.recommend==0)
+df1.fs<-subset(fs.est$df.pred,treat.recommend==1)
+
+# ITT analysis (Reverse treatment roles to original)
+cox_itt<-summary(coxph(Surv(time_months,cens)~arm1,data=fs.est$df.pred))$conf.int
+  # ITT estimates
+resITT<-c(round(cox_itt[c(1,3,4)],2),nrow(fs.est$df.pred))
+
+df0.fs$treat2 <- 1-df0.fs$treat
+df1.fs$treat2 <- 1-df1.fs$treat
+
+df0.fs_positive <- subset(df0.fs,preanti > 0)
+
+@
+  
+  
+<<echo=FALSE,message=FALSE,warning=FALSE>>=
+H_estimates <- round(fs_bc$H_estimates,2)
+Hc_estimates <- round(fs_bc$Hc_estimates,2)
+
+resQ <- unlist(H_estimates[,c("H0","H0_lower","H0_upper")])
+resQB <- unlist(H_estimates[,c("H2","H2_lower","H2_upper")])
+resQc <- unlist(Hc_estimates[,c("H0","H0_lower","H0_upper")])
+resQcB <- unlist(Hc_estimates[,c("H2","H2_lower","H2_upper")])
+
+L_factors <- fs.est$find.grps$L
+max_count <- fs.est$find.grps$max_count
+sg_loc <- fs.est$grp.consistency$sg.harm.id
+SG_hrs <- fs.est$grp.consistency$out_hr$result
+
+# Here, only 1 SG is returned (Need to check this manually)
+# Here override sg_loc =1
+sg_loc <- 1
+p_consistency <- 100*round(SG_hrs$Pcons[sg_loc],3)
+
+H_nfold <- summary_OOB$SG_tab_Kfold$res_out[1,8]
+Hc_nfold <- summary_OOB$SG_tab_Kfold$res_out[2,8]
+
+# N-fold SGs
+SG_tab_Kfold <- summary_OOB$SG_tab_Kfold$res_out
+nH_OOB <- SG_tab_Kfold[1,c("n")]
+# Full analysis
+SG_tab_full <- summary_OOB$SG_tab_original$res_out
+nH_full <- SG_tab_full[1,c("n")]
+
+# Number of SGs found in N-fold
+nf_OOB <- round(fs_OOB$prop_SG_found*nrow(df)/100,0)
+# Proportion found
+pf_OOB <- fs_OOB$prop_SG_found
+
+#summary(fs_ten$find_out[,"Any"])
+
+@
+  
+<<echo=FALSE,message=FALSE,warning=FALSE,eval=FALSE>>=
+# To update, need to re-evaluate (set eval=TRUE)
+library(latex2exp)
+# Reverse treatment roles to original via treat2
+df.analysis <- fs.est$df.pred
+
+#pdf(file = "Figure 4.pdf", 
+#width = 10, height = 10) 
+
+par(mfrow=c(1,2))
+tte.name<-c("time_months")
+event.name<-c("cens")
+# Revert back to original treatment 1-vs-3 comparison
+treat.name<-c("treat2")
+byrisk <- 4
+
+risk.cex<-0.95
+legend.cex<-0.90
+
+# Add all events
+evs<-sort(unique(df.analysis$time_months[which(df.analysis$cens==1)]))
+tpoints.add<-c(-1,evs,max(df.analysis$time_months))
+
+# Legend labels for Q
+# Q is "especially strong"
+
+Hla<-sprintf(r'($\hat{Q}, %s$)',c("Treatment"))
+Hlb<-sprintf(r'($\hat{Q}, %s$)',c("Control"))
+Hl<-c(Hla,Hlb)
+
+hr.ci <- hrCI_format(resQB)
+Hhr_show <- paste0("${\\widehat{\\theta}^{*}} =$",hr.ci)
+
+
+Hcla<-sprintf(r'($\hat{Q^{c}}, %s$)',c("Treatment"))
+Hclb<-sprintf(r'($\hat{Q^{c}}, %s$)',c("Control"))
+Hcl<-c(Hcla,Hclb)
+
+hr.ci <- hrCI_format(resQcB)
+Hchr_show <- paste0("${\\widehat{\\theta}^{*}} =$",hr.ci)
+
+
+dfp<-df0.fs
+
+kmH.fit<-KM.plot.2sample.weighted(Y=dfp[,c(tte.name)],E=dfp[,c(event.name)],Treat=dfp[,c(treat.name)],
+risk.set=TRUE,by.risk=byrisk,tpoints.add=tpoints.add,risk.cex=risk.cex,
+choose_ylim=TRUE,
+risk_offset=0.07, risk_delta=0.0175,
+stop.onerror=TRUE, check.KM=TRUE,
+Xlab="Months",Ylab="Event-free Survival",details=FALSE,
+show.ticks=TRUE,
+col.1="black", col.2="blue",
+ltys=c(1,2),lwds=c(3,3),
+plotit=TRUE,
+show.logrank=FALSE,show.med=FALSE,show.cox=FALSE)
+title(sub="(a) Preanti <= 744.5 and Age > 34")
+
+legend("topright",
+legend=TeX(Hl),col=c("black","blue"),lwd=c(3,3),lty=c(1,2),bty="n",cex=legend.cex)
+
+text(32, 0.955, TeX(Hhr_show))
+
+dfp<-df1.fs
+
+kmH.fit<-KM.plot.2sample.weighted(Y=dfp[,c(tte.name)],E=dfp[,c(event.name)],Treat=dfp[,c(treat.name)],
+risk.set=TRUE,by.risk=byrisk,tpoints.add=tpoints.add,risk.cex=risk.cex,
+show.Y.axis=FALSE,
+risk_offset=0.07, risk_delta=0.0175,
+choose_ylim=TRUE,
+stop.onerror=TRUE, check.KM=TRUE,
+Xlab="Months",Ylab="",details=FALSE,
+show.ticks=TRUE,
+col.1="black", col.2="blue",
+ltys=c(1,2),lwds=c(3,3),
+plotit=TRUE,
+show.logrank=FALSE,show.med=FALSE,show.cox=FALSE)
+title(sub="(b) Preanti > 744.5 or Age <= 34")
+
+legend("topright",
+legend=TeX(Hcl),col=c("black","blue"),lwd=c(3,3),lty=c(1,2),bty="n",cex=legend.cex)
+
+text(32, 0.955, TeX(Hchr_show))
+
+#dev.off()
+
+@
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth, height=3.25in]{Figure 4.eps}
+\end{center}
+\caption{ACTG-175 analysis application of Forest Search. Kaplan-Meier (K-M) curves (un-adjusted for the estimation of subgroups) with bootstrap-bias corrected 
+Cox estimates and $95\%$ confidence intervals denoted $\hat\theta^{*}$: (a) Forest Search $\widehat{Q}$ subgroup; (b) Forest Search $\widehat{Q}^{c}$ subgroup.}
+\label{fig:KM_actg}
+\end{figure}
+
+\subsection{ACTG-175 analysis}
+
+In our second application we analyze subjects' outcomes from the AIDS Clinical Trials Group Protocol 175 study\cite{ACTG175} which is publicly available in the \R{} \verb+speff2trial+ package \cite{speff2trialR}.  Here our goal is to identify whether a subgroup exists with a pronounced treatment benefit.  We consider the comparison of the combination treatment regimen, zidovudine and didanosine (experimental), to the monotherapy didanosine (control) treatment regimen ($N= \Sexpr{resITT[4]}$). The Cox ITT hazard ratio estimate  was $\Sexpr{resITT[1]}$ ($\Sexpr{resITT[2]}$, $\Sexpr{resITT[3]}$).  
+
+For the evaluation of a marked treatment benefit we switch the roles of treatment to identify a detrimental effect for control which would correspond to a potentially substantial benefit for the experimental treatment.  We then simply invert the hazard ratio estimates.  For the FS consistency selection criterion we select the largest subgroup with a consistency rate of at least $90\%$.  That is, we are searching for the largest subgroup that is "highly consistent with benefit".  To this end we set the screening threshold in Step 3(a) to $\log(1/0.6)$  and the consistency threshold in Step 3(b) to $\log(1/0.8)$. Cox hazard ratio estimates for candidate subgroups are therefore $\leq 0.60$ and random splits are $\leq 0.8$ in favor of treatment.  We denote the estimated subgroups by $\hat{Q}$ and $\hat{Q}^{c}$ (as opposed to $\hat{H}$ and $\hat{H}^{c}$).
+
+The survival outcomes were defined as the first occurence of three events: A decline in subjects' CD4 T cell count of at least 50; An event indicating progression to AIDS; or death. We consider the following $p=15$ baseline covariates: \verb+Age+, \verb+Wtkg+, \verb+Karnof+ (Karnofsky score), \verb+Cd40+, \verb+Cd80+, \verb+Hemo+ (hemophilia), \verb+HA+ (homosexual activity), 
+\verb+Drugs+ (history of IV drug use), \verb+Race+, \verb+Gender+, \verb+Oprior+ (prior non-zidovudine antiretroviral therapy), 
+\verb+Symptom+, \verb+Preanti+ (days of prior antiretroviral therapy), \verb+Str2+ (0=naive antiretroviral history,1=experienced), and \verb+Z30+ (zidovudine 30 days prior to study). 
+
+There were 9 categorical (binary) factors, and six continuous factors which were each split (binary cuts) at the mean, 
+median, 1st quartile ($q_1$), and 3rd quartile ($q_3$). For GRF candidate selection we 
+used $\tau \approx 27$ months for the truncation point and a $2$ month RMST criterion (benefit of $2$ months in favor of control); the $2$ month threshold was chosen as a reasonable criterion since the ITT upper bound for RMST was $\approx 1.5$ months (in favor of control).   The resulting (GRF) candidate factors were \verb+Wtkg<=68.04+, \verb+Age<=29+, and \verb+Preanti<=406+.  For the six continuous factors there were 4 binary cuts (mean, median, $q_1$, and $q_3$) with overlap  for \verb+Age<=29+ (selected by GRF which corresponds to $q_1$), and for \verb+Karnof+ there were 2 cuts (since $q_3$ and the median were redundant). There were thus $K=33$ factors: $9$ categorical, plus $6*4$ ($6$ with 4 binary cuts), plus $3$ per GRF, minus the 3 redundant factors (2 for \verb+Karnof+ and overlap with \verb+Age<=29+).  In total, there were $L = \Sexpr{L_factors}$ single factor subgroups with $L(L-1)/2+L = \Sexpr{prettyNum(max_count, big.mark=",")}$ possible subgroups (two-factor combinations); among these subgroups the number of candidates with sample sizes $\geq 60$ and at least $10$ events in each arm was reduced to $\Sexpr{prettyNum(1635, big.mark=",")}$. 
+
+The largest subgroup with a consistency rate of at least $90\%$ was the subgroup formed by the combination of \verb+Preanti<=744.5+ and \verb+Age>34+ (consistency rate
+$\approx \Sexpr{p_consistency}\%$).  That is, subjects older than $34$ years (median) and with prior antiretroviral treatment for less than $\approx \Sexpr{round(744.5/365.25,1)}$ years ($q_3$) are estimated to potentially derive ``consistent benefit''.  The resulting $\widehat{Q}$-estimates were $\hat\theta(\widehat{Q}) = \Sexpr{resQ[1]}$ ($\Sexpr{resQ[2]}$,$\Sexpr{resQ[3]}$) and (bootstrap bias-corrected) $\hat\theta^{*}(\widehat{Q}) =\Sexpr{resQB[1]}$ ($\Sexpr{resQB[2]}$, $\Sexpr{resQB[3]}$).  For the complement, $\hat\theta(\widehat{Q}^{c}) = \Sexpr{resQc[1]}$ ($\Sexpr{resQc[2]}$, $\Sexpr{resQc[3]}$) and $\hat\theta^{*}(\widehat{Q}^{c}) =\Sexpr{resQcB[1]}$ ($\Sexpr{resQcB[2]}$, $\Sexpr{resQcB[3]}$). The bias-corrected estimate $\hat\theta^{*}(\widehat{Q})$ suggests a relatively strong benefit ($\Sexpr{resQB[1]}$ vs $\Sexpr{resITT[1]}$ for ITT) that is statistically significant and corresponds to $382/1083 \approx \Sexpr{100*round((nrow(df0.fs)/nrow(df)),2)}\%$ of the ITT population. Figure \ref{fig:KM_actg} displays the Kaplan-Meier curves for 
+the estimated subgroups.
+
+
+For the $N$-fold cross-validation, across all $N=\Sexpr{nrow(df)}$ training sets there was
+a subgroup identified wherein the full analysis subgroup $\widehat{Q}$ 
+definition, \verb+Preanti<=744.5+ and \verb+Age>34+, were reproduced for all except 7 (Note that 
+$q_3$ for \verb+Preanti+ slightly varied between the training sets and the full analysis, within 1 digit). 
+In total $n=\Sexpr{nH_OOB}$ subjects ($N$-fold predicted) were classified as $\widehat{Q}$, versus $n=\Sexpr{nH_full}$ for the full analysis. Interestingly the Cox model estimate for the $N$-fold predicted subgroup 
+$\widehat{Q}$ was $0.59$ ($0.37, 0.94$) which is identical to the (bootstrap bias-adjusted) full analysis $\hat\theta^{*}(\widehat{Q}) =\Sexpr{resQB[1]}$ ($\Sexpr{resQB[2]}$, $\Sexpr{resQB[3]}$). For the complement, the $N$-fold predicted subgroup $\widehat{Q}^{c}$ was $1.01$ ($0.73, 1.38$) which is similar to the full analysis $\hat\theta^{*}(\widehat{Q}^{c}) =\Sexpr{resQcB[1]}$ ($\Sexpr{resQcB[2]}$, $\Sexpr{resQcB[3]}$).
+
+Across $200$ random 10-fold cross-validation analyses the median number of training sets (10 folds) where a subgroup is identified 
+was 9 out of 10 (The minimum was 7/10 with lower and upper quartiles of $\approx$ 9/10 and 10/10, resp.) resulting in a (median) 
+sensitivity of $sensCV(\widehat{Q}) \approx 69\%$.  That is, among the $\widehat{Q}$-classified subjects based on the full analysis the median percentage also $\widehat{Q}$-classified in the (10-fold) cross-validation testing samples was approximately $69\%$.  The median positive predictive value was $ppvCV(\widehat{Q}) \approx 71\%$. For the complement $\widehat{Q}^{c}$, the medians for $sensCV$ and $ppvCV$ were $84\%$ and $83\%$, respectively.  In addition, across the $200$ random 10-fold cross-validation analyses, the full analysis $\hat{Q}$ subgroup factors (cuts) of \verb+Preanti+ and \verb+Age+ appeared in (a median of) $70\%$ and $60\%$ of the training sample 
+subgroup definitions, respectively (and jointly in $60\%$).  
+
+The computational timing for the current analysis on an Apple studio (M1 20 core with 69 GB) was approximately: $0.2$ minutes for the FS analysis; $30$ minutes for the $2000$ bootstraps; $\Sexpr{round(fs_OOB$timing_minutes,0)}$ minutes for the $N$-fold cross-validation; and $\Sexpr{round(tall.min-51.27,0)}$ minutes for the $200$ random 10-fold cross-validation analyses.  In total, the number of minutes was $\approx \Sexpr{round(tall.min,0)}$.
+
+In Supplementary materials \textcolor{blue}{S2.2-S2.4} we provide additional analyses.  In particular, we artificially add $20$ standard normal baseline factors as random noise candidates where the FS algorithm does not include lasso in \textcolor{blue}{S2.3}, while in \textcolor{blue}{S2.4} lasso is included.  When lasso is not included (\textcolor{blue}{S2.3}) FS identified a nonsensical subgroup based on a random noise factor. In contrast, when lasso 
+is included (\textcolor{blue}{S2.4}) the same subgroup as the full analysis above and (essentially) the same bootstrap bias-adjusted estimates were obtained.  However, $N$-fold CV discrepancies suggest an underlying instability in the presence of including the $20$ random noise factors.
+
+Evaluating the plausibility of the subgroups is hampered by direct access to summaries by the combination of prior antiretroviral therapy duration (\verb+Preanti+) and age in the literature.  However, the role of prior antiretroviral therapy duration viz-a-viz naive-vs-experienced is an important aspect and frequently a key component of regimens studied: Katzenstein et al\cite{Katzenstein_2001} write ``Based on studies of HIV RNA suppression and the development of drug resistance, the goals of antiretroviral treatment in HIV infection have rapidly shifted to early suppression of HIV replication to the lowest possible levels with combination antiretroviral therapy regimens.''
+The HIV Trialists' Collaborative Group (HIVTCG) conducted a patient-level meta-analysis (including the ACTG-175 study) of randomized trials:\cite{HTCG_1999} In reference to the combination of zidovudine and didanosine, ``there appeared to be greater effects on the rate ratio for death and disease progression among participants who, at baseline, had either no previous antiretroviral therapy or higher CD4-cell counts.''  Now, for the $\widehat{Q}$ subgroup (\verb+Preanti<=744.5+ and \verb+Age>34+) consisting of $n=382$ subjects there were $\Sexpr{round(100*mean(df0.fs$str2),1)}\%$ who were antiretroviral treatment naive; for whom the (estimated) enhanced benefit may be plausible in view of the aforementioned HIVTCG analysis. For the remaining $\Sexpr{round(100*mean(1-df0.fs$str2),1)}\%$ of subjects, of whom, approximately $\Sexpr{round(100*mean(df0.fs_positive$z30),0)}\%$ had zidovudine use in the 30 days prior to treatment initiation and a mean prior antiretroviral therapy duration of $\Sexpr{round(mean(df0.fs_positive$preanti),0)}$ days 
+at baseline (mean [median] baseline CD4 count of $\Sexpr{round(mean(df0.fs_positive$cd40),0)}$ [$\Sexpr{round(median(df0.fs_positive$cd40),0)}$], min = $\Sexpr{round(min(df0.fs_positive$cd40),0)}$, max = $\Sexpr{round(max(df0.fs_positive$cd40),0)}$).  Consequently, for these subjects, initiation of the combination of zidovudine and didanosine generally amounted to the {\it continuation} of zidovudine while adding didanosine after (on average) less than a year of prior antiretroviral therapy.  We conjecture the recent zidovudine exposure/experience (as well as ``moderate prior antiretroviral therapy duration")  with the addition of didanosine may have helped with (subsequent) tolerability of the combination and with resistance; however this is just conjecture as we are not aware of available subgroup summaries that are directly applicable.  

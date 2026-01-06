@@ -1,0 +1,185 @@
+\documentclass[AMA,STIX1COL]{WileyNJD-v2}
+\articletype{Research Article}%
+
+\received{}
+\revised{}
+\accepted{}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{alltt}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{threeparttable}
+\usepackage{verbatim}
+\usepackage{bm}
+\usepackage{enumerate}
+\usepackage{multirow}
+
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=blue,
+    urlcolor=blue,
+    citecolor=blue,
+    }
+
+% My definitions
+
+\newcommand{\R}{R}
+\newcommand{\gbsg}{gbsg}
+\def\FsNg{\hbox{FS-M}}
+
+\def\hhat{\hat\theta(\widehat{H})}
+\def\hchat{\hat\theta(\widehat{H}^{c})}
+
+\def\hhatB{\hat\theta^{*}(\widehat{H})}
+\def\hchatB{\hat\theta^{*}(\widehat{H}^{c})}
+
+
+\def\hknow{\hat\theta(H)}
+\def\hcknow{\hat\theta(H^{c})}
+
+\def\hplim{\theta^{\dagger}(H)}
+\def\hcplim{\theta^{\dagger}(H^{c})}
+\def\hplimitt{\theta^{\dagger}(\hbox{ITT})}
+
+\def\fsl{FS_{l}}
+\def\fslg{FS_{lg}}
+\def\grfa{GRF}
+\def\grfb{GRF_{60}}
+
+
+\def\hhplim{\theta^{\ddagger}(H)}
+\def\hhcplim{\theta^{\ddagger}(H^{c})}
+
+\def\Hhplim{\theta^{\ddagger}(\widehat{H})}
+\def\Hhcplim{\theta^{\ddagger}(\widehat{H}^{c})}
+
+\def\hath{\widehat{H}}
+\def\hathc{{\widehat{H}}^{c}}
+
+\startpage{1}
+\raggedbottom
+
+\begin{document}
+
+\title{Exploratory subgroup identification in the heterogeneous Cox model: A relatively simple procedure}
+\author[1]{Larry F. Le\'on}
+\author[1]{Thomas Jemielita}
+\author[2]{Zifang Guo}
+\author[1]{Rachel Marceau West}
+\author[1]{Keaven M. Anderson}
+
+\authormark{Larry F. Le\'on \textsc{et al}}
+\titlemark{Exploratory subgroup identification in the heterogeneous Cox model: A relatively simple procedure}
+
+\address[1]{\orgdiv{Biostatistics and Research Decision Sciences}, \orgname{Merck \& Co., Inc.}, \orgaddress{\state{New Jersey}, \country{USA}}}
+\address[2]{\orgdiv{Biostatistics}, \orgname{BioNTech SE}, \orgaddress{\state{New York}, \country{USA}}}
+
+\corres{*Larry F. Le\'on, Biostatistics and Research Decision Sciences, Merck \& Co., Inc., Rahway, New Jersey, USA \email{larry.leon2@Merck.com}}
+
+
+\abstract[Abstract]{
+For survival analysis applications we propose a novel procedure for identifying subgroups with large treatment effects, with focus on subgroups where treatment is potentially detrimental.  The approach, termed forest search, is relatively simple and flexible.  All-possible subgroups are screened and selected based on hazard ratio thresholds indicative of harm with assessment according to the standard Cox model. By reversing the role of treatment one can seek to identify substantial benefit. We apply a splitting consistency criteria to identify a subgroup considered “maximally consistent with harm”.  
+The type-1 error and power for subgroup identification can be quickly approximated by numerical integration. To aid inference we describe a bootstrap bias-corrected Cox model estimator with variance estimated by a jacknife approximation.  We provide a detailed evaluation of operating characteristics in simulations and compare to virtual twins and generalized random forests where we find the proposal to have favorable performance.  In particular, in our simulation setting, we find the proposed approach favorably controls the type-1 error for falsely identifying heterogeneity with higher power and classification accuracy for substantial heterogeneous effects. Two real data applications are provided for publicly available datasets from a clinical trial in oncology, and HIV.
+}
+
+\keywords{Censored data; generalized random forests; virtual twins; bootstrap bias-correction, cross-validation}
+
+\maketitle
+
+\section{Introduction}\label{sec:intro}
+
+In oncology trials subgroup analyses via forest plots are standard presentations in regulatory reviews and clinical publications with the goal of evaluating the consistency of treatment effects across the pre-specified subgroups relative to the intention-to-treat (ITT) population.   The European Medicines Agency guideline on subgroups \cite{EMA_2019} further describes scenarios where there is interest ``to identify post-hoc a subgroup where efficacy and risk-benefit is convincing'' or ``in identifying a subgroup, where a relevant treatment effect and compelling evidence of a favorable risk-benefit profile can be assessed''.   In a recent review of regulatory considerations for case examples in oncology Amatya et al \cite{AT_2021} discuss approvals in the ``ITT population despite decreased treatment effect in an important subgroup'' as well as approvals in subgroups.  The underlying theme in these regulatory reviews was the assessment of an apparent detrimental effect, the evidence for potential harm and biological plausibility.    
+
+While pre-specified subgroups provide a higher level of evidence than post-hoc analyses there could be important subgroups based on patient characteristics that are not anticipated or well understood.  We investigate approaches for exploratory subgroup identification in survival analysis applications with the goal of identifying an underlying subgroup, $H$ say, consisting of subjects who derive the least benefit from treatment.  Ideally subgroup identification would be attempted in Phase 2 in order to inform Phase 3 study design and analysis considerations.  In this work we focus on large effects (negative or positive) as “lack of benefit or mild benefit” may not be sufficient reason to recommend against treatment or to exclude from inclusion in future program development.  In the case of an existing detrimental $H$, the complementary population $H^{c}$ may potentially be considered to derive benefit with a “higher degree of confidence” relative to the overall ITT population.  
+
+The novel methodology in this research, termed forest search (FS), is based on extending the idea of all-possible subsets of covariate regression models from the area of model selection to evaluating all-possible subgroups formed by combinations of baseline candidate factors.  For the selection of candidate factors any well-defined algorithm can be applied.  As a ``base-case'' algorithm we consider generalized random forests,\cite{ATW_2019,AW_2021,CZ_2023} henceforth GRF, as a core component which we use with or without lasso.\cite{SFHT_2011}  GRF is a subgroup identification approach itself based on restricted mean survival time summaries via causal survival forests, whereas lasso estimates the Cox model via regularization.  In our applications we illustrate various combinations of GRF and lasso, including evaluating all baseline factors with continuous covariates cut at the quartiles.  For identified subgroups, $\hath$ and $\hathc$ say, inference based on bootstrap bias-corrected estimators is described which accounts for the overall FS algorithm including the manner in which candidate factors are selected.  While we are directly targeting identification of $H$, the primary goal of inference can be with regard to $H^{c}$.  In addition, by reversing the roles of treatment (switching the treatment indicator) the identification of ``harm'' can be formulated to identify substantial benefit which will be illustrated in our second real data application.  To evaluate the quality and stability of the FS algorithm(s) we propose two forms of cross-validation.
+
+For identifying $H$ we define initial candidates as subgroups with Cox hazard ratio estimates $\geq 1.25$ (experimental-vs-control) and employ the following splitting consistency criteria.  Here Cox hazard ratio estimates correspond to the standard model (adjusted for treatment only) applied within the subgroup which is common in standard forest plot summaries in oncology trials. Suppose there are subgroups with estimates $\geq 1.25$ and for each subgroup we randomly split the subgroup (in half) many times and consider each split consistent with harm if the estimated hazard ratio is $\geq 1.0$ for each of the two subgroup splits.  We define $H$-candidates as those with consistency rates at least $90\%$ and define the estimated subgroup, $\hath$ say, as the subgroup with the highest consistency rate; $\hath$ is considered “maximally consistent with harm” and $\hathc$ is the complement.  If no subgroup achieves a consistency rate of at least $90\%$ then define $\hath$ as null with $\hathc$ the ITT population. The consistency criteria heuristically represents --“no matter how you split the subgroup $\hath$, those splits are both generally consistent with harm”.  The choice of the screening and consistency thresholds ($1.25$ and $1.0$, respectively) is based on power approximations and confirmed in simulations to control the false-discovery of $H$-subgroups and have reasonable ability to detect existing subgroups with large (detrimental) effects.   The splitting consistency criteria is similar in spirit to cross-validation, however our goal is not prediction evaluation, but rather to have independent assessments for evidence of harm which is provided by both (independent) random splits having hazard ratio estimates $\geq 1.0$ across repeated sample splitting.  
+
+Our work is closely related to Guo et al\cite{GH2021} who consider inference for the largest treatment effect across pre-specified subgroups.  However, the FS algorithm for maximizing the consistency rate does not necessarily correspond to the largest observed treatment effect estimate.  Moreover, crucially, we are not pre-specifying a limited set of subgroups but searching for subgroups across a large collection of combinations, conceptually a large forest plot.  We refer to Dandl et al\cite{Dandl_2024} for a recent review of forest-based approaches (see also Knaus\cite{Knaus_2022}), as well as Ballarini et al\cite{Ballarini_2021} for a summary of additional approaches and statistical software.  
+
+As a practical illustration we consider a simulated dataset generated as described in Section \ref{sec:sims} which included 7 baseline factors of which 5 were 
+prognostic ($Z_1-Z_5$, say) and the other 2 non-prognostic ($Z_6$, $Z_7$) but correlated with the prognostic factors.  In addition, 3 independent $N(0,1)$ random noise variables ($Z_8$, $Z_9$, $Z_{10}$) were included for a total of 10 baseline factors; 
+consisting of 6 binary (first 6) and 4 continuous factors.  We define random noise variables as baseline factors which are completely unrelated to the outcome data-generating process.  The underlying subgroup $H$ was an interaction between $Z_1$ and $Z_3$ (subjects with $Z_1=1$ and $Z_3=1$).  In this simulated example there were $N=1000$ subjects, randomized 1:1, with an observed censoring of approximately $45\%$.  The underlying marginal hazard ratio for the harm population $H$ was $\hplim =2$ (say), and for the complement $\hcplim =0.65$; the number of subjects in the $H$ and $H^{c}$ subgroups was $116$ and $884$, respectively.  The ITT Kaplan-Meier curves displayed in Figure {\ref{fig1}}exhibit a delayed treatment effect pattern with lack of separation roughly in the first 12 months; the Cox model estimates ($95\%$ CI) were $0.73$ ($0.62$, $0.87$).
+
+
+\begin{figure*}[h]
+\begin{center}
+\includegraphics[width=5.5in, height=3.25in]{Figure 1.eps}
+\end{center}
+\caption{Kaplan-Meier curves for simulated dataset (intention-to-treat population).}
+\label{fig1}
+\end{figure*}
+
+
+To explore subgroups we proceed as follows. Suppose we cut the continuous variables at the medians so that there are 10 binary factors and $L=20$ subgroup indicators (further described in section \ref{sec:SIA}).  There would then be over 1 million all-possible subgroup combinations ($2^{L} -1$).  However for practical considerations we restrict to subgroups formed by a maximum of two factors which is analogous to ``tree depths'' in random forests (In practice, it may be difficult to clinically interpret subgroups based on 3 or more factors.).  Among two-factor combinations there are $L(L-1)/2+L = \Sexpr{20*(20-1)+20}$ possible subgroup combinations.  We also restrict to subgroups with at least 60 subjects (approximately $30$ subjects per arm under 1:1 randomization) and 10 events in each arm which we consider minimal sample size requirements for Cox model applications. In addition, we apply lasso and GRF for selection of continuous variables and splits thereof.  The application of lasso selected $Z_1$, $Z_4$, $Z_5$, $Z_6$, and $Z_8$, which captured only 3 ($Z_1, Z_4,$ and $Z_5$ which are binary) of the truly prognostic factors and crucially excluded $Z_3$ which defined (along with $Z_1$) the true subgroup.  GRF selected $Z_1$, $Z_3$ and $Z_8$ (split at $\leq 0.89$) as candidates.   In this example lasso was somewhat aggressive in excluding factors but the incorporation of GRF re-introduced $Z_3$. For $Z_6$ (selected by lasso) this was cut at the median.  Both lasso and GRF selected the random noise (continuous) factor $Z_8$, for which the cut $Z_8 \leq 0.89$ was used per GRF, and neither selected the prognostic factor $Z_2$.  In total FS evaluated 6 binary factors ($X_1=Z_1$, $X_2=Z_3$, $X_3=Z_4$, $X_4=Z_5$, $X_5=(Z_6 \leq \hbox{med}(Z_6))$, and $X_6=(Z_8 \leq 0.89)$, say) where the number of all-possible combinations was $12(11/2)+12 = \Sexpr{12*11/2+12}$, of which 70 subgroups satisfied the aforementioned sample size criteria.   
+
+The estimated $H$ subgroup was the true subgroup and thus Cox model estimates correspond to the oracle estimator where the true subgroup was known a-priori.  The Cox estimates (FS and oracle) were $2.36$ ($1.53$, $3.66$) for $\hath$, and $0.63$ ($0.52$, $0.76$) for $\hathc$.  While these confidence intervals would be valid for the oracle estimator pretending the true subgroup is pre-specified, the FS estimator requires adjustment for the overall procedure.  Applying our bootstrap approach the bias-corrected estimates were $2.04$ ($1.19$, $3.47$) for $\hath$, and 
+$0.63$ ($0.48$, $0.83$) for $\hathc$.
+
+The manner of choosing candidate factors (binary splits) is not restricted to the above GRF and lasso algorithm.  In our applications we also consider GRF along with cutting all continuous factors at the mean, median, 
+1st quartile ($q_1$), and 3rd quartile ($q_3$), where lasso is not included in the algorithm (i.e., four splits for each continuous factor).  For example, with 6 binary and 4 continuous factors there would be $L=44$ subgroup indicators ($22$ binary factors) and $\Sexpr{44*43/2+44}$ possible two-factor subgroup combinations.  In addition, one can first apply lasso and then cut all (lasso selected) continuous factors in the above manner.  Whichever candidate selection algorithm 
+is employed the bootstrap process for bias-correction and variance estimation would incorporate the algorithm, mimicking the entire procedure.  To evaluate the quality and stability of the chosen algorithm, and to compare algorithms (e.g., with or without lasso),  we propose two forms of cross-validation. 
+
+This paper is organized as follows.  In Section \ref{sec:SIA} we describe our proposal for subgroup identification along with an asymptotic approximation for the power to identify (any) $H$ which is the basis for the choice of the FS hazard ratio thresholds ($1.25$ for screening and $1.0$ for consistency).  In simulations, Section \ref{sec:sims}, we compare operating characteristics of the proposed FS approach to virtual twins \citep{FTR_2011} and generalized random forests \cite{ATW_2019,AW_2021,CZ_2023} in terms of identification (type-1 error and power) and classification accuracy for correctly identifying subjects in $H$ and $H^{c}$.  Performance of the bootstrap bias-corrected FS estimators are also evaluated.  In Section \ref{sec:applications} we introduce the cross-validation approach for evaluating the quality and stability of the FS algorithm with 
+two real data applications, the German Breast Cancer Study Group trial data \cite{Schumacher_1994}, and the ACTG-175 HIV trial.\cite{ACTG175}  A summary discussion is provided in Section \ref{sec:discuss}.  Additional details are provided in the Supplementary materials.
+
+\Sexpr{knit_child("SIA_v0.Rnw")}
+
+\Sexpr{knit_child("sims_OC_v0.Rnw")}
+
+\Sexpr{knit_child("sims_bootstrapBC_v0.Rnw")}
+
+\section{Applications} \label{sec:applications}
+
+In applications, as suggested by a reviewer, we consider cross-validation (CV) for evaluating the 
+quality and stability of the selection algorithms (See also Athey and Wager\cite{AW_2021}, and Knaus\cite{Knaus_2022}).  
+Two forms of CV are implemented, 10-fold CV, and what we refer to as $N$-fold CV defined as follows.   For $N$-fold CV we 
+exclude each subject ($i=1,\ldots,N$) from the analysis and predict their $\widehat{H}$ ($\widehat{H}^{c}$) classification (based on the remaining $N-1$ subjects) where if 
+a subgroup $\widehat{H}$ is not identified then the subject is classified as $\widehat{H}^{c}$ (i.e., $\widehat{H}= \emptyset$).   That is, let $\hat\pi^{-i}({\bm Z}_{i})$ denote 
+the $i$th subjects' predicted 
+classification based on the FS procedure ($\widehat{H}$ or $\widehat{H}^{c}$) without the subject in the analysis.  Similarly define  $\hat\pi({\bm Z}_{i})$ 
+as the FS classification based on the full sample analysis and form $\widehat{O}_{CV}=\{\hat{O}_{i}:=(V_{i},Y_{i},\Delta_{i},\hat\pi({\bm Z}_{i}),
+\hat\pi^{-i}({\bm Z}_{i})),$ $i=1,\ldots,N \}$.  Cox model analyses based on $\hat\pi(\cdot)$ subgroups correspond to estimates that are un-adjusted for the selection algorithm 
+whereas $\hat\pi^{-i}(\cdot)$ represents an {\it out-of-bag (OOB)} classification where each subject is not included in the selection algorithm from which they are classified.  Correspondence between $\hat\pi(\cdot)$ and $\hat\pi^{-i}(\cdot)$ subgroup analysis results may be anticipated, especially for large $N$.  Of course if $\hat\pi$ and $\hat\pi^{-i}$ are identical then there is no diagnostic value; in contrast substantial lack of correspondence may suggest an underlying instability.  In 10-fold CV we randomly partition the data into 10 folds and for each fold (leaving these subjects out) select $\widehat{H}$ based on the other 9 folds to predict the classification for that left out fold. This yields an alternative version of $\widehat{O}_{CV}$ where $\hat\pi^{-i}$ now corresponds to the predicted classification based on the left out fold analysis to which the $i$th subject belongs.  Since this process generally depends on the random partition we repeat this $200$ times and summarize correspondence measures across the partitions. 
+
+For both CV approaches we consider metrics such as how often a subgroup is identified based on the ``training samples'' and the correspondence with the full sample analysis $\widehat{H}$ definitions, as well as in terms of sensitivity and positive predictive value measures.  To this end, the sensitivity and positive predictive value  metrics in Section \ref{sec:sims} are modified by replacing $\widehat{H}$ with $\widehat{H}^{-i}$ (i.e., $\hat\pi^{-i}$) and the true $H$ with $\widehat{H}$. For example, ${sensCV}(\widehat{H}): = \# \{i \in \widehat{H}^{-i} \cap \widehat{H} \} / \# \{i \in \widehat{H} \}$ denotes the correspondence between the CV ``testing prediction'' and the full analysis $\widehat{H}$-classification (relative to the size of the full analysis $\widehat{H}$).
+
+In the sequel, for a generic baseline factor $Z$ we denote the binary split at $a$ by \verb+Z<=a+ to represent the baseline factor candidate $X = I(Z \leq a)$ which would correspond to candidate subgroup indicators $J=\{Z \leq a\}$ and $J^{c} = \{Z > a \}$ (say).
+
+\Sexpr{knit_child("gbsg_lasso_v0.Rnw")}
+
+\Sexpr{knit_child("actg175_v0.Rnw")}
+
+\subsection{Supplementary analyses}
+As described above, additional analyses of the GBSG and ACTG-175 trials are available in the Supplementary materials \textcolor{blue}{S2.1-S2.4}.  Supplementary materials 
+\textcolor{blue}{S2.5} also provides analysis of the systolic heart failure data\cite{Hsich_2011} available in the \verb+randomForestSRC+\cite{Ishwaran_2008} package (a larger trial with $N=
+\Sexpr{prettyNum(2231, big.mark=",")}$ subjects, $p = 38$ baseline covariates, and $K=78$); in addition, we induce computational challenges by adding $100$ noise factors and discuss mitigation approaches when the resulting number of subgroup candidate factors is large, $K=379$.
+We note that our code implements parallel computing via the \verb+doFuture+\cite{Bengtsson_2021} package for the bootstrapping and CV procedures; accordingly the timing of computations depends on the number of available cores.
+
+\Sexpr{knit_child("discussion_v0.Rnw")}
+
+\section{Acknowledgements}  The authors wish to thank colleagues Nan Xiao, Jing Zhao, Andy Liaw, and Guoqing Diao for helpful discussions. Comments and suggestions 
+from two anonymous referees greatly improved the paper. 
+
+\section{Data Availability Statement}
+The data analyzed in the applications is publicly available.  R code for replicating the real data analyses is available at the GitHub repository: 
+\href{https://github.com/larry-leon/forestSearch}{https://github.com/larry-leon/forestSearch}.  Additional details and analyses are provided in the Supplementary materials.
+
+
+\bibliography{subgroups_ref}
+
+
+\input{tables}
+
+
+\end{document}
+
+
