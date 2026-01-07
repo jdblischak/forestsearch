@@ -5,14 +5,13 @@
 ## usethis namespace: end
 NULL
 
+#' Package-level imports for ForestSearch
+#'
 #' @importFrom graphics par
 #' @importFrom stats as.formula coef na.exclude na.omit predict setNames
 #' @importFrom utils hasName head tail
 #' @importFrom data.table := .SD .GRP .I .N rbindlist setnames setcolorder is.data.table
 #' @importFrom future multisession multicore sequential
-#' @name forestsearch-imports
-#' @rdname forestsearch-package
-#' @keywords internal
 NULL
 
 # Note: All globalVariables() declarations are consolidated in globals.R

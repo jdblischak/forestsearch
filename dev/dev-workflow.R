@@ -561,13 +561,55 @@ devtools::test()
 devtools::check()
 
 # Search all R files in your package
-grep -rn "enumerate" ~/path/to/ForestSearch/R/ --include="*.R"
+# grep -rn "enumerate" ~/path/to/ForestSearch/R/ --include="*.R"
+#
+# # Or from the package root
+# cd ~/path/to/ForestSearch
+# grep -rn "enumerate" R/
+#
+#
+#   How to Update Project Files
+#
+# Go to your Claude Project (in the left sidebar, click on the project name)
+# Open Project Settings (click the gear icon or "Project settings")
+# Remove outdated files:
+#
+#   Find the files in the "Project knowledge" or "Files" section
+# Delete the old versions
+#
+#
+# Upload current files:
+#
+#   Click "Add content" or "Upload files"
+# Select the current versions from your R directory
+#
+#
+# Return to this chat - the new files will be available in /mnt/project
+#
 
-# Or from the package root
-cd ~/path/to/ForestSearch
-grep -rn "enumerate" R/
-
-
-
-
-
+# Finding Your Project Knowledge (Files)
+# You'll find the project knowledge base on the right side of your project's main page. Click on the "+" button to add content to the project.
+# Step-by-Step:
+#
+#   Go to your Project page:
+#
+#   Click on "Projects" in the left sidebar (or go to claude.ai/projects)
+# Click on your ForestSearch project
+#
+#
+# Look to the RIGHT side of the screen:
+#
+#   You should see a "Project Knowledge" or "Knowledge" panel
+# Your 6 uploaded files should be listed there
+#
+#
+# To remove old files:
+#
+#   Hover over a file name
+# Click the trash/delete icon or "×" that appears
+#
+#
+# To add updated files:
+#
+#   Click the "+" button in that panel
+# Select your current R files from your computer
