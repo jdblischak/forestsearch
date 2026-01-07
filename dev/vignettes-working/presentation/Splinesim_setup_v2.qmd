@@ -1,0 +1,233 @@
+---
+title: "Subgroup Identification Analysis"
+format: 
+  html:
+    self-contained: true
+    code-fold: true
+    fig_width: 10
+    fig_height: 8
+---
+
+
+```{r, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+
+#.libPaths("C:/Users/leolarr2/OneDrive - Merck Sharp & Dohme, Corp/documents/MyRlibrary")
+
+options(warn = -1)
+
+rm(list=ls())
+
+library(survival)
+library(ggplot2)
+library(data.table)
+library(table1)
+
+library(randomForest)
+library(grf)
+library(policytree)
+library(DiagrammeR)
+library(plyr); library(dplyr)
+
+library(glmnet)
+
+library(future)
+library(grid)
+library(forestploter)
+
+library(randomizr)
+
+codepath <- c("../../../Rcode/forestsearch/R/")
+source(paste0(codepath,"source_forestsearch_v0.R"))
+source_fs_functions(file_loc=codepath)
+source("../../../Rcode/kmplotting/R/KMplotting_functions_v0.R")
+
+```
+
+
+```{r}
+
+load(file="../d0_analysis/df0_ITT.Rdata")
+
+dfa<-subset(df_itt, combo==1 | ct==1)
+dfa$treat_name <- with(dfa,ifelse(combo==1,"Pembro+CT","CT"))
+dfa$AP_region <- with(dfa,ifelse(japan==1 | taiwan_hongkong==1 | korea==1,1,0))
+
+# "global" is non-AP 
+#df_global <- subset(dfa,AP_region==0)
+#df_AP <- subset(dfa,AP_region==1) 
+# Use only non-AP 
+#df.analysis <- df_global
+
+df.analysis <- dfa
+
+# Truncate cps to 20
+
+df.analysis$cps <- pmin(df.analysis$cps,20)
+
+outcome.name<-c("os_time")
+event.name<-c("os_event")
+id.name <- c("id")
+strata.name <- c("stratum")
+
+treat.name<-c("combo")
+trt_arms <-c("Pembro+CT","CT")
+```
+
+
+```{r}
+
+dfa<-within(df.analysis,{
+  z <- cps
+  tte <- os_time
+  event <- os_event
+  treat <- combo
+  })
+
+
+N <- nrow(dfa)
+
+# Uniform benefit hr=0.70 example
+# uniform hr=0.70
+dgm1 <- get_dgm(df=dfa,knot=2,kappa=7,hrs=c(0.70,0.70,0.70))
+# bm1
+#dgm <- get_dgm(df=dfa,kappa=2,knot=7,hrs=c(1.25,0.8,0.65))
+
+# bm2
+#dgm <- get_dgm(df=dfa,kappa=2,knot=7,hrs=c(2,1.25,0.65))
+
+dgm2 <- get_dgm(df=dfa,kappa=2,knot=7,hrs=c(2,1.3,0.725))
+
+# Potential outcome hazard ratios
+# Since covariates are fixed, the avg HR (= E_{Z}hr(z)) is fixed across simulations
+# Generate single realization to get empirical version
+
+df_sim <- draw_sim(dgm=dgm2,ss=1,Ndraw=N,details=FALSE,xname="ecog_1",bx=0)
+dfs <- df_sim[order(df_sim$cps,decreasing=FALSE),]
+
+ahr_empirical <- with(dfs,exp(mean(loghr.po)))
+ahr_opt_empirical <- with(subset(dfs,cps>7),exp(mean(loghr.po)))
+
+cat("Empirical AHR ('true causal' avg across z's): ITT, Optimal(cps>7)",c(ahr_empirical,ahr_opt_empirical),"\n")
+
+#cox_ITT <- coxph(Surv(y.sim,event.sim)~treat.sim+strata(strata.sim),data=dfs)
+#summary(cox_ITT)
+
+temp <- cox_cs_fit(df=dfs,tte.name="y.sim",event.name="event.sim",treat.name="treat.sim",
+strata.name="strata.sim",z.name=c("z"), details=FALSE ,boots=0, xlab=c("cps"),maxz = 25, show_plot=TRUE,truebeta.name="loghr.po")
+
+# AP population
+#df_AP <- subset(dfs,AP_region==1)
+#cox_AP <- coxph(Surv(y.sim,event.sim)~treat.sim+strata(strata.sim),data=df_AP)
+#summary(cox_AP)
+#temp <- cox_cs_fit(df=df_AP,tte.name="y.sim",event.name="event.sim",treat.name="treat.sim",
+#strata.name="strata.sim",z.name=c("z"), details=FALSE ,boots=0, xlab=c("cps"),maxz = 25, show_plot=TRUE,truebeta.name="loghr.po")
+
+#save(dfs,file="../simdata/simdata_alt.Rdata")
+
+
+# Uniform benefit (hr=0.70)
+
+df_sim <- draw_sim(dgm=dgm1,ss=1,Ndraw=N,details=FALSE,xname="ecog_1",bx=0)
+dfs <- df_sim[order(df_sim$cps,decreasing=FALSE),]
+ahr_empirical <- with(dfs,exp(mean(loghr.po)))
+ahr_opt_empirical <- with(subset(dfs,cps>7),exp(mean(loghr.po)))
+cat("Empirical AHR ('true causal' avg across z's): ITT, Optimal(cps>7)",c(ahr_empirical,ahr_opt_empirical),"\n")
+
+temp <- cox_cs_fit(df=dfs,tte.name="y.sim",event.name="event.sim",treat.name="treat.sim",
+strata.name="strata.sim",z.name=c("z"), details=FALSE ,boots=0, xlab=c("cps"),maxz = 25, show_plot=TRUE,truebeta.name="loghr.po")
+
+#save(dfs,file="../simdata/simdata_null.Rdata")
+
+
+```
+
+
+```{r}
+dgm <- get_dgm(df=dfa,kappa=2,knot=7,hrs=c(0.7,0.7,0.7))
+df_sim <- draw_sim(dgm=dgm,ss=1,Ndraw=N,details=FALSE,xname="AP_region",bx=0)
+dfs1 <- df_sim[order(df_sim$z,decreasing=FALSE),]
+ahr_1 <- with(dfs1,exp(mean(loghr.po)))
+ahr_opt_1 <- with(subset(dfs1),exp(mean(loghr.po)))
+# bm1
+dgm <- get_dgm(df=dfa,kappa=2,knot=5,hrs=c(1.25,0.9,0.65),details=FALSE)
+df_sim <- draw_sim(dgm=dgm,ss=1,Ndraw=N,details=FALSE,xname="AP_region",bx=0)
+dfs2 <- df_sim[order(df_sim$z,decreasing=FALSE),]
+ahr_2 <- with(dfs2,exp(mean(loghr.po)))
+ahr_opt_2 <- with(subset(dfs2,z>7),exp(mean(loghr.po)))
+# bm2
+dgm <- get_dgm(df=dfa,kappa=2,knot=7,hrs=c(2,1.3,0.725),details=FALSE)
+df_sim <- draw_sim(dgm=dgm,ss=1,Ndraw=N,details=FALSE,xname="AP_region",bx=0)
+dfs3 <- df_sim[order(df_sim$z,decreasing=FALSE),]
+ahr_3 <- with(dfs3,exp(mean(loghr.po)))
+ahr_opt_3 <- with(subset(dfs3,z>7),exp(mean(loghr.po)))
+```
+
+
+```{r BMprofiles, fig.width=8, fig.height=5}
+
+ymin <- min(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))-0.15
+ymax <- max(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))+0.15
+
+with(dfs1,plot(z,loghr.po,type="l",lty=1,col="blue",ylim=c(ymin,ymax),lwd=2,xlab="Biomarker (z)",ylab="True log(hr) effects"))
+with(dfs2,lines(z,loghr.po,type="l",lty=1,col="grey",lwd=2))
+with(dfs3,lines(z,loghr.po,type="l",lty=1,col="brown",lwd=2))
+
+abline(h=c(log(1)),col=c("red"),lty=2,lwd=0.75)
+legend("bottomleft",c("Uniform (hr=0.70)","BM-1","BM-2"),lwd=2,col=c("blue","grey","brown"),bty="n")
+title(main="Figure 1: Treatment effect profiles across hypothetical biomarker")
+
+```
+
+
+
+```{r , eval=FALSE}
+
+jpeg(file="MyFigs/SimSetup_profiles.png", width=10, height=8, units="in", res=300)
+
+ymin <- min(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))-0.15
+ymax <- max(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))+0.15
+
+with(dfs1,plot(z,loghr.po,type="l",lty=1,col="blue",ylim=c(ymin,ymax),lwd=2,xlab="Biomarker (z)",ylab="True log(hr) effects"))
+with(dfs2,lines(z,loghr.po,type="l",lty=1,col="grey",lwd=2))
+with(dfs3,lines(z,loghr.po,type="l",lty=1,col="brown",lwd=2))
+
+abline(h=c(log(1)),col=c("red"),lty=2,lwd=0.75)
+legend("bottomleft",c("Uniform (hr=0.70)","BM-1","BM-2"),lwd=2,col=c("blue","grey","brown"),bty="n")
+title(main="Treatment effect profiles across hypothetical biomarker")
+
+dev.off()
+
+```
+
+
+```{r , eval=FALSE}
+
+jpeg(file="MyFigs/SimSetup-NonAP_profiles.png", width=10, height=10, units="in", res=300)
+
+par(mfrow=c(1,2))
+
+df_global <- subset(df.analysis,AP_region==0)
+
+temp <- cox_cs_fit(df=df_global,tte.name=outcome.name,event.name=event.name,treat.name=treat.name,
+strata.name=strata.name,z.name=c("cps"), details=FALSE ,boots=0, xlab=c("cps"),maxz = 25, show_plot=TRUE,cex_legend=0.8)
+
+ymin <- min(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))-0.15
+ymax <- max(c(dfs1$loghr.po,dfs2$loghr.po,dfs3$loghr.po))+0.15
+
+with(dfs1,plot(z,loghr.po,type="l",lty=1,col="blue",ylim=c(ymin,ymax),lwd=2,xlab="Biomarker (z)",ylab="True log(hr) effects"))
+with(dfs2,lines(z,loghr.po,type="l",lty=1,col="grey",lwd=2))
+with(dfs3,lines(z,loghr.po,type="l",lty=1,col="brown",lwd=2))
+
+abline(h=c(log(1)),col=c("red"),lty=2,lwd=0.75)
+legend("bottomleft",c("Uniform (hr=0.70)","BM-1","BM-2"),lwd=2,col=c("blue","grey","brown"),bty="n")
+title(main="Treatment effect profiles across 
+      hypothetical biomarker")
+
+dev.off()
+
+
+```
+
+
+

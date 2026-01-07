@@ -1,0 +1,517 @@
+---
+title: "Subgroup Identification Exploration"
+author: "Larry Leon"
+date: ""
+output:
+html_document: default
+self-contained: true
+code-fold: true
+bibliography: subgroups_ref.bib
+fig_caption: yes
+keep_tex: yes
+latex_engine: xelatex
+citation_package: natbib
+editor_options: null
+markdown: null
+wrap: 72
+fig_width: 10
+fig_height: 8
+extra_dependencies: "subfig"
+---
+
+
+```{=latex}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{longtable}
+\usepackage{enumerate}
+\usepackage{threeparttable}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage[colorlinks=true,linkcolor={blue},citecolor={black},urlcolor={blue},runcolor={blue}]{hyperref}
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
+
+#.libPaths("C:/Users/leolarr2/OneDrive - Merck Sharp & Dohme, Corp/documents/MyRlibrary")
+
+options(warn = -1)
+
+rm(list=ls())
+
+library(tinytex)
+library(survival)
+library(knitr)
+library(kableExtra)
+
+library(ggplot2)
+suppressMessages(library(randomForest))
+library(grf)
+library(policytree)
+library(DiagrammeR)
+library(data.table)
+library(table1)
+library(gt)
+
+# forest plot
+library(grid)
+library(forestploter)
+
+codepath <- c("../../Rcode/forestsearch/R/")
+source(paste0(codepath,"source_forestsearch_v0.R"))
+source_fs_functions(file_loc=codepath)
+source("../../Rcode/kmplotting/R/KMplotting_functions_v0.R")
+
+```
+
+
+
+
+# Post-hoc Subgroup Identification Analyses
+
+Exploratory subgroup analyses for the *ESCC* population based on overall survival outcomes will be conducted.
+
+*   The following baseline factors were considered:
+1. `Region: Asia vs non-Asia`
+2. `Age (continuous)`
+3. `Age <65yrs / >=65Yrs`
+4. ` Male/Female`
+5. `Ecog 0/1`
+6. `Liver mets`
+7. `Metastatic`
+8. `Tumor size`
+9. `Chemo (5-FU + cisplatin vs CAPOX)`
+10. `CPS>=1, CPS>=5, CPS>=10`
+11. `CPS>1, CPS>5, CPS>10, CPS>15`
+12. `CPS (continuous)`
+
+## Executive Summary of Identified Subgroups (non-stratified Cox)
+
+Post-hoc subgroup analyses identified subgroups based on CPS cuts alone and in combination with tumor size (">=1", ">1", ">3", "tumor_size>19", "tumor_size>62").  Cross-validation 
+assessments of ``reproducibility`` suggests the algorithm corresponding to the identification of the subgroup **CPS>1 and tumor_size>19** as **benefiting** appears to have (relatively) favorable properties.  Though we note 
+that the cross-validation (CV) summary of reproducibility is in the $75\%$ range which may be borderline performance (e.g., ~ $76\%$ of the **CPS>1 and tumor_size>19** subjects classified as **benefiting** were also classified as benefiting in the CV testing sample [See `OS Subgroups Identified' section below]). 
+
+- Overall Survival--
+  - Overall (SCC, n=548) population: hr=0.72 (0.59-0.87)
+     - note that n=15 subjects had missing CPS
+  - Subjects with CPS>1 and tumor_size>19 (n=363): 
+      - *adjusted* hr=0.63 (0.47-0.84)
+  - Subjects with CPS<=1 or tumor_size<=19 (n=170): 
+      - *adjusted* hr=0.94 (0.58-1.52)
+    
+The *adjusted* hazard-ratio estimates and confidence intervals account for the subgroup identification algorithm.
+
+The ITT and subgroup Kaplan-Meier estimates are below (Note that K-M and Cox estimates in Figures (b) and (c) do not account for the subgroup identification)
+
+
+```{r SG_outcomes, fig.width=9, fig.height=9}
+load(file="d0_analysis/df0_ITT.Rdata")
+
+# Restrict to SCC
+df.analysis <- subset(df_itt,scc==1)
+
+dfa <- subset(df.analysis,!is.na(cps))
+
+outcome.name<-c("os_time")
+event.name<-c("os_event")
+E.name <- c("Pembro+CT")
+C.name <- c("CT")
+
+treat.name <- c("combo")
+strata.name <- c("stratar")
+id_name <- c("id")
+
+par(mfrow=c(2,2))
+
+byrisk <- 6
+
+kmH.fit<-KM.plot.2sample.weighted(df=df.analysis, 
+tte.name=outcome.name, event.name=event.name, treat.name=treat.name,
+risk.set=TRUE,by.risk=byrisk,risk.cex=0.80,
+risk_offset=0.15, risk_delta=0.075,
+Xlab="Months",Ylab="Overall survival",details=FALSE,
+show.ticks=TRUE,
+prob.points=seq(0,1,by=0.1),
+col.1="black", col.2="blue",
+ltys=c(1,1),lwds=c(2,2),
+cox.cex=0.80,
+show.logrank=TRUE, lr.digits=3, lr.eps=0.0001, put.legend.lr="top",
+show.med=TRUE, med.cex=0.80, ymed.offset=0.30,
+show.cox=TRUE, cox.digits=2, cox.eps=0.0001, show_arm_legend=TRUE,arms=c("Pembro+CT","CT"),arm.cex=0.70)
+title(sub="(a) OS in overall ITT population")
+
+kmH.fit<-KM.plot.2sample.weighted(df=subset(dfa,cps>1 & tmrsize>19), 
+tte.name=outcome.name, event.name=event.name, treat.name=treat.name,
+risk.set=TRUE,by.risk=byrisk,risk.cex=0.80,
+risk_offset=0.15, risk_delta=0.075,
+Xlab="Months",Ylab="Overall survival",details=FALSE,
+show.ticks=TRUE,
+prob.points=seq(0,1,by=0.1),
+col.1="black", col.2="blue",
+ltys=c(1,1),lwds=c(2,2),
+cox.cex=0.80,
+show.logrank=TRUE, lr.digits=3, lr.eps=0.0001, put.legend.lr="top",
+show.med=TRUE, med.cex=0.80, ymed.offset=0.30,
+show.cox=TRUE, cox.digits=2, cox.eps=0.0001, show_arm_legend=TRUE,arms=c("Pembro+CT","CT"),arm.cex=0.70)
+title(sub="(b) OS in CPS > 1 & tumor size > 19 population")
+
+
+kmH.fit<-KM.plot.2sample.weighted(df=subset(dfa, cps <= 1 | tmrsize<=19), 
+tte.name=outcome.name, event.name=event.name, treat.name=treat.name,
+risk.set=TRUE,by.risk=byrisk,risk.cex=0.80,
+risk_offset=0.15, risk_delta=0.075,
+Xlab="Months",Ylab="Overall survival",details=FALSE,
+show.ticks=TRUE,
+prob.points=seq(0,1,by=0.1),
+col.1="black", col.2="blue",
+ltys=c(1,1),lwds=c(2,2),
+cox.cex=0.80,
+show.logrank=TRUE, lr.digits=3, lr.eps=0.0001, put.legend.lr="top",
+show.med=TRUE, med.cex=0.80, ymed.offset=0.30,
+show.cox=TRUE, cox.digits=2, cox.eps=0.0001, show_arm_legend=TRUE,arms=c("Pembro+CT","CT"),arm.cex=0.70)
+title(sub="(c) OS in CPS <= 1 or tumor size <= 19 population")
+
+```
+
+
+### Forestplot by CPS levels 
+
+Hazard ratio estimates by subgroups based on CPS levels (as conducted in recent FDA summary):
+
+```{r fplot1, fig.width=9, fig.height=6}
+# simfunctions for (tailor made) forestplot
+source("Extreme-SGs/sim_functions_v0.R")
+library(grid)
+library(forestploter)
+
+# forest plot by CPS
+temp <- SG_forest(df=df.analysis,outcome.name="os_time",event.name="os_event",treat.name="combo",xlim=c(0.5,1.5))
+
+plot(temp$p)
+```
+
+
+
+## Brief Overview of Methods
+
+- *forestSearch* (@Leon_2024): 
+  - Subgroups (SGs) with HR estimates indicative of "sub-optimal benefit" (e.g., $hr \geq 1.0$ threshold), are considered candidates with a "splitting consistency criteria" for selection^["splitting consistency criteria" judges the robustness/realness].  
+     - In essence, if a subgroup that appears to derive the least benefit is identified, then the complement may 
+  potentially be considered to derive benefit with a “higher degree of confidence” relative to the ITT population
+   - SGs are formed by single factors (eg, SG1 = males, SG2 = age<65) and two-way combinations (e.g., SG3 = males & age<65)
+   - SGs with a minimum size of $60$ and with a minimum of number of 10 events in each treatment arm will be considered
+   - Reversing the role of treatment allows for identifying subgroups with "enhanced benefit" (e.g., $hr \leq 0.65$ threshold)
+   - Continuous factors are cut at either medians (q2), or quartiles (q1, q2, q3, say)
+   - Cuts are also identified by generalized random forests (GRF) which is an identification approach itself --   
+  
+- *Generalized random forests* (@ATW_2019, @CZ_2023) which is based on restricted mean survival time (RMST) comparisons as implemented in the R package @GRFpackage_2022:  
+  - An RMST benefit of (at least) $3$ months for control is required for selection of a subgroup, where among tree depths of 1 and 2 the subgroup with the largest RMST benefit ($\geq 3$ months in favor of control) is selected
+  - Similar to forestSearch, we are targeting relatively large effects
+  - SGs with sample sizes of at least $60$ participants and a maximum tree depth of 2 is required
+
+
+
+### Summary of baseline factors evaluated
+
+```{r Demographics, echo=FALSE, eval=TRUE}
+
+df.analysis$metastatic <- ifelse(df.analysis$dxstat=="Metastatic",1,0)
+
+df.analysis <- subset(df.analysis,!is.na(cps))
+
+confounders.name <- c("cps","age","tmrsize","male","adeno","ecog0","livermets","metastatic","asia","cps_1","cps_5","cps_10")
+
+aa <- paste(confounders.name, collapse=" + ")
+aa <- paste0("~ " ,aa)
+aa <- paste0(aa," | treat_name")
+aa <- as.formula(aa)
+
+table1( aa , data=df.analysis)
+
+```
+
+### Foresplot: Individual factors evaluated
+
+```{r Fplotconfs, message=FALSE, warning=TRUE,fig.width=8, fig.height=10}
+
+fp <- forestplot_baseline(df=df.analysis,confounders.name=confounders.name,
+arrow_text=c("favors Pembro+CT","CT"),E.name=c("Pembro+CT"),C.name=c("CT"),outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+xlim = c(0.25, 2.0), ticks_at = c(0.65, 1.0, 1.3))
+
+plot(fp$p)
+
+```
+
+
+
+### OS Subgroups Identified 
+
+Note that hazard ratio estimates for post-hoc subgroups are adjusted for the selection algorithm and denoted as "full-analysis"
+
+```{r OSsubgroups, fig.width =10, fig.height=10, fig.align="center"}
+
+# SG1
+load("outcome/results/sg1_v0b.Rdata")
+load("outcome/results/sg1_boots=1000_v0b.Rdata")
+load("outcome/results/sg1_OOB_v0b.Rdata")
+df_sg <- fs.est$df.est
+fs_OOB <- fs_OOB$resCV
+df_sg$treat <- df_sg[,c(treat.name)]
+# Benefitting (B)
+# note: pad name to give more room for longer names
+sg1_name <- c("                   CPS > 3 or tumor size > 62")
+# Questionable (Q)
+sg0_name <- c("CPS <= 3 & tumor size <= 62")
+
+dfForest_sg <- df_sgforest(fs_OOB=fs_OOB, df_sg=df_sg, fs_bc=fs_bc, outcome.name=outcome.name, treat.name=treat.name, 
+                      sg1_name=sg1_name,sg0_name=sg0_name,E.name=E.name,C.name=C.name,est.scale=fs.est$est.scale)
+
+res_sg1 <- rbind(dfForest_sg$res_sg1,dfForest_sg$res_sg0)
+
+load("outcome/results/sg1_20fold_v0b.Rdata")
+sg1_text <- sens_text(fs_kfold,fs.est$est.scale)
+rm("fs.est","fs_kfold")
+
+
+# SG2 = sg3
+##################################
+# Reverse the role of treatment
+##################################
+load("outcome/results/sg3_v0b.Rdata")
+load("outcome/results/sg3_boots=1000_v0b.Rdata")
+load("outcome/results/sg3_OOB_v0b.Rdata")
+df_sg <- fs.est$df.est
+fs_OOB <- fs_OOB$resCV
+df_sg$treat <- 1-df_sg[,c(fs.est$treat.name)]
+sg1_name <- c("CPS >= 1")
+sg0_name <- c("CPS < 1")
+
+dfForest_sg <- df_sgforest(fs_OOB=fs_OOB, df_sg=df_sg, fs_bc=fs_bc, outcome.name=outcome.name, treat.name=treat.name, 
+                      sg1_name=sg1_name,sg0_name=sg0_name,E.name=E.name,C.name=C.name,est.scale=fs.est$est.scale)
+
+res_sg2 <- rbind(dfForest_sg$res_sg1,dfForest_sg$res_sg0)
+
+load("outcome/results/sg3_20fold_v0b.Rdata")
+sg2_text <- sens_text(fs_kfold,fs.est$est.scale)
+
+rm("fs.est","fs_kfold")
+
+
+# SG3 = sg4 
+##################################
+# Reverse the role of treatment
+##################################
+load("outcome/results/sg4_v0b.Rdata")
+load("outcome/results/sg4_boots=1000_v0b.Rdata")
+load("outcome/results/sg4_OOB_v0b.Rdata")
+df_sg <- fs.est$df.est
+fs_OOB <- fs_OOB$resCV
+df_sg$treat <- 1-df_sg[,c(fs.est$treat.name)]
+sg1_name <- c("CPS > 1 & tumor size > 19")
+sg0_name <- c("CPS <= 1 or tumor size <= 19")
+
+dfForest_sg <- df_sgforest(fs_OOB=fs_OOB, df_sg=df_sg, fs_bc=fs_bc, outcome.name=outcome.name, treat.name=treat.name, 
+                      sg1_name=sg1_name,sg0_name=sg0_name,E.name=E.name,C.name=C.name,est.scale=fs.est$est.scale)
+
+res_sg3 <- rbind(dfForest_sg$res_sg1,dfForest_sg$res_sg0)
+
+load("outcome/results/sg4_20fold_v0b.Rdata")
+sg3_text <- sens_text(fs_kfold,fs.est$est.scale)
+
+rm("fs.est","fs_kfold")
+
+
+arrow_text <- c("favors Pembro+CT", "CT")
+
+footnote_text <- c("Eg, 80% of CV training identified subgroup, 70% of estimated (full-analysis) 
+                   benefitting (+) agreed with (also benefitting in) CV testing")
+
+title_text <- "OS Subgroups Identified (Post-Hoc)"
+
+# ITT 
+
+dfa <- subset(df_itt,scc==1)
+
+res_itt <- SG_HRtable2(dfa=dfa,df.OOB=NULL,fa_SG=NULL,ntreat_fa=NA,ncontrol_fa=NA,outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+                       sg_name="ITT",E.name=E.name,C.name=C.name)
+
+# Add post-hoc header 
+zz <- res_itt  
+zz$Subgroup <- "Post-hoc subgroups"
+zz[,c(E.name,C.name)] <- ""
+zz[,c("est","low","hi","se")] <- NA
+
+zzz <- res_itt  
+zzz$Subgroup <- " "
+zzz[,c(E.name,C.name)] <- ""
+zzz[,c("est","low","hi","se")] <- NA
+
+
+
+res_cps1 <- SG_HRtable2(dfa=subset(dfa,cps>1),df.OOB=NULL,fa_SG=NULL,ntreat_fa=NA,ncontrol_fa=NA,
+                         outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+                         sg_name="CPS>1",E.name=E.name,C.name=C.name)
+
+res_cps3 <- SG_HRtable2(dfa=subset(dfa,cps>3),df.OOB=NULL,fa_SG=NULL,ntreat_fa=NA,ncontrol_fa=NA,
+                         outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+                         sg_name="CPS>3",E.name=E.name,C.name=C.name)
+
+
+res_ts19 <- SG_HRtable2(dfa=subset(dfa,tmrsize>19),df.OOB=NULL,fa_SG=NULL,ntreat_fa=NA,ncontrol_fa=NA,
+                         outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+                         sg_name="Tmrsize>19",E.name=E.name,C.name=C.name)
+
+
+res_ts62 <- SG_HRtable2(dfa=subset(dfa,tmrsize>62),df.OOB=NULL,fa_SG=NULL,ntreat_fa=NA,ncontrol_fa=NA,
+                         outcome.name=outcome.name,event.name=event.name,treat.name=treat.name,
+                         sg_name="Tmrsize>62",E.name=E.name,C.name=C.name)
+
+
+
+# Concatentate the subgroups
+
+dt <- rbind(res_itt,res_cps1,res_cps3,res_ts19,res_ts62,zz,res_sg1,res_sg2,res_sg3)
+kfix <- 5
+kposthoc <- 3
+
+sg_colors <- c("yellow",rep("powderblue",kfix-1),"yellowgreen",rep(c("powderblue","powderblue","powderblue","beige","beige","beige"),kposthoc))
+
+tm <- forest_theme(core=list(fg_params=list(hjust = 1, x = 0.9),
+bg_params=list(fill = sg_colors)),
+colhead=list(fg_params=list(hjust=0.5, x=0.5)),
+footnote_gp = gpar(cex = 0.65, fontface = "italic", col = "darkcyan"))
+
+dt$` ` <- paste(rep(" ", 20), collapse = " ")
+
+# Create a confidence interval column to display
+dt$`HR (95% CI)` <- ifelse(is.na(dt$se), "",
+sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
+
+p <- forest(dt[,c(1:3, 8:9)],
+            title=title_text,
+            est = dt$est,
+            lower = dt$low, 
+            upper = dt$hi,
+            sizes = 0.4,
+            ci_column = 4,
+            ref_line = 1,
+            arrow_lab = arrow_text,
+            xlim = c(0.25, 1.5),
+            ticks_at = c(0.25, 0.70, 1.0, 1.5), footnote = footnote_text, theme=tm)
+
+#plot(p)
+
+# Include sensitivity metrics for SG1
+row1_loc <- (kfix+1)+6+1
+g <- insert_text(p, 
+                text=sg1_text, row=row1_loc, just="left", gp=gpar(cex=0.8, col="black",fontface="italic"))
+row2_loc <- row1_loc+6+1
+g <- insert_text(g, 
+                text=sg2_text, row=row2_loc, just="left", gp=gpar(cex=0.8, col="black",fontface="italic"))
+row3_loc <- row2_loc+6+1
+g <- insert_text(g, 
+                text=sg3_text, row=row3_loc, just="left", gp=gpar(cex=0.8, col="black",fontface="italic"))
+
+plot(g)
+
+
+```
+
+### Example of cross-validation (CV) 
+
+Cross-validation is utilized to evaluate the quality and stability (``internal reproducibility'') of the subgroup identification algorithm.
+
+The identified subgroup of **subjects with CPS>1 and tumor size (tmrsize) > 19** are classified as a **Benefitting (B say)** subgroup based on a forest search algorithm aimed at identifying subgroups with enhanced treatment effects.  Let $\hat{B}$ denote this subgroup.  To assess the internal reproducibility, the overall (ITT) population is **randomly** partitioned into 20 non-overlapping segments where for each segment (representing $\approx 5\%$ of the data) the subjects within the partition are left out of the analysis and the subgroup analysis is conducted based on the remaining 19 segments ($\approx 95\%$ of the data).  Let $\hat{B}^{cv}$ denote the subgroup identified in the cross-validation analysis.  For each subject (belonging to one of the 20 segments) we therefore have their classification: Whether they are within $\hat{B}^{cv}$ or not (its complement) corresponding to the segment for which they were left out of the subgroup identification analysis.  
+
+Now, for each subject left out of the analysis they were either in the original $\hat{B}$ subgroup or not (the complement $\hat{Q}$, say); Whereas, based on the cross-validation analysis, they are classified as benefiting if in the $\hat{B}^{cv}$ subgroup (or not).   If a subject is in both $\hat{B}$ and $\hat{B}^{cv}$ then they are classified as benefiting in both the original and cross-validation analyses (Note that the 
+definition of $\hat{B}$ and $\hat{B}^{cv}$ may not generally be the same).   We define the sensitivity of the 
+algorithm for $\hat{B}$ as  
+
+$$ sens(\hat{B}) = {\# \left\{i \in \hat{B} \cap \hat{B}^{cv} \right\}} / \# \left\{i \in \hat{B} \right\}, $$
+
+which represents the *proportion of subjects classified as benefiting who were also classified as benefiting (agreement) in the cross-validation analysis* (where they were not used in the identification analysis).   Define the analogous measure for the complement 
+
+$$ sens(\hat{Q}) = {\# \left\{i \in \hat{Q} \cap \hat{Q}^{cv} \right\}} / \# \left\{i \in \hat{Q} \right\}. $$
+
+Since it is possible for a cross-validation analysis to NOT identify a subgroup, in which case --- in the absence of identifying a subgroup with an enhanced treatment effect --- $\hat{B}^{cv}$ is set to be the empty set $\emptyset$ with all subjects classified in $\hat{Q}$ (the ITT population).  Note that in these cases the identification analysis criteria is not met in the cross-validation analysis sample.  
+
+
+```{r CVexample, eval=TRUE}
+load("outcome/results/sg4_CV_example.Rdata")
+Kfolds <-20
+out <- forestsearch_KfoldOut(res=res,outall=TRUE,details=FALSE)
+#print(out$SGs_found)
+SGfound <- sum(ifelse(!is.na(out$SGs_found[,"sg1"]) | !is.na(out$SGs_found[,"sg2"]),1,0))
+#cat("# of subgroups found, %",c(SGfound,SGfound/Kfolds),"\n")
+# of subgroups found 6 
+resCV <- res$resCV
+#with(resCV,table(treat.recommend,treat.recommend.original))
+tabit <- with(resCV,table(treat.recommend,treat.recommend.original))
+# H = Q and H^c=B reveresed here
+#cat("Full-analysis B,Q=",c(sum(tabit[,1]),sum(tabit[,2])),"\n")
+sensB <- tabit[1,1]/sum(tabit[,1])
+sensQ <- tabit[2,2]/sum(tabit[,2])
+#cat("Sensitivity for B,Q=",c(sensB,sensQ),"\n")
+ppvB <- tabit[1,1]/sum(tabit[1,])
+ppvQ <- tabit[2,2]/sum(tabit[2,])
+#cat("PPV for B,Q=",c(ppvB,ppvQ),"\n")
+# Among those where a SG is identified
+resCV2 <- subset(resCV, !is.na(sg1) | !is.na(sg2))
+tabit2 <- with(resCV2,table(treat.recommend,treat.recommend.original))
+```
+
+
+
+We summarize the results for a *single* cross-validation iteration for $\hat{B}$ corresponding to **subjects with CPS>1 & tmrsize>19**:  Among the $20$ cross-validation analyses `r SGfound` identified a subgroup (`r 100*round(SGfound/20,2)`\%); of which 5/20 (`r 100*round(5/20,2)`\%) were defined exactly as the full analysis (**CPS>1 & tmrsize>19**), 1/20 were defined as 
+**CPS>1 and tmrsize>28.2**, 1/20 defined as **CPS>2.5 and tmrsize>19**, 5/20 defined as **Asia and Male**, 2/20 defined as **CPS>=10**, 1/20 defined as **CPS>=1 & Asia**, 1/20 defined as **CPS>3 & Metastatic**, 1/20 defined as **CPS>2 and Male**, 1/20 as **Tmrsize>19 and Asia**, and 2/20 defined as **Tmrsize>19 & Age<=71**.  There were 
+`r sum(tabit[,1])` subjects in $\hat{B}$, of which `r sum(tabit[1,1])` were also in $\hat{B}^{cv}$; The agreement in the benefiting classification is $sens(\hat{B})$ = `r 100*round(tabit[1,1]/sum(tabit[,1]),2)`\%.  For the complement, there were 
+`r sum(tabit[,2])` subjects in $\hat{Q}$, of which `r sum(tabit[2,2])` were also in $\hat{Q}^{cv}$; The agreement in the complementary classification is $sens(\hat{Q})$ = `r 100*round(tabit[2,2]/sum(tabit[,2]),2)`\%.
+
+<!-- As a side note: for the cross-validation analysis samples where a subgroup was identified (`r 100*round(SGfound/20,2)`\%) the agreement in  -->
+<!-- $\hat{B}$ and $\hat{Q}$ with cross-validation was `r 100*round(tabit2[1,1]/sum(tabit2[,1]),2)`\% and `r 100*round(tabit2[2,2]/sum(tabit2[,2]),2)`\%.     -->
+
+Since cross-validation results will generally depend on the random partition, we repeat the cross-validation analysis across 5 repetitions and report the medians of the summaries.  
+
+
+### KM Difference plots: ITT and subgroups 
+
+Note that these estimates are not adjusted for SGs
+
+```{r OSdiffs, fig.width =8, fig.height=6, fig.align="center"}
+
+
+df_itt$cpstsize <- with(df_itt,ifelse(cps>1 & tmrsize>19,1,0))
+
+
+cps10_col <- c("darkblue")
+cps5_col <- c("brown")
+cps1_col <- c("blueviolet")
+cpslt1_col <- c("red")
+cps19_col <- c("orange")
+cpsnew_col <- c("lawngreen")
+sg_cols <- c(cps10_col,cps19_col,cps5_col,cps1_col,cpslt1_col,cpsnew_col)
+
+temp <- plotKM.band_subgroups(df=subset(df_itt,scc==1),sg_labels=c("cps_10","cps_19","cps_5","cps_1","cps_lt1","cpstsize"),
+sg_colors=c(sg_cols),
+color=c("azure3"),xlabel=c("Months"),ylabel=c("Survival differences"),
+yseq_length=5,
+tau_add=30, by.risk=6, risk_cex=0.75, risk_delta=0.0225,
+outcome.name=outcome.name, treat.name=treat.name, event.name=event.name)
+
+legend("topleft",c("ITT","cps>=10","cps=1-9","cps>=5","cps>=1","cps<1","cps>1 & tsize>19"),
+lwd=2, col=c("black",sg_cols),bty="n",cex=0.75)
+
+```
+
+
+
+
+# References {-}
+
+<div id="refs"></div>
+
+
