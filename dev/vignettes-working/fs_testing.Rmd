@@ -10,7 +10,7 @@ output:
 
 library(weightedsurv)
 
-# library(forestsearch) 
+library(forestsearch) 
 
 library(survival)
 df_gbsg <- gbsg

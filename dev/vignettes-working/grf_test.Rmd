@@ -101,7 +101,7 @@ cat("✓ All required packages loaded successfully\n")
 
 ## Source Optimized Functions
 
-```{r source-functions, eval=FALSE}
+```{r source-functions}
 # Source the optimized ForestSearch functions
 #source("optimized_forest_search.R")
 #source("improved_grf_functions.R")

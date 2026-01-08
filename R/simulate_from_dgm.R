@@ -139,7 +139,7 @@ simulate_from_dgm <- function(dgm,
     # Data at analysis_time: follow_up > 0
 
     # Reassign treatment if draw_treatment, otherwise retain per super_population
-    # Set to original assignent in df_super
+    # Set to original assignment in df_super
     df_sim$treat_sim <- df_sim$treat
 
     if(draw_treatment){
