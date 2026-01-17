@@ -1,0 +1,19 @@
+\Sexpr{set_parent("supplementary_SIM-Rev1_v0.Rnw")}
+
+
+<<echo=FALSE>>=
+  opts_chunk$set (warning = FALSE, message = FALSE, tidy=TRUE, echo=FALSE, dev = 'pdf')
+options(warn=-1)
+@
+\noindent  
+Dear Dr. McShane,  
+\\
+\\
+Thank you for the opportunity to submit a revision to our article on subgroup identification in the heterogeneous Cox model.   We have substantially revised the article to address the reviewers questions and suggestions which we believe have greatly improved the content and presentation.   Please find enclosed 
+with our revised manuscript our point-by-point responses to the reviewers questions/suggestions.
+\\
+\\
+Best wishes,
+\\
+Larry Leon on behalf of co-authors
+  

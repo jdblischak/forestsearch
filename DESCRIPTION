@@ -40,7 +40,8 @@ Imports:
 Suggests: 
     DiagrammeR,
     patchwork,
-    tidyr
+    tidyr,
+    forestploter
 URL: https://github.com/larry-leon/forestsearch
 BugReports: https://github.com/larry-leon/forestsearch/issues
 Remotes: 

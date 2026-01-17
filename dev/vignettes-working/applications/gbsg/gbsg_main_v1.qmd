@@ -156,9 +156,9 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 df.test = NULL,
                                 flag_harm.name = NULL,
                                 hr.threshold = 1.25, hr.consistency = 1.0, pconsistency.threshold = 0.90,
-                                sg_focus = "maxSG", max_subgroups_search = 30,
+                                sg_focus = "maxSG", max_subgroups_search = 50,
                                 showten_subgroups = TRUE, details=TRUE,
-                                conf_force = c("age <= 65"),
+                                conf_force = NULL,
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
                                 maxk = 2, 
                                 n.min = 60, d0.min = 12, d1.min = 12,
@@ -265,86 +265,122 @@ summaries$plots$combined
 ```
 
 
+## Forest Search n-fold cross-validation  
+```{r FSnfold_k2, echo=TRUE, eval=TRUE}
 
-## Forestsearch with depth=1 (maxk = 1)
-
-```{r fs_k1, echo=TRUE, message=FALSE, warning=TRUE, fig.width = 10, fig.height = 8, eval = TRUE}
-
-# Setup parallel processing
-library(doFuture)
-library(doRNG)
-
-registerDoFuture()
-registerDoRNG()
-
-system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.name,
-                                outcome.name = "time_months", treat.name = "hormon", event.name = "status", id.name = "id",
-                                potentialOutcome.name = NULL, 
-                                df.test = NULL,
-                                flag_harm.name = NULL,
-                                hr.threshold = 1.25, hr.consistency = 1.0, pconsistency.threshold = 0.90,
-                                sg_focus = "maxSG", max_subgroups_search = 30,
-                                showten_subgroups = TRUE, details=TRUE,
-                                conf_force = c("age <= 65"),
-                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
-                                maxk = 1, 
-                                n.min = 60, d0.min = 12, d1.min = 12,
-                                plot.sg = TRUE, by.risk = 6,
-                                parallel_args = list(plan="callr", workers = 30, show_message = TRUE)
-)
-})
-
-plan("sequential")
-
-
-# Results for estimation (training) data, which_df = "est" is default
-res_tabs <- sg_tables(fs, ndecimals = 3, which_df = "est")
-
-res_tabs$sg10_out
-
-res_tabs$tab_estimates
-
-
-```
-
-
-## Bootstrap Inference
-
-```{r, eval = FALSE}
 
 output_dir <- "results/"
-save_results <- dir.exists(output_dir)
-
-# patchhwork needed for a combined bootstrap plot (otherwise if not avaialable will not produce)
-library(patchwork)
-
-# Number of bootstrap samples
+load_results <- dir.exists(output_dir)
 NB <- 1000
+if(load_results){
+filename <- file.path(output_dir, 
+                         paste0("gbsg_k2_B=", 
+                                format(NB),".RData"))
 
-system.time({fs_bc <- forestsearch_bootstrap_dofuture(
-  fs.est = fs, 
-  nb_boots = NB, 
-  show_three = FALSE, 
-  details = TRUE)
-})
-
-plan("sequential")
-
-
-if (save_results) {
-    filename <- file.path(output_dir, 
-                         paste0("gbsg_k1_B=", 
-                                format(NB), 
-                                ".RData"))
-    save(fs_bc, fs, file = filename)
-    cat("\nResults saved to:", filename, "\n")
+load(file = filename)
 }
+
+# library(doFuture)
+# library(doRNG)
+# registerDoFuture()
+# registerDoRNG()
+# # workers=48 works well on popOS
+#plan("multisession", workers=48)
+
+# Kfolds = n (default to n-fold cross-validations)
+
+fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE, parallel_args = list(plan = "callr", workers = 36, 
+        show_message = TRUE))
+
+
+# Reset workers to single
+plan(sequential)
+
+summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
+
+# Append sens_summary to fs_OOB
+fs_OOB$sens_summary <- summary_OOB$sens_metrics_original
+
+
+table(summary_OOB$SGs_found[,1])
+table(summary_OOB$SGs_found[,2])
+
+
+fs_ten <- forestsearch_tenfold(fs.est = fs, sims = 5, Kfolds = 10, details=TRUE, parallel_args = list(plan = "callr", workers = 36, 
+        show_message = TRUE))
+
+fs_ten_legacy <- forestsearch_tenfold_legacy(fs.est = fs, sims = 5, Kfolds = 10, details=TRUE)
+
+
+# Reset workers to single
+plan(sequential)
+
+print(fs_ten$find_summary)
+print(fs_ten$sens_summary)
+
+print(head(fs_ten$sens_out))
+print(head(fs_ten$find_out))
 
 ```
 
-### Diagnostics and Summaries
 
-```{r}
+
+
+```{r forestplot_k2}
+
+output_dir <- "results/"
+load_results <- dir.exists(output_dir)
+NB <- 1000
+if(load_results){
+filename <- file.path(output_dir, 
+                         paste0("gbsg_k2_B=", 
+                                format(NB),".RData"))
+
+load(file = filename)
+}
+
+
+
+#' # Define subgroups to display
+subgroups <- list(
+ age_gt65 = list(
+ subset_expr = "age > 65",
+ name = "age > 65",
+     type = "reference"
+   ),
+ age_lt65 = list(
+ subset_expr = "age <= 65",
+ name = "age <= 65",
+     type = "reference"
+   ),
+pgr_positive = list(
+ subset_expr = "pgr > 0",
+ name = "pgr > 0",
+     type = "reference"
+   )
+  )
+
+
+# Create the forest plot
+ result <- plot_subgroup_results_forestplot(
+   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_OOB = fs_OOB, cv_source="oob"),
+   df_analysis = df.analysis,
+   subgroup_list = subgroups,
+   outcome.name = "time_months",
+   event.name = "status",
+   treat.name = "hormon",
+   E.name = "Hormon",
+   C.name = "CT"
+ )
+
+# Display the plot
+plot(result$plot)
+
+
+
+```
+
+```{r forestplot_k1}
 
 output_dir <- "results/"
 load_results <- dir.exists(output_dir)
@@ -357,31 +393,42 @@ filename <- file.path(output_dir,
 load(file = filename)
 }
 
-summaries <- summarize_bootstrap_results(
-      sgharm = fs$sg.harm,
-      boot_results = fs_bc,
-      create_plots = TRUE,
-      est.scale = "hr"
-    )
 
-sg_tab <- summaries$table
 
-sg_tab
+#' # Define subgroups to display
+subgroups <- list(
+ age_gt65 = list(
+ subset_expr = "age > 65",
+ name = "age > 65",
+     type = "reference"
+   ),
+ age_lt65 = list(
+ subset_expr = "age <= 65",
+ name = "age <= 65",
+     type = "reference"
+   ),
+pgr_positive = list(
+ subset_expr = "pgr > 0",
+ name = "pgr > 0",
+     type = "reference"
+   )
+  )
 
-event_summary <- summarize_bootstrap_events(fs_bc, threshold = 12)
 
-summaries$diagnostics_table_gt
+# Create the forest plot
+ result <- plot_subgroup_results_forestplot(
+   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_kfold = NULL),
+   df_analysis = df.analysis,
+   subgroup_list = subgroups,
+   outcome.name = "time_months",
+   event.name = "status",
+   treat.name = "hormon",
+   E.name = "Hormon",
+   C.name = "CT"
+ )
 
-summaries$subgroup_summary$original_agreement
-
-summaries$subgroup_summary$factor_presence
-
-summaries$subgroup_summary$factor_presence_specific
+# Display the plot
+plot(result$plot)
 
 ```
 
-```{r, fig.width = 10, fig.height = 8}
-
-summaries$plots$combined
-
-```

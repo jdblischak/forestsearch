@@ -548,11 +548,13 @@ duplicated_elements
 
 # Then create a Pull Request on GitHub
 
-# Load your updated package
-devtools::load_all()
 
 # Generate documentation
 devtools::document()
+
+# Load your updated package
+devtools::load_all()
+
 
 # Run tests
 devtools::test()

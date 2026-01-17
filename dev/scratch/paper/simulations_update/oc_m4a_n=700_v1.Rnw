@@ -1,0 +1,194 @@
+\documentclass[9pt]{article}
+\usepackage{multicol}
+\usepackage{amssymb,mathrsfs,graphicx}
+\usepackage{enumerate}
+\usepackage{amsthm}
+\usepackage{lscape}
+\usepackage{pdfpages}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\usepackage[colorlinks=true,linkcolor={blue},citecolor={blue},urlcolor={blue}]{hyperref}
+\usepackage{longtable,ctable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{mathptmx}
+\usepackage{natbib}
+\usepackage{setspace}
+
+\usepackage[utf8]{inputenc}
+\usepackage{pgf}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumerate}
+\usepackage{threeparttable}
+
+
+\newcommand{\R}{R}
+\newcommand{\gbsg}{gbsg}
+
+\def\FsNg{\hbox{FS}(M_{g})}
+
+\def\hhat{\hat\theta(\hat{H})}
+\def\hchat{\hat\theta(\hat{H}^{c})}
+\def\hknow{\hat\theta(H)}
+\def\hcknow{\hat\theta(H^{c})}
+\def\hplim{\theta^{\dagger}(H)}
+\def\hcplim{\theta^{\dagger}(H^{c})}
+
+
+\newcommand{\indep}{\perp \!\!\! \perp}
+
+\textheight=9.25in \textwidth=6.0in 
+\topmargin=0in
+\evensidemargin=0in \oddsidemargin=0in
+
+\begin{document}
+
+\raggedbottom
+
+<<echo=FALSE>>=
+  opts_chunk$set (warning = FALSE, message = FALSE, tidy=TRUE, echo=FALSE, dev = 'pdf')
+options(warn=-1)
+@
+  
+
+<<echo=FALSE>>=
+
+library(knitr)
+library(kableExtra)
+
+source("../../../R/source_forestsearch_v0.R")
+source_fs_functions(file_loc="../../../R/")
+
+library(kableExtra)
+library(data.table)
+
+# For null, do not report sensH and ppH
+get_stats <- c("any.H","sensHc","ppHc","Avg(#H)","Avg(#Hc)")
+
+stat_names<-c("any(H)","${sens}(\\hat{H}^{C})$",
+              "${ppv}(\\hat{H}^{C})$",
+              "${avg}\\vert \\hat{H} \\vert$",
+              "${avg}\\vert \\hat{H}^{C} \\vert$")
+
+est_names1<-c("$FS_{l}$","$FS_{lg}$","$GRF$","$GRF_{60}$","$VT(24)$","$VT(36)$")
+# Change slightly 
+est_names2<-c("${FS_{l}}$","${FS_{lg}}$","${GRF}$","${GRF_{60}}$","${VT(24)}$","${VT(36)}$")
+
+to_keep <- c("FSl","FSlg","GRF","GRF.60","VT(24)","VT(36)")
+
+mod.harm <- "null"
+
+load(file="results/oc_sims=20000_m4a-Noise=0_N=700_null_ktreat=0.9_v0A.Rdata")
+res1 <- res
+# data frame
+tab <- tab_tests(res=res1)
+tab <- tab[, c(to_keep)]
+tab1 <- tab[c(get_stats),]
+colnames(tab1) <- est_names1
+
+pAny_approx <- round(pAnyH.approx2,3)
+
+load(file="results/oc_sims=20000_m4a-Noise=3_N=700_null_ktreat=0.9_v0A.Rdata")
+res2 <- res
+# data frame
+tab <- tab_tests(res=res2)
+tab <- tab[, c(to_keep)]
+tab2 <- tab[c(get_stats),]
+colnames(tab2) <- est_names2
+
+tab_both <- cbind(tab1,tab2)
+
+tab_both<-format(tab_both,digits=3,drop0trailing = TRUE)
+
+# Will be combined below
+tab_null <- tab_both
+
+rownames(tab_both) <- stat_names
+
+options(knitr.kable.NA = '.',format="latex")
+
+tabsim<-kbl(tab_both,longtable=FALSE,align='c',format="latex", digits=3, booktabs=TRUE,escape=F,
+caption="Average classification rates across $20,000$ simulations of trials with $N=700$ subjects under the null of no HTE ($H = \\emptyset$): ${avg}\\vert \\hat{H} \\vert$, ${min}\\vert \\hat{H} \\vert$, and ${max}\\vert \\hat{H} \\vert$, denote the average, minimum, and maximum of the number of subjects in the estimated subgroup $\\hat{H}$ (analogously for $\\hat{H}^{c}$).  
+Note that under the null $sens(\\hat{H})$ is undefined and $ppv(\\hat{H})=0$.") %>%
+kable_styling("striped", full_width = F, latex_options="hold_position", font_size=9) %>%
+add_header_above(c(" "=1, "Analysis with No additional noise factors" =6, "Analysis with 3 additional noise factors"=6), bold = T, italic=T) %>%
+footnote(alphabet = paste(c('Probability via approximation:'), c(pAny_approx), '.'), footnote_as_chunk=T) 
+@
+
+\Sexpr{tabsim}
+
+
+
+
+<<echo=FALSE>>=
+
+mod.harm <- "alt"
+
+get_stats <- c("any.H","sensH","sensHc","ppH","ppHc","Avg(#H)","Avg(#Hc)")
+
+# Add footnote to avg(H)
+stat_names2<-c("any(H)","${sens}(\\hat{H})$","${sens}(\\hat{H}^{C})$",
+              "${ppv}(\\hat{H})$","${ppv}(\\hat{H}^{C})$",
+              "${{avg}\\vert \\hat{H} \\vert}^{a}$",
+              "${{avg}\\vert \\hat{H}^{C} \\vert}^{b}$")
+
+load(file="results/oc_sims=20000_m4a-Noise=0_N=700_alt_ktreat=0.9_hrH=2_v0A.Rdata")
+res3 <- res
+# data frame
+tab <- tab_tests(res=res3)
+tab <- tab[, c(to_keep)]
+tab1 <- tab[c(get_stats),]
+colnames(tab1) <- est_names1
+
+df1 <- subset(res, analysis=="FSl")
+sizeH <- round(mean(df1$sizeH_true),0)
+sizeHc <- round(mean(df1$sizeHc_true),0)
+
+pAny_approx <- round(pAnyH.approx2,2)
+
+load(file="results/oc_sims=20000_m4a-Noise=3_N=700_alt_ktreat=0.9_hrH=2_v0A.Rdata")
+res_null <- res
+# data frame
+tab <- tab_tests(res=res_null)
+tab <- tab[, c(to_keep)]
+tab2 <- tab[c(get_stats),]
+colnames(tab2) <- est_names2
+
+tab_both <- cbind(tab1,tab2)
+
+tab_both<-format(tab_both,digits=3,drop0trailing = TRUE)
+
+rownames(tab_both) <- stat_names2
+
+options(knitr.kable.NA = '.',format="latex")
+
+tabsim<-kbl(tab_both,longtable=FALSE,align='c',format="latex", digits=3, booktabs=TRUE,escape=F,
+caption="Average classification rates across $20,000$ simulations of trials with $N=700$ subjects under HTE ($p_{H} \\approx 12.5\\%$, $\\theta^{\\dagger}(H) = 2.5$): ${avg}\\vert \\hat{H} \\vert$, ${min}\\vert \\hat{H} \\vert$, and ${max}\\vert \\hat{H} \\vert$, denote the average, minimum, and maximum of the number of subjects in the estimated subgroup $\\hat{H}$ (analogously for $\\hat{H}^{c}$).") %>%
+kable_styling("striped", full_width = F, latex_options="hold_position", font_size=9) %>%
+add_header_above(c(" "=1, "Analysis with No additional noise factors" =6, "Analysis with 3 additional noise factors"=6), bold = T, italic=T) %>%
+footnote(alphabet = paste(c('Probability via approximation:'), c(pAny_approx), '.'), footnote_as_chunk=T) %>%
+footnote(alphabet = paste(c('Average size of true H =','Average size of true complement ='), c(sizeH,sizeHc), '.'), footnote_as_chunk=T) 
+@
+
+\Sexpr{tabsim}
+
+
+
+
+
+
+
+\end{document}
+

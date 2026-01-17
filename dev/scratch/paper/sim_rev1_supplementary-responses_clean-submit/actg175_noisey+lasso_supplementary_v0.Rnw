@@ -1,0 +1,184 @@
+\Sexpr{set_parent("supplementary_SIM-Rev1_v0.Rnw")}
+
+
+<<echo=FALSE>>=
+opts_chunk$set (warning = FALSE, message = FALSE, tidy=TRUE, echo=FALSE, dev = 'pdf')
+options(warn=-1)
+@
+  
+ <<echo=FALSE>>=
+rm(list=ls())
+# For KM plots
+codepath<-c("../../R/")
+source(paste0(codepath,"source_forestsearch_v0.R"))
+source_fs_functions(file_loc=codepath)
+
+library(survival)
+library(speff2trial)
+
+load(file="../applications/actg-175/output/actg175_noisey_lasso_v0.Rdata")
+# Analysis dataset
+df <- fs.est$df.est
+
+df0.fs<-subset(fs.est$df.pred,treat.recommend==0)
+df1.fs<-subset(fs.est$df.pred,treat.recommend==1)
+
+# ITT analysis (Reverse treatment roles to original)
+cox_itt<-summary(coxph(Surv(time_months,cens)~arm1,data=fs.est$df.pred))$conf.int
+  # ITT estimates
+resITT<-c(round(cox_itt[c(1,3,4)],2),nrow(fs.est$df.pred))
+
+df0.fs$treat2 <- 1-df0.fs$treat
+df1.fs$treat2 <- 1-df1.fs$treat
+
+@
+  
+  
+<<echo=FALSE,message=FALSE,warning=FALSE>>=
+H_estimates <- round(fs_bc$H_estimates,2)
+Hc_estimates <- round(fs_bc$Hc_estimates,2)
+
+resQ <- unlist(H_estimates[,c("H0","H0_lower","H0_upper")])
+resQB <- unlist(H_estimates[,c("H2","H2_lower","H2_upper")])
+resQc <- unlist(Hc_estimates[,c("H0","H0_lower","H0_upper")])
+resQcB <- unlist(Hc_estimates[,c("H2","H2_lower","H2_upper")])
+
+L_factors <- fs.est$find.grps$L
+max_count <- fs.est$find.grps$max_count
+sg_loc <- fs.est$grp.consistency$sg.harm.id
+SG_hrs <- fs.est$grp.consistency$out_hr$result
+# Here, only 1 SG is returned (Need to check this manually)
+# Here override sg_loc =1
+sg_loc <- 1
+p_consistency <- 100*round(SG_hrs$Pcons[sg_loc],3)
+
+# N-fold SGs
+SG_tab_Kfold <- summary_OOB$SG_tab_Kfold$res_out
+nH_OOB <- SG_tab_Kfold[1,c("n")]
+# Full analysis
+SG_tab_full <- summary_OOB$SG_tab_original$res_out
+nH_full <- SG_tab_full[1,c("n")]
+
+H_nfold <- summary_OOB$SG_tab_Kfold$res_out[1,8]
+Hc_nfold <- summary_OOB$SG_tab_Kfold$res_out[2,8]
+
+# Number of SGs found in N-fold
+nf_OOB <- round(fs_OOB$prop_SG_found*nrow(df)/100,0)
+# Proportion found
+pf_OOB <- fs_OOB$prop_SG_found
+
+@
+  
+<<echo=FALSE,message=FALSE,warning=FALSE,eval=FALSE>>=
+# To update, need to re-evaluate (set eval=TRUE)
+library(latex2exp)
+
+# Reverse treatment roles to original via treat2
+df.analysis <- fs.est$df.pred
+
+pdf(file = "plot_KM_actg_noisey_lasso_supplementary.pdf", 
+width = 10, height = 10) 
+
+par(mfrow=c(1,2))
+tte.name<-c("time_months")
+event.name<-c("cens")
+# Revert back to original treatment 1-vs-3 comparison
+treat.name<-c("treat2")
+byrisk <- 4
+
+risk.cex<-0.95
+legend.cex<-0.90
+
+# Add all events
+evs<-sort(unique(df.analysis$time_months[which(df.analysis$cens==1)]))
+tpoints.add<-c(-1,evs,max(df.analysis$time_months))
+
+# Legend labels for Q
+# Q is "especially strong"
+
+Hla<-sprintf(r'($\hat{Q}, %s$)',c("Treatment"))
+Hlb<-sprintf(r'($\hat{Q}, %s$)',c("Control"))
+Hl<-c(Hla,Hlb)
+
+Hcla<-sprintf(r'($\hat{Q^{c}}, %s$)',c("Treatment"))
+Hclb<-sprintf(r'($\hat{Q^{c}}, %s$)',c("Control"))
+Hcl<-c(Hcla,Hclb)
+
+dfp<-df0.fs
+
+kmH.fit<-KM.plot.2sample.weighted(Y=dfp[,c(tte.name)],E=dfp[,c(event.name)],Treat=dfp[,c(treat.name)],
+risk.set=TRUE,by.risk=byrisk,tpoints.add=tpoints.add,risk.cex=risk.cex,
+choose_ylim=TRUE,
+stop.onerror=TRUE, check.KM=TRUE,
+Xlab="Months",Ylab="Event-free Survival",details=FALSE,
+show.ticks=TRUE,
+col.1="black", col.2="blue",
+ltys=c(1,2),lwds=c(3,3),
+plotit=TRUE,
+show.logrank=FALSE,show.med=FALSE,show.cox=FALSE)
+title(sub="(a) Preanti <= 744.5 and Age > 34")
+
+legend("topright",
+legend=TeX(Hl),col=c("black","blue"),lwd=c(3,3),lty=c(1,2),bty="n",cex=legend.cex)
+
+
+dfp<-df1.fs
+
+kmH.fit<-KM.plot.2sample.weighted(Y=dfp[,c(tte.name)],E=dfp[,c(event.name)],Treat=dfp[,c(treat.name)],
+risk.set=TRUE,by.risk=byrisk,tpoints.add=tpoints.add,risk.cex=risk.cex,
+show.Y.axis=FALSE,
+choose_ylim=TRUE,
+stop.onerror=TRUE, check.KM=TRUE,
+Xlab="Months",Ylab="",details=FALSE,
+show.ticks=TRUE,
+col.1="black", col.2="blue",
+ltys=c(1,2),lwds=c(3,3),
+plotit=TRUE,
+show.logrank=FALSE,show.med=FALSE,show.cox=FALSE)
+title(sub="(b) Preanti > 744.5 or Age <= 34")
+
+legend("topright",
+legend=TeX(Hcl),col=c("black","blue"),lwd=c(3,3),lty=c(1,2),bty="n",cex=legend.cex)
+
+dev.off()
+
+@
+
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\textwidth, height=3.25in]{plot_KM_actg_noisey_lasso_supplementary.pdf}
+\end{center}
+\caption{ACTG-175 analysis application of Forest Search. Kaplan-Meier (K-M) curves (un-adjusted for the estimation of subgroups): (a) Forest Search $\widehat{Q}$ subgroup treatment estimates;
+(b) Forest Search $\widehat{Q}^{c}$ subgroup treatment estimates.}
+\label{fig:KM_actg_noisey_lasso}
+\end{figure}
+
+
+\subsection*{S2.3 ACTG-175 Analysis ``Added Noise'' with lasso}
+
+We next consider the previous analysis with the same twenty $N(0,1)$ factors but now with lasso included in the algorithm.  As in the previous analysis GRF does not identify a subgroup (GRF is independent of lasso in our implementation), and 
+lasso selects 10 factors (\verb+karnof+, \verb+cd40+, \verb+cd80+, \verb+symptom+, \verb+preanti+, \verb+noise1+, \verb+noise7+, \verb+noise8+, \verb+noise12+, and \verb+noise18+) which are all continuous except \verb+symptom+.  We cut 
+the continuous factors at the mean, median, $q_1$, and $q_3$ which results in $K=39$ (non-redundant) binary cuts. There are then $L = \Sexpr{L_factors}$ total single factor subgroups with $L*(L-1)/2+L = \Sexpr{prettyNum(max_count, big.mark=",")}$ possible subgroups:  Among these subgroups the number of candidates with sample sizes $\geq 60$ and at least $10$ events in each arm is reduced to $\Sexpr{prettyNum(2591, big.mark=",")}$. 
+
+The largest subgroup with a consistency rate of at least $90\%$ is the subgroup ~\verb+Preanti<=744.5+ and \verb+Age>34+ (consistency = $\Sexpr{p_consistency}\%$) which is identical to the subgroup identified in the main text (i.e., without the twenty noise factors and without using lasso).
+The resulting $\widehat{Q}$-estimates are $\hat\theta(\widehat{Q}) = \Sexpr{resQ[1]}$  ( $\Sexpr{resQ[2]}$, $\Sexpr{resQ[3]}$] and (bootstrap bias-corrected) $\hat\theta^{*}(\widehat{Q}) =\Sexpr{resQB[1]}$  ($\Sexpr{resQB[2]}$, $\Sexpr{resQB[3]}$).  For the complement, 
+$\hat\theta(\widehat{Q}^{c}) = \Sexpr{resQc[1]}$ ($\Sexpr{resQc[2]}$, $\Sexpr{resQc[3]}$) and $\hat\theta^{*}(\widehat{Q}^{c}) =\Sexpr{resQcB[1]}$ ($\Sexpr{resQcB[2]}$, $\Sexpr{resQcB[3]}$).  Note that these are very similar to the estimates in the main text. Figure \ref{fig:KM_actg_noisey_lasso} displays the Kaplan-Meier curves for the estimated subgroups.
+
+
+For the $N$-fold cross-validation, across the $N=\Sexpr{nrow(df)}$ training sets there were 
+$\Sexpr{nf_OOB}$ ($\Sexpr{pf_OOB}\%$) subgroups identified:  The factors \verb+Symptom+ and
+\verb+Preanti+ appeared as the first subgroup identifying factor $\Sexpr{sum(c(757))}$ and 
+$\Sexpr{sum(c(72,242))}$ times, respectively; While \verb+Age>34+ and a \verb+Noise+ factor appeared 
+as a second subgroup identifying factor $314$ and $\Sexpr{sum(c(757,3))}$ times, respectively.  A total of    
+$\Sexpr{round(nrow(df)*(1-(pf_OOB/100)),0)}$ ($\Sexpr{100*(1-round((pf_OOB/100),2))}$\%) subjects were classified as ITT:=$\widehat{Q}^{c}$ due to lack of subgroup identification and in total $n=\Sexpr{nH_OOB}$ subjects ($N$-fold predicted) are classified as $\widehat{Q}$ (versus $n=\Sexpr{nH_full}$ for the full analysis). The Cox model estimate for the $N$-fold predicted subgroups $\widehat{Q}$ and $\widehat{Q}^{c}$ are $1.91$ ($1.01, 3.6$) 
+and $0.7$ ($0.52, 0.93$) which, as in the last analysis, dramatically differ from the (bootstrap bias-adjusted) full analysis 
+$\hat\theta^{*}(\widehat{Q}) =\Sexpr{resQB[1]}$ ($\Sexpr{resQB[2]}$, $\Sexpr{resQB[3]}$) and $\hat\theta^{*}(\widehat{Q}^{c}) =\Sexpr{resQcB[1]}$  ($\Sexpr{resQcB[2]}$, $\Sexpr{resQcB[3]}$), respectively.    
+Across $200$ random 10-fold CV analyses the sensitivity and positive predictive value (median) summaries ranged from $50\%-74\%$.  
+
+In this analysis the incorporation of lasso resulted in identifying a meaningful subgroup, the same as in main text, with corresponding estimates also essentially the same.  However, as in the previous analysis (without lasso), the above $N$-fold CV discrepancies suggests an underlying instability in the presence of including twenty $N(0,1)$ noise factors.  We note that the computational timing is similar to the previous analysis.
+
+%%Checking: $\widehat{Q}$: $\verb!\Sexpr{H_nfold}!$, $\widehat{Q}^{c}$:  $\verb!\Sexpr{Hc_nfold}!$
+
+  

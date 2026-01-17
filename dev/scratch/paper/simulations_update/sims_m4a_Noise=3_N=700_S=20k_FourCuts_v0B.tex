@@ -1,0 +1,1784 @@
+\documentclass[8pt]{article}\usepackage[]{graphicx}\usepackage[]{xcolor}
+% maxwidth is the original width if it is less than linewidth
+% otherwise use linewidth (to make sure the graphics do not exceed the margin)
+\makeatletter
+\def\maxwidth{ %
+  \ifdim\Gin@nat@width>\linewidth
+    \linewidth
+  \else
+    \Gin@nat@width
+  \fi
+}
+\makeatother
+
+\definecolor{fgcolor}{rgb}{0.345, 0.345, 0.345}
+\newcommand{\hlnum}[1]{\textcolor[rgb]{0.686,0.059,0.569}{#1}}%
+\newcommand{\hlstr}[1]{\textcolor[rgb]{0.192,0.494,0.8}{#1}}%
+\newcommand{\hlcom}[1]{\textcolor[rgb]{0.678,0.584,0.686}{\textit{#1}}}%
+\newcommand{\hlopt}[1]{\textcolor[rgb]{0,0,0}{#1}}%
+\newcommand{\hlstd}[1]{\textcolor[rgb]{0.345,0.345,0.345}{#1}}%
+\newcommand{\hlkwa}[1]{\textcolor[rgb]{0.161,0.373,0.58}{\textbf{#1}}}%
+\newcommand{\hlkwb}[1]{\textcolor[rgb]{0.69,0.353,0.396}{#1}}%
+\newcommand{\hlkwc}[1]{\textcolor[rgb]{0.333,0.667,0.333}{#1}}%
+\newcommand{\hlkwd}[1]{\textcolor[rgb]{0.737,0.353,0.396}{\textbf{#1}}}%
+\let\hlipl\hlkwb
+
+\usepackage{framed}
+\makeatletter
+\newenvironment{kframe}{%
+ \def\at@end@of@kframe{}%
+ \ifinner\ifhmode%
+  \def\at@end@of@kframe{\end{minipage}}%
+  \begin{minipage}{\columnwidth}%
+ \fi\fi%
+ \def\FrameCommand##1{\hskip\@totalleftmargin \hskip-\fboxsep
+ \colorbox{shadecolor}{##1}\hskip-\fboxsep
+     % There is no \\@totalrightmargin, so:
+     \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
+ \MakeFramed {\advance\hsize-\width
+   \@totalleftmargin\z@ \linewidth\hsize
+   \@setminipage}}%
+ {\par\unskip\endMakeFramed%
+ \at@end@of@kframe}
+\makeatother
+
+\definecolor{shadecolor}{rgb}{.97, .97, .97}
+\definecolor{messagecolor}{rgb}{0, 0, 0}
+\definecolor{warningcolor}{rgb}{1, 0, 1}
+\definecolor{errorcolor}{rgb}{1, 0, 0}
+\newenvironment{knitrout}{}{} % an empty environment to be redefined in TeX
+
+\usepackage{alltt}
+\usepackage{multicol}
+\usepackage{amssymb,mathrsfs,graphicx}
+\usepackage{enumerate}
+\usepackage{amsthm}
+\usepackage{lscape}
+\usepackage{pdfpages}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\usepackage[colorlinks=true,linkcolor={blue},citecolor={blue},urlcolor={blue}]{hyperref}
+\usepackage{longtable,ctable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{mathptmx}
+\usepackage{natbib}
+\usepackage{setspace}
+
+\usepackage[utf8]{inputenc}
+\usepackage{pgf}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumerate}
+\usepackage{threeparttable}
+
+
+\newcommand{\R}{R}
+\newcommand{\gbsg}{gbsg}
+
+\def\FsNg{\hbox{FS}(M_{g})}
+
+\def\hhat{\hat\theta(\hat{H})}
+\def\hchat{\hat\theta(\hat{H}^{c})}
+\def\hknow{\hat\theta(H)}
+\def\hcknow{\hat\theta(H^{c})}
+\def\hplim{\theta^{\dagger}(H)}
+\def\hcplim{\theta^{\dagger}(H^{c})}
+
+
+\newcommand{\indep}{\perp \!\!\! \perp}
+
+\textheight=9.25in \textwidth=6.0in 
+\topmargin=0in
+\evensidemargin=0in \oddsidemargin=0in
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\begin{document}
+
+\raggedbottom
+
+
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{N} \hlkwb{<-} \hlnum{700}
+\hlstd{Nsims} \hlkwb{<-} \hlnum{1000}
+
+\hlstd{maxFollow} \hlkwb{<-} \hlnum{84}
+\hlstd{cens.type} \hlkwb{<-} \hlstr{"weibull"}
+\hlcom{######################### Forest search criteria}
+\hlstd{hr.threshold} \hlkwb{<-} \hlnum{1.25}  \hlcom{# Initital candidates }
+\hlstd{hr.consistency} \hlkwb{<-} \hlnum{1}  \hlcom{# Candidates for many splits}
+
+\hlstd{pconsistency.threshold} \hlkwb{<-} \hlnum{0.9}
+\hlstd{stop.threshold} \hlkwb{<-} \hlnum{0.95}
+
+\hlstd{maxk} \hlkwb{<-} \hlnum{2}
+\hlstd{nmin.fs} \hlkwb{<-} \hlnum{60}
+\hlstd{pstop_futile} \hlkwb{<-} \hlnum{0.7}
+
+\hlcom{# Limit timing for forestsearch}
+\hlstd{max.minutes} \hlkwb{<-} \hlnum{3}
+\hlstd{m1.threshold} \hlkwb{<-} \hlnum{Inf}  \hlcom{# Turning this off (Default)}
+\hlcom{# pconsistency.threshold<-0.70 # Minimum threshold (will choose max among}
+\hlcom{# subgroups satisfying)}
+\hlstd{fs.splits} \hlkwb{<-} \hlnum{400}  \hlcom{# How many times to split for consistency}
+\hlcom{# vi is % factor is selected in cross-validation --> higher more important}
+\hlstd{vi.grf.min} \hlkwb{<-} \hlstd{(}\hlopt{-}\hlnum{1}\hlstd{)} \hlopt{*} \hlnum{0.2}  \hlcom{# This is default (to NOT exclude via VI)}
+\hlcom{# Null, turns off grf screening}
+\hlstd{d.min} \hlkwb{<-} \hlnum{10}  \hlcom{# Min number of events for both arms (d0.min=d1.min=d.min)}
+\hlcom{# default=5}
+
+\hlcom{########################## Virtual twins analysis Counter-factual difference}
+\hlcom{########################## (C-E) >= vt.threshold Large values in favor of C}
+\hlcom{########################## (control)}
+\hlstd{vt.threshold} \hlkwb{<-} \hlnum{0.225}  \hlcom{# For VT delta}
+\hlstd{treat.threshold} \hlkwb{<-} \hlnum{0}
+
+\hlstd{maxdepth} \hlkwb{<-} \hlnum{2}
+\hlstd{n.min} \hlkwb{<-} \hlnum{60}
+\hlstd{ntree} \hlkwb{<-} \hlnum{1000}
+
+\hlcom{# GRF criteria}
+\hlstd{dmin.grf} \hlkwb{<-} \hlnum{12}  \hlcom{# For GRF delta}
+\hlcom{# Note: For CRT this represents dmin.grf/2 RMS for control (-dmin.grf/2 for}
+\hlcom{# treatment)}
+\hlstd{frac.tau} \hlkwb{<-} \hlnum{0.6}
+
+\hlcom{# For forestsearch algorithm use same as GRF}
+\hlstd{frac.tau_fs} \hlkwb{<-} \hlnum{0.6}
+\hlstd{dmin.grf_fs} \hlkwb{<-} \hlnum{12}
+\hlstd{maxdepth_fs} \hlkwb{<-} \hlnum{2}
+
+\hlstd{label.analyses} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"FSl"}\hlstd{,} \hlstr{"GRF"}\hlstd{,} \hlstr{"VT(24)"}\hlstd{,} \hlstr{"VT#(24)"}\hlstd{,} \hlstr{"VT(36)"}\hlstd{,} \hlstr{"VT#(36)"}\hlstd{,} \hlstr{"GRF.60"}\hlstd{)}
+\hlcom{# Classification table names}
+\hlstd{est_names} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"$FS_\{g\}$"}\hlstd{,} \hlstr{"$FS_\{lg\}$"}\hlstd{,} \hlstr{"$GRF$"}\hlstd{,} \hlstr{"$GRF_\{60\}$"}\hlstd{,} \hlstr{"$VT(24)$"}\hlstd{,} \hlstr{"$\{VT\}^\{\textbackslash{}\textbackslash{}#\}(24)$"}\hlstd{,}
+    \hlstr{"$VT(36)$"}\hlstd{,} \hlstr{"$\{VT\}^\{\textbackslash{}\textbackslash{}#\}(36)$"}\hlstd{)}
+
+\hlstd{outcome.name} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"y.sim"}\hlstd{)}
+\hlstd{event.name} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"event.sim"}\hlstd{)}
+\hlstd{id.name} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"id"}\hlstd{)}
+\hlstd{treat.name} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"treat"}\hlstd{)}
+
+\hlstd{cox.formula.sim} \hlkwb{<-} \hlkwd{as.formula}\hlstd{(}\hlkwd{paste}\hlstd{(}\hlstr{"Surv(y.sim,event.sim)~treat"}\hlstd{))}
+\hlstd{cox.formula.adj.sim} \hlkwb{<-} \hlkwd{as.formula}\hlstd{(}\hlkwd{paste}\hlstd{(}\hlstr{"Surv(y.sim,event.sim)~treat+v1+v2+v3+v4+v5"}\hlstd{))}
+
+\hlstd{get.FS} \hlkwb{<-} \hlnum{TRUE}
+\hlstd{get.VT} \hlkwb{<-} \hlnum{TRUE}
+\hlstd{get.GRF} \hlkwb{<-} \hlnum{TRUE}
+
+\hlstd{fl_prefix} \hlkwb{<-} \hlkwd{paste0}\hlstd{(}\hlstr{"oc_sims="}\hlstd{, Nsims,} \hlstr{"_"}\hlstd{)}
+
+\hlstd{out.loc} \hlkwb{<-} \hlkwd{paste0}\hlstd{(}\hlstr{"results/"}\hlstd{, fl_prefix)}
+
+\hlcom{# m1 -censoring adjustment}
+\hlstd{muC.adj} \hlkwb{<-} \hlkwd{log}\hlstd{(}\hlnum{1.5}\hlstd{)}
+
+\hlcom{# 0, 3, or 5}
+\hlstd{n_add_noise} \hlkwb{<-} \hlnum{3}
+
+\hlstd{mindex} \hlkwb{<-} \hlstr{"m4a"}
+\hlstd{file.index} \hlkwb{<-} \hlstr{"v0B-4cuts"}
+
+\hlstd{z1_frac} \hlkwb{<-} \hlnum{0.25}
+
+\hlkwa{if} \hlstd{(mindex} \hlopt{==} \hlstr{"m4a"}\hlstd{) \{}
+    \hlstd{k.z3} \hlkwb{<-} \hlnum{1}
+    \hlstd{k.treat} \hlkwb{<-} \hlnum{0.9}
+    \hlstd{pH_super} \hlkwb{<-} \hlnum{0.125}  \hlcom{# non-NULL re-defines z1_frac}
+\hlstd{\}}
+
+\hlkwa{if} \hlstd{(mindex} \hlopt{==} \hlstr{"m4aB"}\hlstd{) \{}
+    \hlstd{k.z3} \hlkwb{<-} \hlnum{1}
+    \hlstd{k.treat} \hlkwb{<-} \hlnum{0.9}
+    \hlstd{pH_super} \hlkwb{<-} \hlnum{0.2}  \hlcom{# non-NULL re-defines z1_frac}
+\hlstd{\}}
+
+\hlkwa{if} \hlstd{(mindex} \hlopt{==} \hlstr{"m4b"}\hlstd{) \{}
+    \hlstd{k.z3} \hlkwb{<-} \hlnum{1}
+    \hlstd{k.treat} \hlkwb{<-} \hlnum{1.25}
+    \hlstd{pH_super} \hlkwb{<-} \hlnum{0.3}  \hlcom{# non-NULL re-defines z1_frac}
+\hlstd{\}}
+
+\hlkwa{if} \hlstd{(mindex} \hlopt{==} \hlstr{"m4c"}\hlstd{) \{}
+    \hlstd{k.z3} \hlkwb{<-} \hlnum{1}
+    \hlstd{k.treat} \hlkwb{<-} \hlnum{1.5}
+    \hlstd{pH_super} \hlkwb{<-} \hlnum{0.3}  \hlcom{# non-NULL re-defines z1_frac}
+\hlstd{\}}
+
+\hlstd{model.index} \hlkwb{<-} \hlkwd{paste0}\hlstd{(mindex,} \hlstr{"-Noise="}\hlstd{,} \hlstr{""}\hlstd{)}
+\hlstd{model.index} \hlkwb{<-} \hlkwd{paste0}\hlstd{(model.index, n_add_noise,} \hlstr{""}\hlstd{)}
+
+\hlkwa{if} \hlstd{(}\hlkwd{is.null}\hlstd{(pH_super)) \{}
+    \hlcom{# pH_check<-with(gbsg,mean(pgr<=quantile(pgr,c(z3_frac),1,0) &}
+    \hlcom{# er<=quantile(er,z1_frac)))}
+    \hlstd{pH_check} \hlkwb{<-} \hlkwd{with}\hlstd{(gbsg,} \hlkwd{mean}\hlstd{(meno} \hlopt{==} \hlnum{0} \hlopt{&} \hlstd{er} \hlopt{<=} \hlkwd{quantile}\hlstd{(er, z1_frac)))}
+    \hlkwd{cat}\hlstd{(}\hlstr{"Underlying pH_super"}\hlstd{,} \hlkwd{c}\hlstd{(pH_check),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+\hlstd{\}}
+\hlcom{# pH_super specified If pH_super then override z1_frac and find z1_frac to}
+\hlcom{# yield pH_super}
+
+\hlkwa{if} \hlstd{(}\hlopt{!}\hlkwd{is.null}\hlstd{(pH_super)) \{}
+    \hlcom{# Approximate Z1 quantile to yield pH proportion}
+    \hlstd{z1_q} \hlkwb{<-} \hlkwd{uniroot}\hlstd{(propH.obj4,} \hlkwd{c}\hlstd{(}\hlnum{0}\hlstd{,} \hlnum{1}\hlstd{),} \hlkwc{tol} \hlstd{=} \hlnum{1e-04}\hlstd{,} \hlkwc{pH.target} \hlstd{= pH_super)}\hlopt{$}\hlstd{root}
+    \hlcom{# pH_check<-with(gbsg,mean(pgr<=quantile(pgr,c(z3_frac),1,0) &}
+    \hlcom{# er<=quantile(er,z1_q)))}
+    \hlstd{pH_check} \hlkwb{<-} \hlkwd{with}\hlstd{(gbsg,} \hlkwd{mean}\hlstd{(meno} \hlopt{==} \hlnum{0} \hlopt{&} \hlstd{er} \hlopt{<=} \hlkwd{quantile}\hlstd{(er, z1_q)))}
+    \hlkwd{cat}\hlstd{(}\hlstr{"pH"}\hlstd{,} \hlkwd{c}\hlstd{(pH_check),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+    \hlstd{rel_error} \hlkwb{<-} \hlstd{(pH_super} \hlopt{-} \hlstd{pH_check)}\hlopt{/}\hlstd{pH_super}
+    \hlkwa{if} \hlstd{(}\hlkwd{abs}\hlstd{(rel_error)} \hlopt{>=} \hlnum{0.1}\hlstd{)}
+        \hlkwd{stop}\hlstd{(}\hlstr{"pH_super approximation relative error exceeds 10%"}\hlstd{)}
+    \hlstd{z1_frac} \hlkwb{<-} \hlstd{z1_q}
+    \hlkwd{cat}\hlstd{(}\hlstr{"Underlying pH_super"}\hlstd{,} \hlkwd{c}\hlstd{(pH_check),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+\hlstd{\}}
+\end{alltt}
+\begin{verbatim}
+## pH 0.122449 
+## Underlying pH_super 0.122449
+\end{verbatim}
+\begin{alltt}
+\hlcom{# Bootstrap on log(hr) scale converted to HR (est.loghr=TRUE & est.scale='hr')}
+\hlstd{est.loghr} \hlkwb{<-} \hlnum{TRUE}
+\hlstd{est.scale} \hlkwb{<-} \hlstr{"hr"}
+\hlstd{t.start.all} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+
+\hlcom{# Classification table names Note: within tab_tests (summary.VTFS) we rename so}
+\hlcom{# that denominator in ppv(hatH) is # hatH Manuscript section 3.2 will be}
+\hlcom{# updated accordingly}
+
+\hlstd{stat_names} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlstr{"any(H)"}\hlstd{,} \hlstr{"$\{sens\}(\textbackslash{}\textbackslash{}hat\{H\})$"}\hlstd{,} \hlstr{"$\{sens\}(\textbackslash{}\textbackslash{}hat\{H\}^\{C\})$"}\hlstd{,} \hlstr{"$\{ppv\}(\textbackslash{}\textbackslash{}hat\{H\})$"}\hlstd{,}
+    \hlstr{"$\{ppv\}(\textbackslash{}\textbackslash{}hat\{H\}^\{C\})$"}\hlstd{,} \hlstr{"$\{avg\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\} \textbackslash{}\textbackslash{}vert$"}\hlstd{,} \hlstr{"$\{min\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\} \textbackslash{}\textbackslash{}vert$"}\hlstd{,}
+    \hlstr{"$\{max\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\} \textbackslash{}\textbackslash{}vert$"}\hlstd{,} \hlstr{"$\{avg\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\}^\{C\} \textbackslash{}\textbackslash{}vert$"}\hlstd{,} \hlstr{"$\{min\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\}^\{C\} \textbackslash{}\textbackslash{}vert$"}\hlstd{,}
+    \hlstr{"$\{max\}\textbackslash{}\textbackslash{}vert \textbackslash{}\textbackslash{}hat\{H\}^\{C\} \textbackslash{}\textbackslash{}vert$"}\hlstd{)}
+
+\hlkwa{if} \hlstd{(}\hlopt{!}\hlstd{get.FS) est_names} \hlkwb{<-} \hlstd{est_names[}\hlopt{-}\hlkwd{c}\hlstd{(}\hlnum{1}\hlopt{:}\hlnum{3}\hlstd{)]}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{mod.harm} \hlkwb{<-} \hlstr{"null"}
+\hlstd{this.dgm} \hlkwb{<-} \hlkwd{get.dgm4.OC}\hlstd{(}\hlkwc{mod.harm} \hlstd{= mod.harm,} \hlkwc{N} \hlstd{= N,} \hlkwc{k.treat} \hlstd{= k.treat,} \hlkwc{model.index} \hlstd{= model.index,}
+    \hlkwc{sol_tol} \hlstd{=} \hlnum{10}\hlopt{^-}\hlnum{8}\hlstd{,} \hlkwc{hrH.target} \hlstd{= hrH.target,} \hlkwc{cens.type} \hlstd{= cens.type,} \hlkwc{out.loc} \hlstd{= out.loc,}
+    \hlkwc{file.index} \hlstd{= file.index,} \hlkwc{details} \hlstd{=} \hlnum{TRUE}\hlstd{,} \hlkwc{parms_torand} \hlstd{=} \hlnum{FALSE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/r_null-1} 
+\begin{kframe}\begin{verbatim}
+## Super-population empirical harm and non-harm hazard ratios= NA 0.701027 
+## Causal HR (empirical ITT)= 0.701027
+\end{verbatim}
+\begin{alltt}
+\hlstd{dgm} \hlkwb{<-} \hlstd{this.dgm}\hlopt{$}\hlstd{dgm}
+\hlstd{output.file} \hlkwb{<-} \hlstd{this.dgm}\hlopt{$}\hlstd{out.file}
+
+\hlkwa{if} \hlstd{(}\hlopt{!}\hlkwd{is.null}\hlstd{(output.file)} \hlopt{& !}\hlkwd{grepl}\hlstd{(mod.harm, output.file))} \hlkwd{stop}\hlstd{(}\hlstr{"Wrong file name for mod.harm"}\hlstd{)}
+
+\hlcom{# Show first simulation ans1 <- oc_analyses_m4_FS4(1)}
+
+\hlstd{t.start} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+\hlstd{res} \hlkwb{<-} \hlkwd{foreach}\hlstd{(}\hlkwc{sim} \hlstd{=} \hlkwd{seq_len}\hlstd{(Nsims),} \hlkwc{.options.future} \hlstd{=} \hlkwd{list}\hlstd{(}\hlkwc{seed} \hlstd{=} \hlnum{TRUE}\hlstd{),} \hlkwc{.combine} \hlstd{=} \hlstr{"rbind"}\hlstd{,}
+    \hlkwc{.errorhandling} \hlstd{=} \hlstr{"pass"}\hlstd{)} \hlopt{%dofuture%} \hlstd{\{}
+    \hlstd{ans} \hlkwb{<-} \hlkwd{oc_analyses_m4FourCuts_FS4}\hlstd{(sim)}
+    \hlkwd{return}\hlstd{(ans)}
+\hlstd{\}}
+\end{alltt}
+\begin{verbatim}
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 49.01796 2 
+##    leaf.node control.mean control.size control.se depth
+## 1          2         3.60        62.00       3.60     1
+## 2          3        -4.55       638.00       1.13     1
+## 11         4        -5.51       312.00       1.65     2
+## 4          7        -4.85       329.00       1.51     2
+##   leaf.node control.mean control.size control.se depth
+## 1         2          3.6         62.0        3.6     1
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## # of candidate subgroup factors= 19 
+##  [1] "size <= 29.4"   "size <= 25"     "size <= 20"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.6" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.8" "noise2 <= 0.7"  "noise3 <= 0"    "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z2"             "z3"            
+## [17] "z4"             "z5"             "grade3"        
+## Number of factors evaluated= 19 
+## Confounders per grf screening q15 q17 q9 q4 q18 q11 q6 q16 q7 q8 q13 q5 q14 q19 q3 q10 q12 q2 q1 
+##           Factors Labels VI(grf)
+## 15             z2    q15  0.1377
+## 17             z4    q17  0.0919
+## 9  noise2 <= -0.8     q9  0.0693
+## 4      size <= 35     q4  0.0627
+## 18             z5    q18  0.0550
+## 11    noise3 <= 0    q11  0.0539
+## 6  noise1 <= -0.6     q6  0.0531
+## 16             z3    q16  0.0512
+## 7   noise1 <= 0.7     q7  0.0444
+## 8     noise2 <= 0     q8  0.0433
+## 13  noise3 <= 0.6    q13  0.0414
+## 5     noise1 <= 0     q5  0.0398
+## 14             z1    q14  0.0398
+## 19         grade3    q19  0.0394
+## 3      size <= 20     q3  0.0379
+## 10  noise2 <= 0.7    q10  0.0367
+## 12 noise3 <= -0.7    q12  0.0363
+## 2      size <= 25     q2  0.0355
+## 1    size <= 29.4     q1  0.0308
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 741 
+## Approximately 5% of max_count met: minutes 0.001583333 
+## Approximately 10% of max_count met: minutes 0.002766667 
+## Approximately 20% of max_count met: minutes 0.005583333 
+## Approximately 33% of max_count met: minutes 0.008633333 
+## Approximately 50% of max_count met: minutes 0.01268333 
+## Approximately 75% of max_count met: minutes 0.02088333 
+## Approximately 90% of max_count met: minutes 0.02435 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 741 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 43 52 
+## # of subgroups with sample size less than criteria 80 
+## # of subgroups meeting all criteria = 645 
+## # of subgroups fitted (Cox model estimable) = 645 
+## *Subgroup Searching Minutes=* 0.02645 
+## Number of subgroups meeting HR threshold 2 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  2 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q15.0 q15.1
+## 1 82 31 19 1.49  0.72     0     0
+## 2 86 41 24 1.31  0.70     0     0
+## Consistency 0.7075 
+## Consistency 0.6075 
+## Subgroup Consistency Minutes= 0.0473 
+## NO subgroup found (FS) 
+## Minutes forestsearch overall= 0.09438333 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 49.01796 2 
+##    leaf.node control.mean control.size control.se depth
+## 1          2         3.60        62.00       3.60     1
+## 2          3        -4.55       638.00       1.13     1
+## 11         4        -5.51       312.00       1.65     2
+## 4          7        -4.85       329.00       1.51     2
+##   leaf.node control.mean control.size control.se depth
+## 1         2          3.6         62.0        3.6     1
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.02580757 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                 s0
+## z1      0.07626064
+## z2      .         
+## z3      .         
+## z4      0.48897013
+## z5     -0.75595164
+## size    .         
+## grade3  .         
+## noise1 -0.04100400
+## noise2  .         
+## noise3  .         
+## Cox-LASSO selected: z1 z4 z5 noise1 
+## Cox-LASSO not selected: z2 z3 size grade3 noise2 noise3 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z4 z5 
+## # of candidate subgroup factors= 16 
+##  [1] "size <= 29.4"   "size <= 25"     "size <= 20"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.6" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.8" "noise2 <= 0.7"  "noise3 <= 0"    "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z4"             "z5"            
+## Number of factors evaluated= 16 
+## Confounders per grf screening q15 q9 q4 q11 q16 q6 q7 q14 q13 q5 q8 q3 q10 q12 q2 q1 
+##           Factors Labels VI(grf)
+## 15             z4    q15  0.1139
+## 9  noise2 <= -0.8     q9  0.0900
+## 4      size <= 35     q4  0.0852
+## 11    noise3 <= 0    q11  0.0731
+## 16             z5    q16  0.0727
+## 6  noise1 <= -0.6     q6  0.0708
+## 7   noise1 <= 0.7     q7  0.0644
+## 14             z1    q14  0.0575
+## 13  noise3 <= 0.6    q13  0.0533
+## 5     noise1 <= 0     q5  0.0527
+## 8     noise2 <= 0     q8  0.0504
+## 3      size <= 20     q3  0.0473
+## 10  noise2 <= 0.7    q10  0.0440
+## 12 noise3 <= -0.7    q12  0.0427
+## 2      size <= 25     q2  0.0412
+## 1    size <= 29.4     q1  0.0409
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 528 
+## Approximately 5% of max_count met: minutes 0.001183333 
+## Approximately 10% of max_count met: minutes 0.002166667 
+## Approximately 20% of max_count met: minutes 0.004266667 
+## Approximately 33% of max_count met: minutes 0.008583333 
+## Approximately 50% of max_count met: minutes 0.01176667 
+## Approximately 75% of max_count met: minutes 0.01616667 
+## Approximately 90% of max_count met: minutes 0.01898333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 528 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 37 44 
+## # of subgroups with sample size less than criteria 66 
+## # of subgroups meeting all criteria = 447 
+## # of subgroups fitted (Cox model estimable) = 447 
+## *Subgroup Searching Minutes=* 0.02043333 
+## Number of subgroups meeting HR threshold 2 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  2 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q15.0 q15.1
+## 1 82 31 19 1.49  0.72     1     0
+## 2 86 41 24 1.31  0.70     0     0
+## Consistency 0.7075 
+## Consistency 0.6075 
+## Subgroup Consistency Minutes= 0.04835 
+## NO subgroup found (FS) 
+## Minutes forestsearch overall= 0.07856667 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 50.12699 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.36       459.00       1.29     1
+## 2         3         2.60       241.00       1.72     1
+## 3         4        -7.35       128.00       2.28     2
+## 4         5         3.23       201.00       2.01     2
+## 5         6        -6.77       245.00       1.60     2
+## 6         7         4.56       126.00       2.59     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7         4.56       126.00       2.59     2
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## # of candidate subgroup factors= 19 
+##  [1] "size <= 29.9"   "size <= 25"     "size <= 21"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= -0.1" "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z2"             "z3"            
+## [17] "z4"             "z5"             "grade3"        
+## Number of factors evaluated= 19 
+## Confounders per grf screening q3 q8 q10 q18 q13 q16 q17 q9 q11 q7 q1 q5 q6 q15 q12 q14 q19 q4 q2 
+##           Factors Labels VI(grf)
+## 3      size <= 21     q3  0.1597
+## 8     noise2 <= 0     q8  0.1198
+## 10  noise2 <= 0.7    q10  0.0546
+## 18             z5    q18  0.0524
+## 13  noise3 <= 0.6    q13  0.0491
+## 16             z3    q16  0.0468
+## 17             z4    q17  0.0467
+## 9  noise2 <= -0.7     q9  0.0452
+## 11 noise3 <= -0.1    q11  0.0443
+## 7   noise1 <= 0.7     q7  0.0439
+## 1    size <= 29.9     q1  0.0434
+## 5     noise1 <= 0     q5  0.0431
+## 6  noise1 <= -0.7     q6  0.0393
+## 15             z2    q15  0.0392
+## 12 noise3 <= -0.7    q12  0.0383
+## 14             z1    q14  0.0366
+## 19         grade3    q19  0.0346
+## 4      size <= 35     q4  0.0335
+## 2      size <= 25     q2  0.0294
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 741 
+## Approximately 5% of max_count met: minutes 0.003216667 
+## Approximately 10% of max_count met: minutes 0.005333333 
+## Approximately 20% of max_count met: minutes 0.00825 
+## Approximately 33% of max_count met: minutes 0.01231667 
+## Approximately 50% of max_count met: minutes 0.01861667 
+## Approximately 75% of max_count met: minutes 0.0278 
+## Approximately 90% of max_count met: minutes 0.03295 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 741 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 43 49 
+## # of subgroups with sample size less than criteria 79 
+## # of subgroups meeting all criteria = 646 
+## # of subgroups fitted (Cox model estimable) = 646 
+## *Subgroup Searching Minutes=* 0.03643333 
+## Number of subgroups meeting HR threshold 7 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  7 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q3.0 q3.1 q8.0 q8.1 q10.0 q10.1 q18.0
+## 1 79 49 28 1.53  0.87    0    0    0    0     0     0     0
+## 2 87 50 30 1.48  0.84    0    0    0    0     0     0     0
+## 3 76 43 25 1.43  0.78    0    0    0    0     0     0     0
+## 4 64 40 22 1.34  0.72    0    0    0    0     0     0     0
+## 5 67 29 15 1.33  0.64    0    0    0    0     0     0     0
+## 6 92 41 24 1.27  0.68    0    0    0    0     0     0     0
+## 7 88 55 26 1.27  0.75    0    0    0    0     0     0     0
+## Consistency 0.84 
+## Consistency 0.8225 
+## Consistency 0.7575 
+## Consistency 0.6425 
+## Subgroup Consistency Minutes= 0.1292333 
+## NO subgroup found (FS) 
+## Minutes forestsearch overall= 0.1765667 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 50.12699 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.36       459.00       1.29     1
+## 2         3         2.60       241.00       1.72     1
+## 3         4        -7.35       128.00       2.28     2
+## 4         5         3.23       201.00       2.01     2
+## 5         6        -6.77       245.00       1.60     2
+## 6         7         4.56       126.00       2.59     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7         4.56       126.00       2.59     2
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.01780769 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                  s0
+## z1      0.105679641
+## z2     -0.169523647
+## z3      .          
+## z4      0.667886949
+## z5     -0.744553046
+## size    0.003116163
+## grade3  .          
+## noise1  0.007443155
+## noise2 -0.024801079
+## noise3  .          
+## Cox-LASSO selected: z1 z2 z4 z5 size noise1 noise2 
+## Cox-LASSO not selected: z3 grade3 noise3 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z2 z4 z5 
+## # of candidate subgroup factors= 17 
+##  [1] "size <= 29.9"   "size <= 25"     "size <= 21"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= -0.1" "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z2"             "z4"            
+## [17] "z5"            
+## Number of factors evaluated= 17 
+## Confounders per grf screening q3 q8 q15 q10 q16 q17 q11 q13 q7 q9 q4 q1 q5 q12 q6 q14 q2 
+##           Factors Labels VI(grf)
+## 3      size <= 21     q3  0.1679
+## 8     noise2 <= 0     q8  0.1240
+## 15             z2    q15  0.0590
+## 10  noise2 <= 0.7    q10  0.0588
+## 16             z4    q16  0.0576
+## 17             z5    q17  0.0529
+## 11 noise3 <= -0.1    q11  0.0528
+## 13  noise3 <= 0.6    q13  0.0513
+## 7   noise1 <= 0.7     q7  0.0477
+## 9  noise2 <= -0.7     q9  0.0476
+## 4      size <= 35     q4  0.0473
+## 1    size <= 29.9     q1  0.0468
+## 5     noise1 <= 0     q5  0.0447
+## 12 noise3 <= -0.7    q12  0.0419
+## 6  noise1 <= -0.7     q6  0.0360
+## 14             z1    q14  0.0340
+## 2      size <= 25     q2  0.0295
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 595 
+## Approximately 5% of max_count met: minutes 0.00185 
+## Approximately 10% of max_count met: minutes 0.00325 
+## Approximately 20% of max_count met: minutes 0.0055 
+## Approximately 33% of max_count met: minutes 0.009216667 
+## Approximately 50% of max_count met: minutes 0.01408333 
+## Approximately 75% of max_count met: minutes 0.02113333 
+## Approximately 90% of max_count met: minutes 0.02525 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 595 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 38 43 
+## # of subgroups with sample size less than criteria 67 
+## # of subgroups meeting all criteria = 513 
+## # of subgroups fitted (Cox model estimable) = 513 
+## *Subgroup Searching Minutes=* 0.02758333 
+## Number of subgroups meeting HR threshold 4 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  4 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q3.0 q3.1 q8.0 q8.1
+## 1 87 50 30 1.48  0.84    0    0    0    0
+## 2 76 43 25 1.43  0.78    0    0    0    0
+## 3 92 41 24 1.27  0.68    0    0    0    0
+## 4 88 55 26 1.27  0.75    0    0    0    0
+## Consistency 0.8225 
+## Consistency 0.7575 
+## Consistency 0.485 
+## Subgroup Consistency Minutes= 0.09458333 
+## NO subgroup found (FS) 
+## Minutes forestsearch overall= 0.1348167 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 48.57937 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -5.39       624.00       1.16     1
+## 2         3         2.54        76.00       2.98     1
+## 3         4         7.16        84.00       2.84     2
+## 4         5        -9.55       106.00       2.68     2
+## 5         6        -6.03       496.00       1.30     2
+##   leaf.node control.mean control.size control.se depth
+## 3         4         7.16        84.00       2.84     2
+## GRF subgroup found 
+## All splits 
+## [1] "size <= 20"     "z2 <= 0"        "noise2 <= 2.01"
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z2 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## Factors per GRF: size <= 20 z2 <= 0 noise2 <= 2.01 
+## Initial GRF cuts included size <= 20 z2 <= 0 noise2 <= 2.01 
+## # of candidate subgroup factors= 21 
+##  [1] "size <= 20"     "noise2 <= 2.01" "size <= 28.8"   "size <= 25"    
+##  [5] "size <= 35"     "noise1 <= -0.1" "noise1 <= 0"    "noise1 <= -0.7"
+##  [9] "noise1 <= 0.6"  "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7" 
+## [13] "noise3 <= 0"    "noise3 <= -0.7" "noise3 <= 0.7"  "z1"            
+## [17] "z2"             "z3"             "z4"             "z5"            
+## [21] "grade3"        
+## Number of factors evaluated= 21 
+## Confounders per grf screening q17 q5 q1 q10 q20 q19 q21 q6 q12 q13 q11 q4 q15 q8 q18 q16 q9 q7 q14 q3 q2 
+##           Factors Labels VI(grf)
+## 17             z2    q17  0.2606
+## 5      size <= 35     q5  0.1052
+## 1      size <= 20     q1  0.0750
+## 10    noise2 <= 0    q10  0.0698
+## 20             z5    q20  0.0491
+## 19             z4    q19  0.0410
+## 21         grade3    q21  0.0361
+## 6  noise1 <= -0.1     q6  0.0335
+## 12  noise2 <= 0.7    q12  0.0335
+## 13    noise3 <= 0    q13  0.0332
+## 11 noise2 <= -0.7    q11  0.0311
+## 4      size <= 25     q4  0.0299
+## 15  noise3 <= 0.7    q15  0.0280
+## 8  noise1 <= -0.7     q8  0.0277
+## 18             z3    q18  0.0274
+## 16             z1    q16  0.0264
+## 9   noise1 <= 0.6     q9  0.0263
+## 7     noise1 <= 0     q7  0.0229
+## 14 noise3 <= -0.7    q14  0.0221
+## 3    size <= 28.8     q3  0.0214
+## 2  noise2 <= 2.01     q2  0.0000
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 903 
+## Approximately 5% of max_count met: minutes 0.002616667 
+## Approximately 10% of max_count met: minutes 0.004883333 
+## Approximately 20% of max_count met: minutes 0.00835 
+## Approximately 33% of max_count met: minutes 0.0136 
+## Approximately 50% of max_count met: minutes 0.02156667 
+## Approximately 75% of max_count met: minutes 0.03251667 
+## Approximately 90% of max_count met: minutes 0.03778333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 903 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 88 94 
+## # of subgroups with sample size less than criteria 127 
+## # of subgroups meeting all criteria = 751 
+## # of subgroups fitted (Cox model estimable) = 751 
+## *Subgroup Searching Minutes=* 0.04118333 
+## Number of subgroups meeting HR threshold 3 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  3 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##     n  E d1   HR L(HR) q17.0 q17.1 q5.0
+## 1  84 40 25 1.91  1.00     1     0    0
+## 2  94 45 26 1.35  0.75     0     0    0
+## 3 107 53 29 1.30  0.76     0     0    0
+## Consistency 0.9675 
+## # of splits= 400 
+## Model, % Consistency Met= !{z2} {size <= 20} 0.9675 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.02925 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.08085 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 48.57937 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -5.39       624.00       1.16     1
+## 2         3         2.54        76.00       2.98     1
+## 3         4         7.16        84.00       2.84     2
+## 4         5        -9.55       106.00       2.68     2
+## 5         6        -6.03       496.00       1.30     2
+##   leaf.node control.mean control.size control.se depth
+## 3         4         7.16        84.00       2.84     2
+## GRF subgroup found 
+## All splits 
+## [1] "size <= 20"     "z2 <= 0"        "noise2 <= 2.01"
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z2 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.01021808 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                   s0
+## z1      0.2367628139
+## z2     -0.3644157075
+## z3      0.3140225180
+## z4      0.6820163198
+## z5     -0.7625133927
+## size   -0.0007834897
+## grade3  .           
+## noise1 -0.0079284172
+## noise2  .           
+## noise3  0.0313928596
+## Cox-LASSO selected: z1 z2 z3 z4 z5 size noise1 noise3 
+## Cox-LASSO not selected: grade3 noise2 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z2 z3 z4 z5 
+## Factors per GRF: size <= 20 z2 <= 0 noise2 <= 2.01 
+## Initial GRF cuts included size <= 20 z2 <= 0 noise2 <= 2.01 
+## Factors included per GRF (not in lasso) size <= 20 noise2 <= 2.01 
+## # of candidate subgroup factors= 20 
+##  [1] "size <= 20"     "noise2 <= 2.01" "size <= 28.8"   "size <= 25"    
+##  [5] "size <= 35"     "noise1 <= -0.1" "noise1 <= 0"    "noise1 <= -0.7"
+##  [9] "noise1 <= 0.6"  "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7" 
+## [13] "noise3 <= 0"    "noise3 <= -0.7" "noise3 <= 0.7"  "z1"            
+## [17] "z2"             "z3"             "z4"             "z5"            
+## Number of factors evaluated= 20 
+## Confounders per grf screening q17 q5 q1 q10 q19 q20 q13 q18 q8 q12 q16 q6 q15 q4 q11 q9 q7 q3 q14 q2 
+##           Factors Labels VI(grf)
+## 17             z2    q17  0.2639
+## 5      size <= 35     q5  0.1081
+## 1      size <= 20     q1  0.0783
+## 10    noise2 <= 0    q10  0.0722
+## 19             z4    q19  0.0478
+## 20             z5    q20  0.0466
+## 13    noise3 <= 0    q13  0.0346
+## 18             z3    q18  0.0341
+## 8  noise1 <= -0.7     q8  0.0339
+## 12  noise2 <= 0.7    q12  0.0337
+## 16             z1    q16  0.0320
+## 6  noise1 <= -0.1     q6  0.0318
+## 15  noise3 <= 0.7    q15  0.0287
+## 4      size <= 25     q4  0.0286
+## 11 noise2 <= -0.7    q11  0.0283
+## 9   noise1 <= 0.6     q9  0.0255
+## 7     noise1 <= 0     q7  0.0245
+## 3    size <= 28.8     q3  0.0238
+## 14 noise3 <= -0.7    q14  0.0236
+## 2  noise2 <= 2.01     q2  0.0000
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 820 
+## Approximately 5% of max_count met: minutes 0.005266667 
+## Approximately 10% of max_count met: minutes 0.006966667 
+## Approximately 20% of max_count met: minutes 0.009933333 
+## Approximately 33% of max_count met: minutes 0.01471667 
+## Approximately 50% of max_count met: minutes 0.02146667 
+## Approximately 75% of max_count met: minutes 0.03015 
+## Approximately 90% of max_count met: minutes 0.03498333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 820 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 84 89 
+## # of subgroups with sample size less than criteria 115 
+## # of subgroups meeting all criteria = 680 
+## # of subgroups fitted (Cox model estimable) = 680 
+## *Subgroup Searching Minutes=* 0.03788333 
+## Number of subgroups meeting HR threshold 3 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  3 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##     n  E d1   HR L(HR) q17.0 q17.1 q5.0
+## 1  84 40 25 1.91  1.00     1     0    0
+## 2  94 45 26 1.35  0.75     0     0    0
+## 3 107 53 29 1.30  0.76     0     0    0
+## Consistency 0.9675 
+## # of splits= 400 
+## Model, % Consistency Met= !{z2} {size <= 20} 0.9675 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.03061667 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.08091667
+\end{verbatim}
+\begin{alltt}
+\hlstd{t.now} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+\hlstd{t.min} \hlkwb{<-} \hlstd{(t.now} \hlopt{-} \hlstd{t.start)}\hlopt{/}\hlnum{60}
+
+\hlkwd{print}\hlstd{(}\hlkwd{table}\hlstd{(res}\hlopt{$}\hlstd{analysis))}
+\end{alltt}
+\begin{verbatim}
+## 
+##     FSl    FSlg     GRF  GRF.60  VT(24)  VT(36) VT#(24) VT#(36) 
+##    1000    1000    1000    1000    1000    1000    1000    1000
+\end{verbatim}
+\begin{alltt}
+\hlstd{check} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlkwd{c}\hlstd{(}\hlkwd{table}\hlstd{(res}\hlopt{$}\hlstd{analysis))} \hlopt{-} \hlstd{Nsims)}
+\hlkwa{if} \hlstd{(}\hlkwd{all}\hlstd{(check} \hlopt{!=} \hlnum{0}\hlstd{))} \hlkwd{stop}\hlstd{(}\hlstr{"All analyses not complete"}\hlstd{)}
+
+\hlstd{dgm_alt} \hlkwb{<-} \hlstd{dgm}
+\hlstd{outres} \hlkwb{<-} \hlkwd{out.results}\hlstd{(}\hlkwc{res} \hlstd{= res,} \hlkwc{dgm} \hlstd{= dgm,} \hlkwc{output.file} \hlstd{= output.file,} \hlkwc{t.min} \hlstd{= t.min,}
+    \hlkwc{out_analysis} \hlstd{=} \hlstr{"FSl"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## [1] "results/oc_sims=1000_m4a-Noise=3_N=700_null_ktreat=0.9_v0B-4cuts.Rdata"
+##      sim sizeH_true propH_true sizeHc_true propHc_true any.H size.H size.Hc
+##    <int>      <num>      <num>       <int>       <num> <num>  <num>   <int>
+## 1:     1          0          0         700           1     0      0     700
+## 2:     1          0          0         700           1     0      0     700
+## 3:     1          0          0         700           1     1     69     631
+## 4:     1          0          0         700           1     0      0     700
+## 5:     1          0          0         700           1     0      0     700
+## 6:     1          0          0         700           1     0      0     700
+##       ppv       npv specificity sensitivity found.1 found.2 found.both
+##    <lgcl>     <num>       <num>       <num>   <int>   <int>      <num>
+## 1:     NA 1.0000000           1          NA       0       0          0
+## 2:     NA 1.0000000           1          NA       0       0          0
+## 3:     NA 0.9014286           1           0      NA      NA         NA
+## 4:     NA 1.0000000           1          NA      NA      NA         NA
+## 5:     NA 1.0000000           1          NA       0       0          0
+## 6:     NA 1.0000000           1          NA       0       0          0
+##    found.al3 hr.H.true hr.Hc.true hr.H.hat hr.Hc.hat   b1.H   b2.H       b1.Hc
+##        <num>    <lgcl>      <num>    <num>     <num> <lgcl> <lgcl>       <num>
+## 1:         0        NA  0.6155054       NA 0.6155054     NA     NA  0.00000000
+## 2:         0        NA  0.6155054       NA 0.6155054     NA     NA  0.00000000
+## 3:        NA        NA  0.6155054 2.406676 0.5325424     NA     NA -0.08296298
+## 4:        NA        NA  0.6155054       NA 0.6155054     NA     NA  0.00000000
+## 5:         0        NA  0.6155054       NA 0.6155054     NA     NA  0.00000000
+## 6:         0        NA  0.6155054       NA 0.6155054     NA     NA  0.00000000
+##          b2.Hc    p.cens analysis   taumax    hr.itt     l.itt    u.itt
+##          <num>     <num>   <char>    <num>     <num>     <num>    <num>
+## 1: -0.08552157 0.4642857      FSl 81.69660 0.6155054 0.5014207 0.755547
+## 2: -0.08552157 0.4642857     FSlg 49.01796 0.6155054 0.5014207 0.755547
+## 3: -0.16848455 0.4642857      GRF 81.69660 0.6155054 0.5014207 0.755547
+## 4: -0.08552157 0.4642857   GRF.60 49.01796 0.6155054 0.5014207 0.755547
+## 5: -0.08552157 0.4642857   VT(24) 81.69660 0.6155054 0.5014207 0.755547
+## 6: -0.08552157 0.4642857  VT#(24) 81.69660 0.6155054 0.5014207 0.755547
+##    hr.adj.itt l.adj.itt u.adj.itt l.H.true u.H.true l.Hc.true u.Hc.true
+##         <num>     <num>     <num>   <lgcl>   <lgcl>     <num>     <num>
+## 1:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+## 2:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+## 3:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+## 4:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+## 5:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+## 6:  0.5906047  0.480604 0.7257825       NA       NA 0.5014207  0.755547
+##     l.H.hat  u.H.hat  l.Hc.hat  u.Hc.hat
+##       <num>    <num>     <num>     <num>
+## 1:       NA       NA 0.5014207 0.7555470
+## 2:       NA       NA 0.5014207 0.7555470
+## 3: 1.043941 5.548289 0.4297038 0.6599928
+## 4:       NA       NA 0.5014207 0.7555470
+## 5:       NA       NA 0.5014207 0.7555470
+## 6:       NA       NA 0.5014207 0.7555470
+## Subgroup HRs: H, H^c, Causal= NA 0.701027 0.701027 
+## Simulations= 1000 
+## Avg censoring= 0.4613314 
+## Min,Max,Avg tau.max= 72.81026 83.95272 81.68616 
+## P(H) approximation at causal(Hrc), n=60, approx= 0.701027 0.03392115 
+## P(H) approximation at plim(Hrc), n=60, approx= 0.7071011 0.03573494 
+## Minutes,hours 11.7869 0.1964483 
+##                    FSl    FSlg     GRF  GRF.60  VT(24) VT#(24)  VT(36) VT#(36)
+## any.H            0.250   0.230   0.620   0.280   0.040   0.020   0.070   0.030
+## sensH              NaN     NaN     NaN     NaN     NaN     NaN     NaN     NaN
+## sensHc           0.970   0.970   0.920   0.970   1.000   1.000   0.990   1.000
+## ppH              0.000   0.000   0.000   0.000   0.000   0.000   0.000   0.000
+## ppHc             1.000   1.000   1.000   1.000   1.000   1.000   1.000   1.000
+## Avg(#H)         90.000  92.000  94.000  80.000  81.000  77.000  76.000  77.000
+## minH            61.000  61.000  60.000  60.000  61.000  61.000  61.000  61.000
+## maxH           249.000 249.000 222.000 149.000 119.000 120.000 114.000 106.000
+## Avg(#Hc)       677.000 679.000 642.000 677.000 697.000 698.000 695.000 698.000
+## minHc          451.000 451.000 478.000 551.000 581.000 580.000 586.000 594.000
+## maxHc          700.000 700.000 700.000 700.000 700.000 700.000 700.000 700.000
+## hat(H*)            NaN     NaN     NaN     NaN     NaN     NaN     NaN     NaN
+## hat(hat[H])      1.868   1.871   1.698   1.569   1.257   1.364   1.428   1.582
+## hat(Hc*)         0.756   0.758   0.725   0.721   0.731   0.732   0.730   0.761
+## hat(hat[Hc])     0.669   0.670   0.641   0.655   0.683   0.679   0.679   0.697
+## hat(H*)all         NaN     NaN     NaN     NaN     NaN     NaN     NaN     NaN
+## hat(Hc*)all      0.707   0.707   0.707   0.707   0.707   0.707   0.707   0.707
+## hat(ITT)all      0.707   0.707   0.707   0.707   0.707   0.707   0.707   0.707
+## hat(ITTadj)all   0.666   0.666   0.666   0.666   0.666   0.666   0.666   0.666
+\end{verbatim}
+\begin{alltt}
+\hlstd{missC} \hlkwb{<-} \hlkwd{tab_tests}\hlstd{(}\hlkwc{res} \hlstd{= res)}
+
+\hlstd{pA} \hlkwb{<-} \hlkwd{as.character}\hlstd{(}\hlkwd{round}\hlstd{(outres}\hlopt{$}\hlstd{pAnyH.approx2,} \hlnum{4}\hlstd{))}
+\hlstd{tabsim_missC} \hlkwb{<-} \hlkwd{get_tabsim}\hlstd{(}\hlkwc{missC} \hlstd{= missC,} \hlkwc{pA} \hlstd{= pA,} \hlkwc{est_names} \hlstd{= est_names,} \hlkwc{stat_names} \hlstd{= stat_names,}
+    \hlkwc{mod.harm} \hlstd{= mod.harm,} \hlkwc{Nsims} \hlstd{= Nsims)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:r null}Average classification rates: ${avg}\vert \hat{H} \vert$, ${min}\vert \hat{H} \vert$, and ${max}\vert \hat{H} \vert$, denote the average, 
+minimum, and maximum of the number of subjects in the estimated subgroup $\hat{H}$ (analogously for $\hat{H}^{c}$).  
+Note that under the null $sens(\hat{H})$ is undefined and $ppv(\hat{H})=0$.}
+\centering
+\fontsize{9}{11}\selectfont
+\begin{tabular}[t]{lcccccccc}
+\toprule
+  & $FS_{g}$ & $FS_{lg}$ & $GRF$ & $GRF_{60}$ & $VT(24)$ & ${VT}^{\#}(24)$ & $VT(36)$ & ${VT}^{\#}(36)$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{9}{l}{\textbf{Finding H}}\\
+\hspace{1em}any(H) & 0.25 & 0.23 & 0.62 & 0.28 & 0.04 & 0.02 & 0.07 & 0.03\\
+\hspace{1em}${sens}(\hat{H})$ & . & . & . & . & . & . & . & .\\
+\hspace{1em}${sens}(\hat{H}^{C})$ & 0.97 & 0.97 & 0.92 & 0.97 & 1 & 1 & 0.99 & 1\\
+\hspace{1em}${ppv}(\hat{H})$ & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+\hspace{1em}${ppv}(\hat{H}^{C})$ & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\
+\addlinespace[0.3em]
+\multicolumn{9}{l}{\textbf{Size of H and H-complement}}\\
+\hspace{1em}${avg}\vert \hat{H} \vert$ & 90 & 92 & 94 & 80 & 81 & 77 & 76 & 77\\
+\hspace{1em}${min}\vert \hat{H} \vert$ & 61 & 61 & 60 & 60 & 61 & 61 & 61 & 61\\
+\hspace{1em}${max}\vert \hat{H} \vert$ & 249 & 249 & 222 & 149 & 119 & 120 & 114 & 106\\
+\hspace{1em}${avg}\vert \hat{H}^{C} \vert$ & 677 & 679 & 642 & 677 & 697 & 698 & 695 & 698\\
+\hspace{1em}${min}\vert \hat{H}^{C} \vert$ & 451 & 451 & 478 & 551 & 581 & 580 & 586 & 594\\
+\hspace{1em}${max}\vert \hat{H}^{C} \vert$ & 700 & 700 & 700 & 700 & 700 & 700 & 700 & 700\\
+\bottomrule
+\multicolumn{9}{l}{\rule{0pt}{1em}\textit{Note: } Number of simulations= 1000 .}\\
+\multicolumn{9}{l}{\rule{0pt}{1em}\textit{Note: } Probability approximation= 0.0357 .}\\
+\end{tabular}
+\end{table}
+
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{mod.harm} \hlkwb{<-} \hlstr{"alt"}
+\hlstd{hrH.target} \hlkwb{<-} \hlnum{2}
+
+\hlstd{this.dgm} \hlkwb{<-} \hlkwd{get.dgm4.OC}\hlstd{(}\hlkwc{mod.harm} \hlstd{= mod.harm,} \hlkwc{N} \hlstd{= N,} \hlkwc{k.treat} \hlstd{= k.treat,} \hlkwc{model.index} \hlstd{= model.index,}
+    \hlkwc{sol_tol} \hlstd{=} \hlnum{10}\hlopt{^-}\hlnum{8}\hlstd{,} \hlkwc{hrH.target} \hlstd{= hrH.target,} \hlkwc{cens.type} \hlstd{= cens.type,} \hlkwc{out.loc} \hlstd{= out.loc,}
+    \hlkwc{file.index} \hlstd{= file.index,} \hlkwc{details} \hlstd{=} \hlnum{TRUE}\hlstd{,} \hlkwc{parms_torand} \hlstd{=} \hlnum{FALSE}\hlstd{)}
+\end{alltt}
+\end{kframe}
+\includegraphics[width=\maxwidth]{figure/r_hrh2-1} 
+\begin{kframe}\begin{verbatim}
+## Super-population empirical harm and non-harm hazard ratios= 2.000007 0.6466405 
+## Causal HR (empirical ITT)= 0.7057463
+\end{verbatim}
+\begin{alltt}
+\hlstd{dgm} \hlkwb{<-} \hlstd{this.dgm}\hlopt{$}\hlstd{dgm}
+\hlstd{output.file} \hlkwb{<-} \hlstd{this.dgm}\hlopt{$}\hlstd{out.file}
+
+\hlkwa{if} \hlstd{(}\hlopt{!}\hlkwd{is.null}\hlstd{(output.file)} \hlopt{& !}\hlkwd{grepl}\hlstd{(mod.harm, output.file))} \hlkwd{stop}\hlstd{(}\hlstr{"Wrong file name for mod.harm"}\hlstd{)}
+
+\hlcom{# Show first simulation ans1 <- oc_analyses_m4_FS4(2)}
+
+\hlstd{t.start} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+\hlstd{res} \hlkwb{<-} \hlkwd{foreach}\hlstd{(}\hlkwc{sim} \hlstd{=} \hlkwd{seq_len}\hlstd{(Nsims),} \hlkwc{.options.future} \hlstd{=} \hlkwd{list}\hlstd{(}\hlkwc{seed} \hlstd{=} \hlnum{TRUE}\hlstd{),} \hlkwc{.combine} \hlstd{=} \hlstr{"rbind"}\hlstd{,}
+    \hlkwc{.errorhandling} \hlstd{=} \hlstr{"pass"}\hlstd{)} \hlopt{%dofuture%} \hlstd{\{}
+    \hlstd{ans} \hlkwb{<-} \hlkwd{oc_analyses_m4FourCuts_FS4}\hlstd{(sim)}
+    \hlkwd{return}\hlstd{(ans)}
+\hlstd{\}}
+\end{alltt}
+\begin{verbatim}
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 48.86072 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.37       509.00       1.23     1
+## 2         3         2.51       191.00       2.28     1
+## 3         4         2.18        95.00       2.92     2
+## 4         5        -5.87       414.00       1.34     2
+## 5         6         5.96       146.00       2.61     2
+##   leaf.node control.mean control.size control.se depth
+## 5         6         5.96       146.00       2.61     2
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## # of candidate subgroup factors= 19 
+##  [1] "size <= 29.4"   "size <= 25"     "size <= 20"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.6" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.8" "noise2 <= 0.7"  "noise3 <= 0"    "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z2"             "z3"            
+## [17] "z4"             "z5"             "grade3"        
+## Number of factors evaluated= 19 
+## Confounders per grf screening q15 q16 q14 q9 q18 q17 q11 q10 q4 q6 q7 q2 q5 q3 q8 q19 q13 q12 q1 
+##           Factors Labels VI(grf)
+## 15             z2    q15  0.2269
+## 16             z3    q16  0.1570
+## 14             z1    q14  0.1369
+## 9  noise2 <= -0.8     q9  0.0487
+## 18             z5    q18  0.0394
+## 17             z4    q17  0.0369
+## 11    noise3 <= 0    q11  0.0346
+## 10  noise2 <= 0.7    q10  0.0345
+## 4      size <= 35     q4  0.0323
+## 6  noise1 <= -0.6     q6  0.0322
+## 7   noise1 <= 0.7     q7  0.0280
+## 2      size <= 25     q2  0.0270
+## 5     noise1 <= 0     q5  0.0255
+## 3      size <= 20     q3  0.0253
+## 8     noise2 <= 0     q8  0.0245
+## 19         grade3    q19  0.0245
+## 13  noise3 <= 0.6    q13  0.0233
+## 12 noise3 <= -0.7    q12  0.0216
+## 1    size <= 29.4     q1  0.0207
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 741 
+## Approximately 5% of max_count met: minutes 0.003666667 
+## Approximately 10% of max_count met: minutes 0.0048 
+## Approximately 20% of max_count met: minutes 0.007433333 
+## Approximately 33% of max_count met: minutes 0.01061667 
+## Approximately 50% of max_count met: minutes 0.01466667 
+## Approximately 75% of max_count met: minutes 0.02066667 
+## Approximately 90% of max_count met: minutes 0.02433333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 741 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 43 51 
+## # of subgroups with sample size less than criteria 80 
+## # of subgroups meeting all criteria = 645 
+## # of subgroups fitted (Cox model estimable) = 645 
+## *Subgroup Searching Minutes=* 0.02648333 
+## Number of subgroups meeting HR threshold 12 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  12 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##      n  E d1   HR L(HR) q15.0 q15.1 q16.0 q16.1 q14.0 q14.1 q9.0 q9.1 q18.0
+## 1   95 78 44 1.74  1.11     0     0     0     1     0     1    0    0     0
+## 2   79 47 26 1.54  0.87     0     0     0     1     0     0    0    1     0
+## 3   82 31 19 1.50  0.73     0     0     0     0     0     0    0    1     0
+## 4   74 39 18 1.49  0.79     0     0     0     1     0     0    0    0     0
+## 5  122 95 52 1.48  0.98     0     1     0     0     0     1    0    0     0
+## 6  100 80 41 1.47  0.94     0     0     0     0     0     1    0    0     1
+## 7   77 55 30 1.41  0.83     0     0     0     0     0     1    0    0     0
+## 8   86 41 24 1.37  0.73     0     0     0     0     0     0    0    1     0
+## 9   93 53 30 1.34  0.78     0     1     0     0     0     0    0    1     0
+## 10  90 64 32 1.31  0.80     0     0     0     0     0     1    0    0     0
+##    q18.1
+## 1      0
+## 2      0
+## 3      0
+## 4      0
+## 5      0
+## 6      0
+## 7      0
+## 8      0
+## 9      0
+## 10     0
+## Consistency 0.9675 
+## # of splits= 400 
+## Model, % Consistency Met= {z3} {z1} 0.9675 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.023 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.05888333 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 48.86072 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.37       509.00       1.23     1
+## 2         3         2.51       191.00       2.28     1
+## 3         4         2.18        95.00       2.92     2
+## 4         5        -5.87       414.00       1.34     2
+## 5         6         5.96       146.00       2.61     2
+##   leaf.node control.mean control.size control.se depth
+## 5         6         5.96       146.00       2.61     2
+## GRF subgroup NOT found 
+## NO GRF cuts meeting delta(RMST): dmin.grf= 12 
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.02852468 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                 s0
+## z1      0.29461175
+## z2      .         
+## z3      0.02987702
+## z4      0.42856317
+## z5     -0.72819804
+## size    .         
+## grade3  .         
+## noise1 -0.03160709
+## noise2  .         
+## noise3  .         
+## Cox-LASSO selected: z1 z3 z4 z5 noise1 
+## Cox-LASSO not selected: z2 size grade3 noise2 noise3 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z3 z4 z5 
+## # of candidate subgroup factors= 17 
+##  [1] "size <= 29.4"   "size <= 25"     "size <= 20"     "size <= 35"    
+##  [5] "noise1 <= 0"    "noise1 <= -0.6" "noise1 <= 0.7"  "noise2 <= 0"   
+##  [9] "noise2 <= -0.8" "noise2 <= 0.7"  "noise3 <= 0"    "noise3 <= -0.7"
+## [13] "noise3 <= 0.6"  "z1"             "z3"             "z4"            
+## [17] "z5"            
+## Number of factors evaluated= 17 
+## Confounders per grf screening q15 q14 q9 q16 q17 q4 q10 q6 q7 q11 q5 q12 q3 q8 q13 q2 q1 
+##           Factors Labels VI(grf)
+## 15             z3    q15  0.2778
+## 14             z1    q14  0.1716
+## 9  noise2 <= -0.8     q9  0.0569
+## 16             z4    q16  0.0492
+## 17             z5    q17  0.0485
+## 4      size <= 35     q4  0.0380
+## 10  noise2 <= 0.7    q10  0.0371
+## 6  noise1 <= -0.6     q6  0.0357
+## 7   noise1 <= 0.7     q7  0.0357
+## 11    noise3 <= 0    q11  0.0353
+## 5     noise1 <= 0     q5  0.0344
+## 12 noise3 <= -0.7    q12  0.0335
+## 3      size <= 20     q3  0.0325
+## 8     noise2 <= 0     q8  0.0315
+## 13  noise3 <= 0.6    q13  0.0285
+## 2      size <= 25     q2  0.0282
+## 1    size <= 29.4     q1  0.0256
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 595 
+## Approximately 5% of max_count met: minutes 0.001266667 
+## Approximately 10% of max_count met: minutes 0.005 
+## Approximately 20% of max_count met: minutes 0.007466667 
+## Approximately 33% of max_count met: minutes 0.01018333 
+## Approximately 50% of max_count met: minutes 0.01326667 
+## Approximately 75% of max_count met: minutes 0.01756667 
+## Approximately 90% of max_count met: minutes 0.02058333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 595 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 38 44 
+## # of subgroups with sample size less than criteria 67 
+## # of subgroups meeting all criteria = 513 
+## # of subgroups fitted (Cox model estimable) = 513 
+## *Subgroup Searching Minutes=* 0.02226667 
+## Number of subgroups meeting HR threshold 10 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  10 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##      n  E d1   HR L(HR) q15.0 q15.1 q14.0 q14.1 q9.0 q9.1 q16.0 q16.1 q17.0
+## 1   95 78 44 1.74  1.11     0     1     0     1    0    0     0     0     0
+## 2   79 47 26 1.54  0.87     0     1     0     0    0    1     0     0     0
+## 3   82 31 19 1.50  0.73     0     0     0     0    0    1     1     0     0
+## 4   74 39 18 1.49  0.79     0     1     0     0    0    0     0     0     0
+## 5  100 80 41 1.47  0.94     0     0     0     1    0    0     0     0     1
+## 6   77 55 30 1.41  0.83     0     0     0     1    0    0     0     0     0
+## 7   86 41 24 1.37  0.73     0     0     0     0    0    1     0     0     0
+## 8   90 64 32 1.31  0.80     0     0     0     1    0    0     0     0     0
+## 9   67 39 21 1.30  0.69     0     1     0     0    0    0     0     0     0
+## 10 146 84 48 1.27  0.83     0     1     0     0    0    0     0     0     0
+##    q17.1
+## 1      0
+## 2      0
+## 3      0
+## 4      0
+## 5      0
+## 6      0
+## 7      0
+## 8      0
+## 9      0
+## 10     0
+## Consistency 0.9675 
+## # of splits= 400 
+## Model, % Consistency Met= {z3} {z1} 0.9675 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.0233 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.0537 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 49.01446 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -3.08       459.00       1.26     1
+## 2         3         3.39       241.00       1.71     1
+## 3         4        -5.79       269.00       1.72     2
+## 4         5         3.84       128.00       2.48     2
+## 5         6        -2.67       215.00       1.48     2
+## 6         7        11.83        88.00       3.06     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7        11.83        88.00       3.06     2
+## GRF subgroup found 
+## All splits 
+## [1] "z3 <= 0"        "noise2 <= 0.42" "z1 <= 0"       
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z1 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## Factors per GRF: z3 <= 0 noise2 <= 0.42 z1 <= 0 
+## Initial GRF cuts included z3 <= 0 noise2 <= 0.42 z1 <= 0 
+## # of candidate subgroup factors= 20 
+##  [1] "noise2 <= 0.42" "size <= 29.9"   "size <= 25"     "size <= 21"    
+##  [5] "size <= 35"     "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.7" 
+##  [9] "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= -0.1"
+## [13] "noise3 <= -0.7" "noise3 <= 0.6"  "z1"             "z2"            
+## [17] "z3"             "z4"             "z5"             "grade3"        
+## Number of factors evaluated= 20 
+## Confounders per grf screening q1 q4 q15 q17 q9 q16 q18 q19 q12 q6 q14 q13 q5 q2 q10 q7 q8 q20 q11 q3 
+##           Factors Labels VI(grf)
+## 1  noise2 <= 0.42     q1  0.1664
+## 4      size <= 21     q4  0.1202
+## 15             z1    q15  0.1194
+## 17             z3    q17  0.0819
+## 9     noise2 <= 0     q9  0.0592
+## 16             z2    q16  0.0472
+## 18             z4    q18  0.0468
+## 19             z5    q19  0.0392
+## 12 noise3 <= -0.1    q12  0.0342
+## 6     noise1 <= 0     q6  0.0317
+## 14  noise3 <= 0.6    q14  0.0309
+## 13 noise3 <= -0.7    q13  0.0304
+## 5      size <= 35     q5  0.0295
+## 2    size <= 29.9     q2  0.0276
+## 10 noise2 <= -0.7    q10  0.0274
+## 7  noise1 <= -0.7     q7  0.0229
+## 8   noise1 <= 0.7     q8  0.0229
+## 20         grade3    q20  0.0225
+## 11  noise2 <= 0.7    q11  0.0224
+## 3      size <= 25     q3  0.0172
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 820 
+## Approximately 5% of max_count met: minutes 0.002466667 
+## Approximately 10% of max_count met: minutes 0.004483333 
+## Approximately 20% of max_count met: minutes 0.009116667 
+## Approximately 33% of max_count met: minutes 0.01438333 
+## Approximately 50% of max_count met: minutes 0.02226667 
+## Approximately 75% of max_count met: minutes 0.03403333 
+## Approximately 90% of max_count met: minutes 0.03906667 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 820 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 50 50 
+## # of subgroups with sample size less than criteria 90 
+## # of subgroups meeting all criteria = 711 
+## # of subgroups fitted (Cox model estimable) = 711 
+## *Subgroup Searching Minutes=* 0.0425 
+## Number of subgroups meeting HR threshold 49 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  49 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##      n  E d1   HR L(HR) q1.0 q1.1 q4.0 q4.1 q15.0 q15.1 q17.0 q17.1 q9.0 q9.1
+## 1   88 63 35 3.59  2.13    0    0    0    0     0     1     0     1    0    0
+## 2   61 34 18 2.29  1.16    1    0    0    0     0     1     0     0    0    0
+## 3  117 78 42 2.03  1.29    0    0    0    0     0     1     0     0    0    0
+## 4   88 56 29 1.87  1.11    0    0    0    0     0     1     0     0    0    0
+## 5   91 54 25 1.82  1.07    0    0    0    0     0     1     0     0    1    0
+## 6   71 46 26 1.77  0.98    0    0    0    0     0     0     0     1    0    0
+## 7  131 82 40 1.67  1.08    0    0    0    0     0     1     0     0    0    0
+## 8   67 31 17 1.62  0.80    0    0    0    0     0     0     0     1    0    0
+## 9   89 59 28 1.61  0.96    0    0    0    0     0     1     0     0    0    0
+## 10  64 39 22 1.58  0.84    0    0    0    0     0     0     0     0    0    0
+## Consistency 1 
+## # of splits= 400 
+## Model, % Consistency Met= {z1} {z3} 1 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.0332 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.09083333 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 49.01446 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -3.08       459.00       1.26     1
+## 2         3         3.39       241.00       1.71     1
+## 3         4        -5.79       269.00       1.72     2
+## 4         5         3.84       128.00       2.48     2
+## 5         6        -2.67       215.00       1.48     2
+## 6         7        11.83        88.00       3.06     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7        11.83        88.00       3.06     2
+## GRF subgroup found 
+## All splits 
+## [1] "z3 <= 0"        "noise2 <= 0.42" "z1 <= 0"       
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z1 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.01795345 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                  s0
+## z1      0.288629433
+## z2     -0.101509769
+## z3      .          
+## z4      0.603912320
+## z5     -0.848116791
+## size    0.002801471
+## grade3  .          
+## noise1  .          
+## noise2 -0.028733702
+## noise3  .          
+## Cox-LASSO selected: z1 z2 z4 z5 size noise2 
+## Cox-LASSO not selected: z3 grade3 noise1 noise3 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z2 z4 z5 
+## Factors per GRF: z3 <= 0 noise2 <= 0.42 z1 <= 0 
+## Initial GRF cuts included z3 <= 0 noise2 <= 0.42 z1 <= 0 
+## Factors included per GRF (not in lasso) z3 <= 0 noise2 <= 0.42 
+## # of candidate subgroup factors= 19 
+##  [1] "noise2 <= 0.42" "size <= 29.9"   "size <= 25"     "size <= 21"    
+##  [5] "size <= 35"     "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.7" 
+##  [9] "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= -0.1"
+## [13] "noise3 <= -0.7" "noise3 <= 0.6"  "z1"             "z2"            
+## [17] "z4"             "z5"             "z3 <= 0"       
+## Number of factors evaluated= 19 
+## Confounders per grf screening q1 q4 q15 q19 q9 q16 q17 q18 q12 q6 q13 q5 q14 q10 q2 q7 q11 q3 q8 
+##           Factors Labels VI(grf)
+## 1  noise2 <= 0.42     q1  0.1825
+## 4      size <= 21     q4  0.1256
+## 15             z1    q15  0.1219
+## 19        z3 <= 0    q19  0.0848
+## 9     noise2 <= 0     q9  0.0627
+## 16             z2    q16  0.0491
+## 17             z4    q17  0.0475
+## 18             z5    q18  0.0374
+## 12 noise3 <= -0.1    q12  0.0360
+## 6     noise1 <= 0     q6  0.0313
+## 13 noise3 <= -0.7    q13  0.0278
+## 5      size <= 35     q5  0.0268
+## 14  noise3 <= 0.6    q14  0.0268
+## 10 noise2 <= -0.7    q10  0.0267
+## 2    size <= 29.9     q2  0.0262
+## 7  noise1 <= -0.7     q7  0.0242
+## 11  noise2 <= 0.7    q11  0.0222
+## 3      size <= 25     q3  0.0207
+## 8   noise1 <= 0.7     q8  0.0199
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 741 
+## Approximately 5% of max_count met: minutes 0.002033333 
+## Approximately 10% of max_count met: minutes 0.003516667 
+## Approximately 20% of max_count met: minutes 0.00735 
+## Approximately 33% of max_count met: minutes 0.01145 
+## Approximately 50% of max_count met: minutes 0.01766667 
+## Approximately 75% of max_count met: minutes 0.02745 
+## Approximately 90% of max_count met: minutes 0.03273333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 741 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 47 48 
+## # of subgroups with sample size less than criteria 79 
+## # of subgroups meeting all criteria = 643 
+## # of subgroups fitted (Cox model estimable) = 643 
+## *Subgroup Searching Minutes=* 0.03628333 
+## Number of subgroups meeting HR threshold 41 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  41 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##      n  E d1   HR L(HR) q1.0 q1.1 q4.0 q4.1 q15.0 q15.1 q19.0 q19.1 q9.0 q9.1
+## 1   88 63 35 3.59  2.13    0    0    0    0     0     1     1     0    0    0
+## 2   61 34 18 2.29  1.16    1    0    0    0     0     1     0     0    0    0
+## 3  117 78 42 2.03  1.29    0    0    0    0     0     1     0     0    0    0
+## 4   88 56 29 1.87  1.11    0    0    0    0     0     1     0     0    0    0
+## 5   91 54 25 1.82  1.07    0    0    0    0     0     1     0     0    1    0
+## 6  131 82 40 1.67  1.08    0    0    0    0     0     1     0     0    0    0
+## 7   67 31 17 1.62  0.80    0    0    0    0     0     0     1     0    0    0
+## 8   89 59 28 1.61  0.96    0    0    0    0     0     1     0     0    0    0
+## 9   85 48 25 1.58  0.90    0    0    0    0     0     1     0     0    0    0
+## 10 136 94 46 1.58  1.05    0    0    0    0     0     1     0     0    0    0
+## Consistency 1 
+## # of splits= 400 
+## Model, % Consistency Met= {z1} !{z3 <= 0} 1 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.03243333 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.08161667 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 50.23146 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.79       624.00       1.22     1
+## 2         3         4.69        76.00       3.24     1
+## 3         4         3.35       107.00       2.75     2
+## 4         5        -6.89       294.00       1.78     2
+## 5         6        -7.73       211.00       1.92     2
+## 6         7         7.61        88.00       3.67     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7         7.61        88.00       3.67     2
+## GRF subgroup found 
+## All splits 
+## [1] "z3 <= 0"    "size <= 20" "z1 <= 0"   
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z1 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## Default cuts included (1st 20) 
+## Categorical: z1 z2 z3 z4 z5 grade3 
+## Factors per GRF: z3 <= 0 size <= 20 z1 <= 0 
+## Initial GRF cuts included z3 <= 0 size <= 20 z1 <= 0 
+## # of candidate subgroup factors= 20 
+##  [1] "size <= 20"     "size <= 28.8"   "size <= 25"     "size <= 35"    
+##  [5] "noise1 <= -0.1" "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.6" 
+##  [9] "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= 0"   
+## [13] "noise3 <= -0.7" "noise3 <= 0.7"  "z1"             "z2"            
+## [17] "z3"             "z4"             "z5"             "grade3"        
+## Number of factors evaluated= 20 
+## Confounders per grf screening q15 q16 q4 q9 q1 q18 q20 q19 q17 q11 q12 q14 q10 q13 q5 q6 q7 q3 q2 q8 
+##           Factors Labels VI(grf)
+## 15             z1    q15  0.1329
+## 16             z2    q16  0.1036
+## 4      size <= 35     q4  0.0781
+## 9     noise2 <= 0     q9  0.0779
+## 1      size <= 20     q1  0.0771
+## 18             z4    q18  0.0727
+## 20         grade3    q20  0.0569
+## 19             z5    q19  0.0549
+## 17             z3    q17  0.0432
+## 11  noise2 <= 0.7    q11  0.0342
+## 12    noise3 <= 0    q12  0.0327
+## 14  noise3 <= 0.7    q14  0.0301
+## 10 noise2 <= -0.7    q10  0.0300
+## 13 noise3 <= -0.7    q13  0.0284
+## 5  noise1 <= -0.1     q5  0.0269
+## 6     noise1 <= 0     q6  0.0263
+## 7  noise1 <= -0.7     q7  0.0250
+## 3      size <= 25     q3  0.0239
+## 2    size <= 28.8     q2  0.0229
+## 8   noise1 <= 0.6     q8  0.0223
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 820 
+## Approximately 5% of max_count met: minutes 0.002366667 
+## Approximately 10% of max_count met: minutes 0.00455 
+## Approximately 20% of max_count met: minutes 0.008833333 
+## Approximately 33% of max_count met: minutes 0.014 
+## Approximately 50% of max_count met: minutes 0.02038333 
+## Approximately 75% of max_count met: minutes 0.0303 
+## Approximately 90% of max_count met: minutes 0.03633333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 820 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 46 50 
+## # of subgroups with sample size less than criteria 85 
+## # of subgroups meeting all criteria = 716 
+## # of subgroups fitted (Cox model estimable) = 716 
+## *Subgroup Searching Minutes=* 0.04 
+## Number of subgroups meeting HR threshold 7 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  7 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q15.0 q15.1 q16.0 q16.1 q4.0 q4.1 q9.0
+## 1 88 68 36 1.85  1.14     0     1     0     0    0    0    0
+## 2 84 41 25 1.78  0.95     0     0     1     0    0    0    0
+## 3 94 47 27 1.36  0.76     0     0     0     0    0    0    0
+## 4 87 65 33 1.32  0.81     0     1     0     0    0    0    0
+## 5 97 69 33 1.30  0.80     0     1     0     0    0    0    0
+## 6 90 65 31 1.29  0.79     0     1     0     0    0    0    0
+## 7 76 48 25 1.29  0.73     0     1     0     0    0    0    0
+## Consistency 0.975 
+## # of splits= 400 
+## Model, % Consistency Met= {z1} {z3} 0.975 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.02941667 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.07913333 
+## FS: GRF stage for cut selection with dmin,tau= 12 0.6 
+## tau, maxdepth= 50.23146 2 
+##   leaf.node control.mean control.size control.se depth
+## 1         2        -4.79       624.00       1.22     1
+## 2         3         4.69        76.00       3.24     1
+## 3         4         3.35       107.00       2.75     2
+## 4         5        -6.89       294.00       1.78     2
+## 5         6        -7.73       211.00       1.92     2
+## 6         7         7.61        88.00       3.67     2
+##   leaf.node control.mean control.size control.se depth
+## 6         7         7.61        88.00       3.67     2
+## GRF subgroup found 
+## All splits 
+## [1] "z3 <= 0"    "size <= 20" "z1 <= 0"   
+## Terminating node at max.diff (sg.harm.id) 
+## [1] "z1 <= 0"
+## # of continuous/categorical characteristics 4 6 
+## Continuous characteristics: size noise1 noise2 noise3 
+## Categorical characteristics: z1 z2 z3 z4 z5 grade3 
+## CV lambda = 0.01062779 
+## 10 x 1 sparse Matrix of class "dgCMatrix"
+##                   s0
+## z1      4.225374e-01
+## z2     -4.079322e-01
+## z3      4.325252e-01
+## z4      6.323497e-01
+## z5     -7.482728e-01
+## size    .           
+## grade3  .           
+## noise1 -2.601877e-03
+## noise2  .           
+## noise3  6.779728e-05
+## Cox-LASSO selected: z1 z2 z3 z4 z5 noise1 noise3 
+## Cox-LASSO not selected: size grade3 noise2 
+## Default cuts included from Lasso: 
+## Categorical after Lasso: z1 z2 z3 z4 z5 
+## Factors per GRF: z3 <= 0 size <= 20 z1 <= 0 
+## Initial GRF cuts included z3 <= 0 size <= 20 z1 <= 0 
+## Factors included per GRF (not in lasso) size <= 20 
+## # of candidate subgroup factors= 19 
+##  [1] "size <= 20"     "size <= 28.8"   "size <= 25"     "size <= 35"    
+##  [5] "noise1 <= -0.1" "noise1 <= 0"    "noise1 <= -0.7" "noise1 <= 0.6" 
+##  [9] "noise2 <= 0"    "noise2 <= -0.7" "noise2 <= 0.7"  "noise3 <= 0"   
+## [13] "noise3 <= -0.7" "noise3 <= 0.7"  "z1"             "z2"            
+## [17] "z3"             "z4"             "z5"            
+## Number of factors evaluated= 19 
+## Confounders per grf screening q15 q16 q9 q4 q1 q18 q19 q17 q12 q11 q7 q14 q5 q10 q8 q3 q6 q13 q2 
+##           Factors Labels VI(grf)
+## 15             z1    q15  0.1402
+## 16             z2    q16  0.1024
+## 9     noise2 <= 0     q9  0.0870
+## 4      size <= 35     q4  0.0806
+## 1      size <= 20     q1  0.0804
+## 18             z4    q18  0.0719
+## 19             z5    q19  0.0560
+## 17             z3    q17  0.0532
+## 12    noise3 <= 0    q12  0.0386
+## 11  noise2 <= 0.7    q11  0.0372
+## 7  noise1 <= -0.7     q7  0.0323
+## 14  noise3 <= 0.7    q14  0.0320
+## 5  noise1 <= -0.1     q5  0.0309
+## 10 noise2 <= -0.7    q10  0.0303
+## 8   noise1 <= 0.6     q8  0.0266
+## 3      size <= 25     q3  0.0262
+## 6     noise1 <= 0     q6  0.0261
+## 13 noise3 <= -0.7    q13  0.0249
+## 2    size <= 28.8     q2  0.0231
+## Number of possible configurations (<= maxk): maxk, # <= maxk 2 741 
+## Approximately 5% of max_count met: minutes 0.002016667 
+## Approximately 10% of max_count met: minutes 0.004483333 
+## Approximately 20% of max_count met: minutes 0.007866667 
+## Approximately 33% of max_count met: minutes 0.01268333 
+## Approximately 50% of max_count met: minutes 0.0176 
+## Approximately 75% of max_count met: minutes 0.02611667 
+## Approximately 90% of max_count met: minutes 0.03043333 
+## # of subgroups evaluated based on (up to) maxk-factor combinations 741 
+## % of all-possible combinations (<= maxk) 100 
+## k.max= 2 
+## Events criteria for control,exp= 10 10 
+## # of subgroups with events less than criteria: control, experimental 44 47 
+## # of subgroups with sample size less than criteria 75 
+## # of subgroups meeting all criteria = 647 
+## # of subgroups fitted (Cox model estimable) = 647 
+## *Subgroup Searching Minutes=* 0.03316667 
+## Number of subgroups meeting HR threshold 7 
+## Subgroup candidate(s) found (FS) 
+## # of candidate subgroups (meeting HR criteria) =  7 
+## SGs (1st 10) meeting screening thresholds sorted by sg_focus= hr 
+##    n  E d1   HR L(HR) q15.0 q15.1 q16.0 q16.1 q9.0 q9.1 q4.0
+## 1 88 68 36 1.85  1.14     0     1     0     0    0    0    0
+## 2 84 41 25 1.78  0.95     0     0     1     0    0    0    0
+## 3 94 47 27 1.36  0.76     0     0     0     0    0    1    0
+## 4 87 65 33 1.32  0.81     0     1     0     0    0    0    0
+## 5 97 69 33 1.30  0.80     0     1     0     0    0    0    0
+## 6 90 65 31 1.29  0.79     0     1     0     0    0    0    0
+## 7 76 48 25 1.29  0.73     0     1     0     0    0    0    0
+## Consistency 0.975 
+## # of splits= 400 
+## Model, % Consistency Met= {z1} {z3} 0.975 
+## SG focus= hr 
+## Subgroup Consistency Minutes= 0.02848333 
+## Subgroup found (FS) 
+## Minutes forestsearch overall= 0.07608333
+\end{verbatim}
+\begin{alltt}
+\hlstd{t.now} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+\hlstd{t.min} \hlkwb{<-} \hlstd{(t.now} \hlopt{-} \hlstd{t.start)}\hlopt{/}\hlnum{60}
+
+
+\hlkwd{print}\hlstd{(}\hlkwd{table}\hlstd{(res}\hlopt{$}\hlstd{analysis))}
+\end{alltt}
+\begin{verbatim}
+## 
+##     FSl    FSlg     GRF  GRF.60  VT(24)  VT(36) VT#(24) VT#(36) 
+##    1000    1000    1000    1000    1000    1000    1000    1000
+\end{verbatim}
+\begin{alltt}
+\hlstd{check} \hlkwb{<-} \hlkwd{c}\hlstd{(}\hlkwd{c}\hlstd{(}\hlkwd{table}\hlstd{(res}\hlopt{$}\hlstd{analysis))} \hlopt{-} \hlstd{Nsims)}
+\hlkwa{if} \hlstd{(}\hlkwd{all}\hlstd{(check} \hlopt{!=} \hlnum{0}\hlstd{))} \hlkwd{stop}\hlstd{(}\hlstr{"All analyses not complete"}\hlstd{)}
+
+\hlstd{dgm_alt} \hlkwb{<-} \hlstd{dgm}
+
+\hlstd{outres} \hlkwb{<-} \hlkwd{out.results}\hlstd{(}\hlkwc{res} \hlstd{= res,} \hlkwc{dgm} \hlstd{= dgm,} \hlkwc{output.file} \hlstd{= output.file,} \hlkwc{t.min} \hlstd{= t.min,}
+    \hlkwc{out_analysis} \hlstd{=} \hlstr{"FSl"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## [1] "results/oc_sims=1000_m4a-Noise=3_N=700_alt_ktreat=0.9_hrH=2_v0B-4cuts.Rdata"
+##      sim sizeH_true propH_true sizeHc_true propHc_true any.H size.H size.Hc
+##    <int>      <num>      <num>       <int>       <num> <num>  <num>   <int>
+## 1:     1         95  0.1357143         605   0.8642857     1     95     605
+## 2:     1         95  0.1357143         605   0.8642857     1     95     605
+## 3:     1         95  0.1357143         605   0.8642857     1     95     605
+## 4:     1         95  0.1357143         605   0.8642857     0      0     700
+## 5:     1         95  0.1357143         605   0.8642857     0      0     700
+## 6:     1         95  0.1357143         605   0.8642857     0      0     700
+##      ppv   npv specificity sensitivity found.1 found.2 found.both found.al3
+##    <num> <num>       <num>       <num>   <num>   <num>      <num>     <num>
+## 1:     1     1   1.0000000           1       0       0          0         0
+## 2:     1     1   1.0000000           1       0       0          0         0
+## 3:     1     1   1.0000000           1      NA      NA         NA        NA
+## 4:     0     1   0.8642857           0      NA      NA         NA         0
+## 5:     0     1   0.8642857           0       0       0          0         0
+## 6:     0     1   0.8642857           0       0       0          0         0
+##    hr.H.true hr.Hc.true hr.H.hat hr.Hc.hat  b1.H       b2.H     b1.Hc
+##        <num>      <num>    <num>     <num> <num>      <num>     <num>
+## 1:   1.74466  0.5577464  1.74466 0.5577464     0 -0.2553474 0.0000000
+## 2:   1.74466  0.5577464  1.74466 0.5577464     0 -0.2553474 0.0000000
+## 3:   1.74466  0.5577464  1.74466 0.5577464     0 -0.2553474 0.0000000
+## 4:   1.74466  0.5577464       NA 0.6688550    NA         NA 0.1111086
+## 5:   1.74466  0.5577464       NA 0.6688550    NA         NA 0.1111086
+## 6:   1.74466  0.5577464       NA 0.6688550    NA         NA 0.1111086
+##          b2.Hc    p.cens analysis   taumax   hr.itt     l.itt     u.itt
+##          <num>     <num>   <char>    <num>    <num>     <num>     <num>
+## 1: -0.08889407 0.4514286      FSl 81.43453 0.668855 0.5464683 0.8186513
+## 2: -0.08889407 0.4514286     FSlg 48.86072 0.668855 0.5464683 0.8186513
+## 3: -0.08889407 0.4514286      GRF 81.43453 0.668855 0.5464683 0.8186513
+## 4:  0.02221450 0.4514286   GRF.60 48.86072 0.668855 0.5464683 0.8186513
+## 5:  0.02221450 0.4514286   VT(24) 81.43453 0.668855 0.5464683 0.8186513
+## 6:  0.02221450 0.4514286  VT#(24) 81.43453 0.668855 0.5464683 0.8186513
+##    hr.adj.itt l.adj.itt u.adj.itt l.H.true u.H.true l.Hc.true u.Hc.true
+##         <num>     <num>     <num>    <num>    <num>     <num>     <num>
+## 1:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+## 2:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+## 3:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+## 4:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+## 5:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+## 6:  0.6827343 0.5565269 0.8375626 1.105971 2.752186 0.4437854 0.7009717
+##     l.H.hat  u.H.hat  l.Hc.hat  u.Hc.hat
+##       <num>    <num>     <num>     <num>
+## 1: 1.105971 2.752186 0.4437854 0.7009717
+## 2: 1.105971 2.752186 0.4437854 0.7009717
+## 3: 1.105971 2.752186 0.4437854 0.7009717
+## 4:       NA       NA 0.5464683 0.8186513
+## 5:       NA       NA 0.5464683 0.8186513
+## 6:       NA       NA 0.5464683 0.8186513
+## Subgroup HRs: H, H^c, Causal= 2.000007 0.6466405 0.7057463 
+## Simulations= 1000 
+## Avg censoring= 0.44999 
+## Min,Max,Avg tau.max= 74.465 83.95939 81.60594 
+## P(H) approximation at causal(H), n(sg)=60, approx= 2.000007 60 0.8283003 
+## P(H) approximation at causal(H), Avg(n(sg)), approx= 2.000007 89 0.8998777 
+## P(H) approximation at plim(H), Avg(n(sg)), approx= 2.127636 89 0.9289428 
+## Minutes,hours 9.55805 0.1593008 
+##                    FSl    FSlg     GRF  GRF.60  VT(24) VT#(24)  VT(36) VT#(36)
+## any.H            0.940   0.880   0.950   0.720   0.470   0.520   0.420   0.550
+## sensH            0.810   0.720   0.670   0.520   0.390   0.460   0.350   0.510
+## sensHc           0.980   0.970   0.930   0.960   0.990   0.990   0.990   0.990
+## ppH              0.810   0.710   0.590   0.470   0.370   0.450   0.340   0.500
+## ppHc             0.970   0.960   0.950   0.940   0.920   0.930   0.920   0.940
+## Avg(#H)         88.000  92.000 107.000 102.000  92.000  92.000  91.000  92.000
+## minH            61.000  61.000  60.000  60.000  60.000  60.000  60.000  60.000
+## maxH           196.000 258.000 327.000 236.000 171.000 153.000 155.000 175.000
+## Avg(#Hc)       617.000 619.000 598.000 627.000 656.000 652.000 662.000 649.000
+## minHc          504.000 442.000 373.000 464.000 529.000 547.000 545.000 525.000
+## maxHc          700.000 700.000 700.000 700.000 700.000 700.000 700.000 700.000
+## hat(H*)          2.176   2.199   2.151   2.220   2.359   2.370   2.406   2.369
+## hat(hat[H])      2.241   2.178   1.980   1.941   2.137   2.225   2.240   2.307
+## hat(Hc*)         0.653   0.654   0.652   0.646   0.650   0.652   0.651   0.651
+## hat(hat[Hc])     0.653   0.654   0.641   0.646   0.659   0.657   0.658   0.651
+## hat(H*)all       2.128   2.128   2.128   2.128   2.128   2.128   2.128   2.128
+## hat(Hc*)all      0.651   0.651   0.651   0.651   0.651   0.651   0.651   0.651
+## hat(ITT)all      0.754   0.754   0.754   0.754   0.754   0.754   0.754   0.754
+## hat(ITTadj)all   0.742   0.742   0.742   0.742   0.742   0.742   0.742   0.742
+\end{verbatim}
+\begin{alltt}
+\hlstd{missC} \hlkwb{<-} \hlkwd{tab_tests}\hlstd{(}\hlkwc{res} \hlstd{= res)}
+
+\hlstd{pA} \hlkwb{<-} \hlkwd{as.character}\hlstd{(}\hlkwd{round}\hlstd{(outres}\hlopt{$}\hlstd{pAnyH.approx2,} \hlnum{4}\hlstd{))}
+
+\hlstd{tabsim_missC} \hlkwb{<-} \hlkwd{get_tabsim}\hlstd{(}\hlkwc{missC} \hlstd{= missC,} \hlkwc{pA} \hlstd{= pA,} \hlkwc{est_names} \hlstd{= est_names,} \hlkwc{stat_names} \hlstd{= stat_names,}
+    \hlkwc{mod.harm} \hlstd{= mod.harm,} \hlkwc{Nsims} \hlstd{= Nsims)}
+\end{alltt}
+\end{kframe}
+\end{knitrout}
+
+\begin{table}[!h]
+\centering
+\caption{\label{tab:r hrh2}Average classification rates: ${avg}\vert \hat{H} \vert$, ${min}\vert \hat{H} \vert$, and ${max}\vert \hat{H} \vert$, denote the average, 
+minimum, and maximum of the number of subjects in the estimated subgroup $\hat{H}$ (analogously for $\hat{H}^{c}$).  
+Note that under the null $sens(\hat{H})$ is undefined and $ppv(\hat{H})=0$.}
+\centering
+\fontsize{9}{11}\selectfont
+\begin{tabular}[t]{lcccccccc}
+\toprule
+  & $FS_{g}$ & $FS_{lg}$ & $GRF$ & $GRF_{60}$ & $VT(24)$ & ${VT}^{\#}(24)$ & $VT(36)$ & ${VT}^{\#}(36)$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{9}{l}{\textbf{Finding H}}\\
+\hspace{1em}any(H) & 0.94 & 0.88 & 0.95 & 0.72 & 0.47 & 0.52 & 0.42 & 0.55\\
+\hspace{1em}${sens}(\hat{H})$ & 0.81 & 0.72 & 0.67 & 0.52 & 0.39 & 0.46 & 0.35 & 0.51\\
+\hspace{1em}${sens}(\hat{H}^{C})$ & 0.98 & 0.97 & 0.93 & 0.96 & 0.99 & 0.99 & 0.99 & 0.99\\
+\hspace{1em}${ppv}(\hat{H})$ & 0.81 & 0.71 & 0.59 & 0.47 & 0.37 & 0.45 & 0.34 & 0.5\\
+\hspace{1em}${ppv}(\hat{H}^{C})$ & 0.97 & 0.96 & 0.95 & 0.94 & 0.92 & 0.93 & 0.92 & 0.94\\
+\addlinespace[0.3em]
+\multicolumn{9}{l}{\textbf{Size of H and H-complement}}\\
+\hspace{1em}${avg}\vert \hat{H} \vert$ & 88 & 92 & 107 & 102 & 92 & 92 & 91 & 92\\
+\hspace{1em}${min}\vert \hat{H} \vert$ & 61 & 61 & 60 & 60 & 60 & 60 & 60 & 60\\
+\hspace{1em}${max}\vert \hat{H} \vert$ & 196 & 258 & 327 & 236 & 171 & 153 & 155 & 175\\
+\hspace{1em}${avg}\vert \hat{H}^{C} \vert$ & 617 & 619 & 598 & 627 & 656 & 652 & 662 & 649\\
+\hspace{1em}${min}\vert \hat{H}^{C} \vert$ & 504 & 442 & 373 & 464 & 529 & 547 & 545 & 525\\
+\hspace{1em}${max}\vert \hat{H}^{C} \vert$ & 700 & 700 & 700 & 700 & 700 & 700 & 700 & 700\\
+\bottomrule
+\multicolumn{9}{l}{\rule{0pt}{1em}\textit{Note: } Number of simulations= 1000 .}\\
+\multicolumn{9}{l}{\rule{0pt}{1em}\textit{Note: } Probability approximation= 0.8999 .}\\
+\end{tabular}
+\end{table}
+
+
+
+
+\begin{knitrout}
+\definecolor{shadecolor}{rgb}{0.969, 0.969, 0.969}\color{fgcolor}\begin{kframe}
+\begin{alltt}
+\hlstd{t.done} \hlkwb{<-} \hlkwd{proc.time}\hlstd{()[}\hlnum{3}\hlstd{]}
+\hlstd{t.min} \hlkwb{<-} \hlstd{(t.done} \hlopt{-} \hlstd{t.start.all)}\hlopt{/}\hlnum{60}
+\hlkwd{cat}\hlstd{(}\hlstr{"Minutes and hours to finish"}\hlstd{,} \hlkwd{c}\hlstd{(t.min, t.min}\hlopt{/}\hlnum{60}\hlstd{),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## Minutes and hours to finish 21.65837 0.3609728
+\end{verbatim}
+\begin{alltt}
+\hlkwd{cat}\hlstd{(}\hlstr{"Minutes and hours per 10,000 to finish"}\hlstd{, (}\hlnum{10000}\hlopt{/}\hlstd{Nsims)} \hlopt{*} \hlkwd{c}\hlstd{(t.min, t.min}\hlopt{/}\hlnum{60}\hlstd{),}
+    \hlstr{"\textbackslash{}n"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## Minutes and hours per 10,000 to finish 216.5837 3.609728
+\end{verbatim}
+\begin{alltt}
+\hlcom{# cat('Machine=',c(Sys.info()[[4]]),'\textbackslash{}n') cat('Number of}
+\hlcom{# cores=',c(detectCores(logical = FALSE)),'\textbackslash{}n')}
+\hlkwd{require}\hlstd{(benchmarkme)}
+\hlstd{my_system} \hlkwb{<-} \hlkwd{get_cpu}\hlstd{()}
+\hlstd{my_ram} \hlkwb{<-} \hlkwd{get_ram}\hlstd{()}
+\hlkwd{cat}\hlstd{(}\hlstr{"Running on system:"}\hlstd{,} \hlkwd{c}\hlstd{(my_system}\hlopt{$}\hlstd{model_name),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## Running on system: AMD Ryzen Threadripper PRO 5995WX 64-Cores
+\end{verbatim}
+\begin{alltt}
+\hlkwd{cat}\hlstd{(}\hlstr{"with number of cores and cpu/GB="}\hlstd{,} \hlkwd{c}\hlstd{(my_system}\hlopt{$}\hlstd{no_of_cores,} \hlkwd{round}\hlstd{(}\hlkwd{c}\hlstd{(my_ram)}\hlopt{/}\hlnum{10}\hlopt{^}\hlnum{9}\hlstd{,}
+    \hlnum{0}\hlstd{)),} \hlstr{"\textbackslash{}n"}\hlstd{)}
+\end{alltt}
+\begin{verbatim}
+## with number of cores and cpu/GB= 128 270
+\end{verbatim}
+\end{kframe}
+\end{knitrout}
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
 % Please edit documentation in R/forestsearch_cross-validation.R
 \name{forestsearch_tenfold}
 \alias{forestsearch_tenfold}
-\title{ForestSearch Tenfold Cross-Validation Simulation}
+\title{ForestSearch Repeated K-Fold Cross-Validation}
 \usage{
 forestsearch_tenfold(
   fs.est,
@@ -13,19 +13,67 @@ forestsearch_tenfold(
 )
 }
 \arguments{
-\item{fs.est}{ForestSearch results object.}
+\item{fs.est}{List. ForestSearch results object from \code{\link{forestsearch}}.}
 
 \item{sims}{Integer. Number of simulation repetitions.}
 
-\item{Kfolds}{Integer. Number of folds (default: 10).}
+\item{Kfolds}{Integer. Number of folds per simulation (default: 10).}
 
-\item{details}{Logical. Print details during execution (default: TRUE).}
+\item{details}{Logical. Print progress details (default: TRUE).}
 
-\item{parallel_args}{List. Parallelization arguments (plan, workers, show_message).}
+\item{parallel_args}{List. Parallelization configuration.}
 }
 \value{
-List with median and full results for sensitivity and subgroup finding metrics.
+List with components:
+\describe{
+\item{sens_summary}{Named vector of median sensitivity metrics across simulations}
+\item{find_summary}{Named vector of median subgroup-finding metrics}
+\item{sens_out}{Matrix of sensitivity metrics (sims x metrics)}
+\item{find_out}{Matrix of finding metrics (sims x metrics)}
+\item{timing_minutes}{Total execution time}
+\item{sims}{Number of simulations run}
+\item{Kfolds}{Number of folds per simulation}
+}
 }
 \description{
-Runs repeated K-fold (default 10-fold) cross-validation simulations for ForestSearch and summarizes performance.
+This function performs multiple independent K-fold cross-validations to
+assess the variability in subgroup identification. Each simulation:
+\enumerate{
+\item Randomly shuffles the data
+\item Performs K-fold CV
+\item Records sensitivity and agreement metrics
+}
+Results are summarized across all simulations.
+}
+\details{
+Runs repeated K-fold cross-validation simulations for ForestSearch and
+summarizes subgroup identification stability across repetitions.
+}
+\section{Parallelization Strategy}{
+
+Unlike the single K-fold function which parallelizes across folds, this
+function parallelizes across simulations for better efficiency when
+running many repetitions. Each simulation runs its K-fold CV sequentially.
+}
+
+\examples{
+\dontrun{
+# Run 100 repetitions of 10-fold CV
+tenfold_results <- forestsearch_tenfold(
+  fs.est = fs_result,
+  sims = 100,
+  Kfolds = 10,
+  parallel_args = list(plan = "multisession", workers = 6),
+  details = TRUE
+)
+
+# View summary
+print(tenfold_results$sens_summary)
+print(tenfold_results$find_summary)
+}
+
+}
+\seealso{
+\code{\link{forestsearch_Kfold}} for single K-fold CV
+\code{\link{forestsearch_KfoldOut}} for summarizing CV results
 }
