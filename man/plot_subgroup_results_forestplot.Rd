@@ -16,13 +16,14 @@ plot_subgroup_results_forestplot(
   est.scale = "hr",
   title_text = NULL,
   arrow_text = c("Favors Experimental", "Favors Control"),
-  footnote_text = c(c("Eg, 80\% training SG found: 70\% of B (+) also B in CV testing")),
+  footnote_text = c("Eg 80\% of training found SG: 70\% of B (+) also B in CV testing"),
   xlim = c(0.25, 1.5),
   ticks_at = c(0.25, 0.7, 1, 1.5),
   show_cv_metrics = TRUE,
   cv_source = c("auto", "kfold", "oob", "both"),
   posthoc_colors = c("powderblue", "beige"),
-  reference_colors = c("yellow", "powderblue")
+  reference_colors = c("yellow", "powderblue"),
+  col_widths = c(2, 0.5, 0.5, 1.5, 2.5)
 )
 }
 \arguments{
@@ -86,6 +87,10 @@ Each element should be a list with:
 
 \item{reference_colors}{Character vector. Colors for reference subgroup rows
 (default: c("yellow", "powderblue")).}
+
+\item{col_widths}{Numeric vector of length 5. Column widths in inches for:
+Subgroup, E.name, C.name, CI plot, HR (95\% CI).
+(default: c(2.5, 0.5, 0.5, 1.5, 1)).}
 }
 \value{
 A list containing:

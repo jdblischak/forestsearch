@@ -45,18 +45,15 @@
 #'   (default: c(0.25, 0.70, 1.0, 1.5)).
 #' @param show_cv_metrics Logical. Whether to show cross-validation metrics
 #'   (default: TRUE if fs_kfold or fs_OOB available).
-#' @param cv_source Character. Source for CV metrics:
+#' @param cv_source Character. Source for CV metrics: 
 #'   "auto" (default, uses both if available, otherwise whichever is present),
-#'   "kfold" (use fs_kfold only),
+#'   "kfold" (use fs_kfold only), 
 #'   "oob" (use fs_OOB only), or
 #'   "both" (explicitly use both fs_kfold and fs_OOB, with K-fold first then OOB).
 #' @param posthoc_colors Character vector. Colors for post-hoc subgroup rows
 #'   (default: c("powderblue", "beige")).
 #' @param reference_colors Character vector. Colors for reference subgroup rows
 #'   (default: c("yellow", "powderblue")).
-#' @param col_widths Numeric vector of length 5. Column widths in inches for:
-#'   Subgroup, E.name, C.name, CI plot, HR (95% CI).
-#'   (default: c(2.5, 0.5, 0.5, 1.5, 1)).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -146,14 +143,14 @@ plot_subgroup_results_forestplot <- function(
     est.scale = "hr",
     title_text = NULL,
     arrow_text = c("Favors Experimental", "Favors Control"),
-    footnote_text = c("eg 70% of B (+) also B in CV testing"),
+    footnote_text = c(c("Eg, 80% of CV training identified subgroup, 70% of estimated (full-analysis)
+                   benefitting (+) agreed with (also benefitting in) CV testing")),
     xlim = c(0.25, 1.5),
     ticks_at = c(0.25, 0.70, 1.0, 1.5),
     show_cv_metrics = TRUE,
     cv_source = c("auto", "kfold", "oob", "both"),
     posthoc_colors = c("powderblue", "beige"),
-    reference_colors = c("yellow", "powderblue"),
-    col_widths = c(3.0, 0.5, 0.5, 1.5, 1.0)
+    reference_colors = c("yellow", "powderblue")
 ) {
 
   # ==========================================================================
@@ -313,7 +310,7 @@ plot_subgroup_results_forestplot <- function(
     cv_text <- paste0(cv_label, " found = ", round(100 * cv, 0), "%")
     aa <- paste0(round(100 * B, 0), "%,")
     bb <- paste0(round(100 * Q, 0), "%")
-    sense_text <- paste("Agree(+,-) = ", aa, bb, collapse = ",")
+    sense_text <- paste("Agreement(+,-) = ", aa, bb, collapse = ",")
     sg_text <- paste(cv_text, sense_text, sep = ", ")
 
     return(sg_text)
@@ -536,27 +533,25 @@ plot_subgroup_results_forestplot <- function(
       # CV metrics for questionable subgroup (add blank rows for annotation space)
       # Supports both K-fold and OOB annotations when both are available
       if (has_cv_data && show_cv_metrics) {
-
+        
         # First: K-fold annotation (if available)
         if (!is.null(cv_data_kfold)) {
           cv_text_kfold <- generate_sens_text(cv_data_kfold, est.scale, "K-fold")
           if (!is.null(cv_text_kfold)) {
-            # Create blank row - text will be added via insert_text
-            cv_row <- create_header_row("", E.name, C.name)
-            dt <- rbind(dt, cv_row)
+            cv_blank_row <- create_header_row("", E.name, C.name)
+            dt <- rbind(dt, cv_blank_row)
             row_types <- c(row_types, "cv_annotation")
             cv_texts[[length(cv_texts) + 1]] <- cv_text_kfold
             cv_row_positions[[length(cv_row_positions) + 1]] <- nrow(dt)
           }
         }
-
+        
         # Second: OOB annotation (if available)
         if (!is.null(cv_data_oob)) {
           cv_text_oob <- generate_sens_text(cv_data_oob, est.scale, "OOB")
           if (!is.null(cv_text_oob)) {
-            # Create blank row - text will be added via insert_text
-            cv_row <- create_header_row("", E.name, C.name)
-            dt <- rbind(dt, cv_row)
+            cv_blank_row <- create_header_row("", E.name, C.name)
+            dt <- rbind(dt, cv_blank_row)
             row_types <- c(row_types, "cv_annotation")
             cv_texts[[length(cv_texts) + 1]] <- cv_text_oob
             cv_row_positions[[length(cv_row_positions) + 1]] <- nrow(dt)
@@ -610,8 +605,6 @@ plot_subgroup_results_forestplot <- function(
                              sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
 
   # Generate the forest plot
-  # widths: Subgroup, E.name, C.name, CI plot, HR (95% CI)
-  # autofit = FALSE prevents auto-sizing based on content
   p <- forestploter::forest(
     dt[, c("Subgroup", E.name, C.name, " ", "HR (95% CI)")],
     title = title_text,
@@ -625,22 +618,20 @@ plot_subgroup_results_forestplot <- function(
     xlim = xlim,
     ticks_at = ticks_at,
     footnote = footnote_text,
-    theme = tm,
-    widths = grid::unit(col_widths, "inches"),
-    autofit = TRUE
+    theme = tm
   )
 
-  # Add CV annotation text using insert_text (spans across first 3 columns)
-  if (length(cv_row_positions) > 0) {
+  # Add CV metrics as text annotations below the bias-corrected rows
+  if (length(cv_texts) > 0) {
     for (i in seq_along(cv_texts)) {
-      p <- forestploter::insert_text(
+      p <- forestploter::add_text(
         p,
-        text = paste0("  ", cv_texts[[i]]),
+        text = cv_texts[[i]],
         row = cv_row_positions[[i]],
-        col = 1:3,
+        col = 1,
         part = "body",
         just = "left",
-        gp = grid::gpar(fontsize = 7, fontface = "italic", col = "gray30")
+        gp = grid::gpar(fontsize = 9, fontface = "italic", col = "gray30")
       )
     }
   }
@@ -839,7 +830,7 @@ sens_text <- function(fs_kfold, est.scale = "hr") {
   cv_text <- paste0("CV found = ", round(100 * cv, 0), "%")
   aa <- paste0(round(100 * B, 0), "%,")
   bb <- paste0(round(100 * Q, 0), "%")
-  sense_text <- paste("Agree(+,-) = ", aa, bb, collapse = ",")
+  sense_text <- paste("Agreement(+,-) = ", aa, bb, collapse = ",")
   sg_text <- paste(cv_text, sense_text, sep = ", ")
 
   return(sg_text)

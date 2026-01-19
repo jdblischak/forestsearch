@@ -324,7 +324,7 @@ if (save_results) {
 
 
 
-```{r forestplot_k2}
+```{r forestplot_k2,fig.width = 9, fig.height = 6}
 
 Ksims <- 5
 
