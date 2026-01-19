@@ -153,9 +153,10 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 flag_harm.name = NULL,
                                 hr.threshold = 1.25, hr.consistency = 1.0, pconsistency.threshold = 0.90,
                                 sg_focus = "maxSG", max_subgroups_search = 30,
+                                use_twostage = TRUE,
                                 showten_subgroups = TRUE, details=TRUE,
                                 conf_force = NULL,
-                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = FALSE,
+                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
                                 maxk = 2, fs.splits = 1000,
                                 n.min = 60, d0.min = 10, d1.min = 10,
                                 plot.sg = TRUE, by.risk = 6,
@@ -184,6 +185,10 @@ res_tabs$tab_estimates
 #output_dir <- "dev/vignettes-working/applications/gbsg/results"
 output_dir <- "results/"
 save_results <- dir.exists(output_dir)
+# File pre-fix for saving
+fileout_boot <- c("gbsg-k2_v3_B=1000")
+fileout_cv <- c("gbsg-k2_v3_CV=200")
+
 
 # patchhwork needed for a combined bootstrap plot (otherwise if not avaialable will not produce)
 library(patchwork)
@@ -203,8 +208,7 @@ plan("sequential")
 
 if (save_results) {
     filename <- file.path(output_dir, 
-                         paste0("gbsg_k2b_B=", 
-                                format(NB), 
+                         paste0(fileout_boot, 
                                 ".RData"))
     save(df.analysis, fs, fs_bc, file = filename)
     cat("\nResults saved to:", filename, "\n")
@@ -220,13 +224,10 @@ if (save_results) {
 
 output_dir <- "results/"
 
-#NB <- 1000
-
 load_results <- dir.exists(output_dir)
 if(load_results){
 filename <- file.path(output_dir, 
-                         paste0("gbsg_k2b_B=", 
-                                format(NB),".RData"))
+                         paste0(fileout_boot,".RData"))
 
 load(file = filename)
 }
@@ -270,8 +271,7 @@ load_results <- dir.exists(output_dir)
 #NB <- 1000
 if(load_results){
 filename <- file.path(output_dir, 
-                         paste0("gbsg_k2b_B=", 
-                                format(NB),".RData"))
+                         paste0(fileout_boot,".RData"))
 
 load(file = filename)
 }
@@ -284,13 +284,15 @@ fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE,
                              parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
 # Reset workers to single
 plan(sequential)
+
 summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
+
 table(summary_OOB$SGs_found[,1])
 table(summary_OOB$SGs_found[,2])
 
-Ksims <- 5
+Ksims <- 200
 
-fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details=TRUE, 
+fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details = TRUE, 
                        parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
 
 # Reset workers to single
@@ -310,8 +312,7 @@ save_results <- dir.exists(output_dir)
 
 if (save_results) {
     filename <- file.path(output_dir, 
-                         paste0("gbsg_k2b_CV=", 
-                                format(Ksims), 
+                         paste0(fileout_cv, 
                                 ".RData"))
     save(df.analysis, fs, fs_bc, fs_ten, fs_OOB, file = filename)
     cat("\nResults saved to:", filename, "\n")
@@ -332,8 +333,7 @@ output_dir <- "results/"
 load_results <- dir.exists(output_dir)
 if(load_results){
 filename <- file.path(output_dir, 
-                         paste0("gbsg_k2b_CV=", 
-                                format(Ksims),".RData"))
+                         paste0(fileout_cv,".RData"))
 
 load(file = filename)
 }

@@ -209,6 +209,13 @@ forestsearch_Kfold <- function(
   cv_args$details <- FALSE
   cv_args$plot.sg <- FALSE
 
+
+  # ===========================================================================
+  # SECTION 5.1: VERIFY CV FORESTSEARCH PARAMETERS (when details = TRUE)
+  # ===========================================================================
+
+  if(details) print_cv_params(cv_args)
+
   # ===========================================================================
   # SECTION 6: RUN CROSS-VALIDATION (PARALLEL)
   # ===========================================================================
@@ -491,6 +498,12 @@ forestsearch_tenfold <- function(
   cv_args$parallel_args <- list(plan = "sequential", workers = 1, show_message = FALSE)
   cv_args$details <- FALSE
   cv_args$plot.sg <- FALSE
+
+  # ===========================================================================
+  # SECTION 3.1: VERIFY CV FORESTSEARCH PARAMETERS (when details = TRUE)
+  # ===========================================================================
+
+  if (details) print_cv_params(cv_args)
 
   # ===========================================================================
   # SECTION 4: RUN SIMULATIONS (PARALLEL ACROSS SIMS)
@@ -1113,4 +1126,29 @@ print.fs_tenfold <- function(x, ...) {
   cat("\nSubgroup Finding Summary (median across simulations):\n")
   print(round(x$find_summary, 3))
   invisible(x)
+}
+
+#' Print CV ForestSearch Parameters
+#' @keywords internal
+print_cv_params <- function(cv_args) {
+  cat("\nForestSearch parameters for CV folds:\n")
+  cat("  - sg_focus:", cv_args$sg_focus, "\n")
+  cat("  - maxk:", cv_args$maxk, "\n")
+  cat("  - fs.splits:", cv_args$fs.splits, "\n")
+  cat("  - max_subgroups_search:", cv_args$max_subgroups_search, "\n")
+  cat("  - hr.threshold:", cv_args$hr.threshold, "\n")
+  cat("  - hr.consistency:", cv_args$hr.consistency, "\n")
+  cat("  - pconsistency.threshold:", cv_args$pconsistency.threshold, "\n")
+  cat("  - n.min:", cv_args$n.min, "\n")
+  cat("  - use_twostage:", cv_args$use_twostage, "\n")
+  if (isTRUE(cv_args$use_twostage) && length(cv_args$twostage_args) > 0) {
+    cat("  - twostage_args:\n")
+    cat("      n.splits.screen:", cv_args$twostage_args$n.splits.screen, "\n")
+    cat("      batch.size:", cv_args$twostage_args$batch.size, "\n")
+  }
+  cat("  - use_lasso:", cv_args$use_lasso, "\n")
+  cat("  - use_grf:", cv_args$use_grf, "\n")
+  cat("  - (per-fold parallel: sequential)\n")
+  cat("  - (per-fold details: FALSE)\n")
+  cat("  - (per-fold plot.sg: FALSE)\n")
 }

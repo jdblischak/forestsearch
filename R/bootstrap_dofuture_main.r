@@ -232,6 +232,38 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
   }
 
   # =======================================================================
+  # SECTION 7.1: VERIFY BOOTSTRAP FORESTSEARCH PARAMETERS (when details = TRUE)
+  # =======================================================================
+
+  if (details) {
+    cat("\nForestSearch parameters for bootstrap iterations:\n")
+    cat("  - sg_focus:", args_forestsearch_call$sg_focus, "\n")
+    cat("  - maxk:", args_forestsearch_call$maxk, "\n")
+    cat("  - fs.splits:", args_forestsearch_call$fs.splits, "\n")
+    cat("  - max_subgroups_search:", args_forestsearch_call$max_subgroups_search, "\n")
+    cat("  - hr.threshold:", args_forestsearch_call$hr.threshold, "\n")
+    cat("  - hr.consistency:", args_forestsearch_call$hr.consistency, "\n")
+    cat("  - pconsistency.threshold:", args_forestsearch_call$pconsistency.threshold, "\n")
+    cat("  - n.min:", args_forestsearch_call$n.min, "\n")
+    cat("  - use_twostage:", args_forestsearch_call$use_twostage, "\n")
+    if (isTRUE(args_forestsearch_call$use_twostage) &&
+        length(args_forestsearch_call$twostage_args) > 0) {
+      cat("  - twostage_args:\n")
+      cat("      n.splits.screen:", args_forestsearch_call$twostage_args$n.splits.screen, "\n")
+      cat("      batch.size:", args_forestsearch_call$twostage_args$batch.size, "\n")
+    }
+    cat("  - use_lasso:", args_forestsearch_call$use_lasso, "\n")
+    cat("  - use_grf:", args_forestsearch_call$use_grf, "\n")
+    cat("  Bootstrap-specific overrides:\n")
+    cat("  - grf_res: NULL (forces re-selection)\n")
+    cat("  - grf_cuts: NULL (forces re-selection)\n")
+    cat("  - parallel_args: sequential (prevents nested parallelism)\n")
+    cat("  - details: FALSE (suppressed in workers)\n")
+    cat("  - plot.sg: FALSE\n")
+    cat("  - plot.grf: FALSE\n")
+  }
+
+  # =======================================================================
   # SECTION 8: RUN BOOTSTRAP ANALYSIS
   # =======================================================================
 

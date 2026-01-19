@@ -372,4 +372,3 @@ if(show_message) message("Parallel plan: callr with ", n_workers, " workers.")
     stop("Unknown parallel plan: ", plan_type)
   }
 }
-

@@ -2,7 +2,7 @@
 % Please edit documentation in R/subgroup_consistency_main.R
 \name{evaluate_subgroup_consistency}
 \alias{evaluate_subgroup_consistency}
-\title{Evaluate Single Subgroup for Consistency}
+\title{Evaluate Single Subgroup for Consistency (Fixed-Sample)}
 \usage{
 evaluate_subgroup_consistency(
   m,
@@ -50,6 +50,6 @@ Vector contains: Pcons, hr, N, E, g, m, K, and factor labels (M.1, M.2, etc.)
 }
 \description{
 Helper function that evaluates a single subgroup (indexed by m) for consistency
-across random splits. This function contains the core logic used in both
-sequential and parallel execution modes.
+across random splits using a fixed number of splits. This function contains
+the core logic used in both sequential and parallel execution modes.
 }

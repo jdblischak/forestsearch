@@ -22,51 +22,148 @@ subgroup.consistency(
   stop_Kgroups = 10,
   pconsistency.digits = 2,
   checking = FALSE,
-  parallel_args = list(NULL)
+  parallel_args = list(NULL),
+  use_twostage = FALSE,
+  twostage_args = list()
 )
 }
 \arguments{
-\item{df}{The original data.frame.}
+\item{df}{The original data.frame with columns Y, Event, Treat, id.}
 
-\item{hr.subgroups}{Data.table of subgroup hazard ratio results.}
+\item{hr.subgroups}{Data.table of subgroup hazard ratio results from subgroup search.}
 
-\item{hr.threshold}{Minimum hazard ratio for subgroup inclusion.}
+\item{hr.threshold}{Numeric. Minimum hazard ratio for subgroup inclusion. Default 1.0.}
 
-\item{hr.consistency}{Minimum hazard ratio for consistency in splits.}
+\item{hr.consistency}{Numeric. Minimum hazard ratio for consistency in splits. Default 1.0.}
 
-\item{pconsistency.threshold}{Minimum proportion of splits meeting consistency.}
+\item{pconsistency.threshold}{Numeric. Minimum proportion of splits meeting consistency. Default 0.9.}
 
-\item{m1.threshold}{Maximum median survival for treatment arm.}
+\item{m1.threshold}{Numeric. Maximum median survival for treatment arm. Default Inf.}
 
-\item{n.splits}{Number of random splits for consistency evaluation.}
+\item{n.splits}{Integer. Number of random splits for consistency evaluation (or maximum
+splits when \code{use_twostage = TRUE}). Default 100.}
 
-\item{details}{Logical; print details.}
+\item{details}{Logical. Print progress details. Default FALSE.}
 
-\item{by.risk}{Risk interval for plotting.}
+\item{by.risk}{Numeric. Risk interval for plotting. Default 12.}
 
-\item{plot.sg}{Logical; plot subgroup curves.}
+\item{plot.sg}{Logical. Plot subgroup survival curves. Default FALSE.}
 
-\item{maxk}{Maximum number of covariates in a subgroup.}
+\item{maxk}{Integer. Maximum number of covariates in a subgroup. Default 7.}
 
-\item{Lsg}{Number of covariates.}
+\item{Lsg}{Integer. Number of covariates (required).}
 
-\item{confs_labels}{Covariate label mapping.}
+\item{confs_labels}{Character vector. Covariate label mapping (required).}
 
-\item{sg_focus}{Sorting focus.}
+\item{sg_focus}{Character. Sorting focus for subgroup selection. One of
+"hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG". Default "hr".}
 
-\item{stop_Kgroups}{Maximum number of subgroups to identify.}
+\item{stop_Kgroups}{Integer. Maximum number of subgroups to evaluate. Default 10.}
 
-\item{pconsistency.digits}{Significant digits for pconsistency.threshold}
+\item{pconsistency.digits}{Integer. Significant digits for pconsistency.threshold. Default 2.}
 
-\item{checking}{Logical; for debugging.}
+\item{checking}{Logical. Enable debugging output. Default FALSE.}
 
-\item{parallel_args}{List for parallel processing.}
+\item{parallel_args}{List. Parallel processing configuration with elements:
+\describe{
+\item{plan}{Character. One of "multisession", "multicore", "callr", "sequential"}
+\item{workers}{Integer. Number of parallel workers}
+\item{show_message}{Logical. Show parallel setup messages}
+}}
+
+\item{use_twostage}{Logical. Use two-stage sequential algorithm for improved
+performance. Default FALSE for backward compatibility. When TRUE, enables
+early stopping and screening to reduce computation time by 3-10x for most
+analyses.}
+
+\item{twostage_args}{List. Parameters for two-stage algorithm (only used when
+\code{use_twostage = TRUE}):
+\describe{
+\item{n.splits.screen}{Integer. Splits for Stage 1 screening. Default 30.}
+\item{screen.threshold}{Numeric. Consistency threshold for Stage 1. Default
+is automatically calculated to provide ~2.5 SE margin below pconsistency.threshold.}
+\item{batch.size}{Integer. Splits per batch in Stage 2. Default 20.}
+\item{conf.level}{Numeric. Confidence level for early stopping decisions. Default 0.95.}
+\item{min.valid.screen}{Integer. Minimum valid splits required in Stage 1. Default 10.}
+}}
 }
 \value{
-A list with results for top subgroups and recommended treatment flags.
+A list containing:
+\describe{
+\item{out_sg}{Results object from sg_consistency_out()}
+\item{sg_focus}{The sg_focus value used}
+\item{df_flag}{Data.frame with id and treat.recommend columns}
+\item{sg.harm}{Character vector of selected subgroup labels}
+\item{sg.harm.id}{Numeric ID of selected subgroup}
+\item{algorithm}{Character indicating which algorithm was used}
+\item{n_candidates_evaluated}{Number of candidates that underwent consistency evaluation}
+\item{n_passed}{Number of candidates meeting consistency threshold}
+}
 }
 \description{
 Evaluates consistency of subgroups found in a survival analysis, using random
-splits and hazard ratio criteria. This refactored version uses a helper function
-for the core evaluation logic, enabling cleaner parallel/sequential execution.
+splits and hazard ratio criteria. Supports both fixed-sample and two-stage
+sequential evaluation algorithms.
+}
+\details{
+The function supports two evaluation algorithms:
+
+\strong{Fixed-Sample Algorithm} (\code{use_twostage = FALSE}):
+\itemize{
+\item Runs exactly \code{n.splits} random splits for each candidate
+\item Consistent and predictable runtime
+\item Recommended for final analyses requiring exact reproducibility
+}
+
+\strong{Two-Stage Sequential Algorithm} (\code{use_twostage = TRUE}):
+\itemize{
+\item Stage 1: Quick screening with \code{n.splits.screen} splits
+\item Stage 2: Sequential batched evaluation with early stopping
+\item Candidates clearly passing/failing stop early
+\item 3-10x faster for typical analyses
+\item Recommended for exploratory analyses and large candidate sets
+}
+}
+\section{Performance Considerations}{
+
+The two-stage algorithm provides significant speedups when:
+\itemize{
+\item Many candidates clearly fail consistency (screened at Stage 1)
+\item Many candidates have consistency well above/below threshold
+\item \code{n.splits} is large (>200)
+}
+
+Speedup is minimal when most candidates have true consistency near the threshold.
+}
+
+\examples{
+\dontrun{
+# Standard fixed-sample evaluation
+result <- subgroup.consistency(
+  df = trial_data,
+  hr.subgroups = candidates,
+  n.splits = 400,
+  pconsistency.threshold = 0.90,
+  use_twostage = FALSE
+)
+
+# Two-stage sequential evaluation (faster)
+result_fast <- subgroup.consistency(
+  df = trial_data,
+  hr.subgroups = candidates,
+  n.splits = 400,  # Maximum splits
+  pconsistency.threshold = 0.90,
+  use_twostage = TRUE,
+  twostage_args = list(
+    n.splits.screen = 30,
+    batch.size = 20
+  )
+)
+}
+
+}
+\seealso{
+\code{\link{evaluate_subgroup_consistency}} for fixed-sample evaluation
+\code{\link{evaluate_consistency_twostage}} for two-stage evaluation
+\code{\link{forestsearch}} for the main analysis function
 }
