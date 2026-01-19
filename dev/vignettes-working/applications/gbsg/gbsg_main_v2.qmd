@@ -189,7 +189,7 @@ save_results <- dir.exists(output_dir)
 library(patchwork)
 
 # Number of bootstrap samples
-NB <- 10
+NB <- 1000
 
 system.time({fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs, 
@@ -288,7 +288,7 @@ summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
 table(summary_OOB$SGs_found[,1])
 table(summary_OOB$SGs_found[,2])
 
-Ksims <- 5
+Ksims <- 200
 
 fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details=TRUE, 
                        parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
@@ -324,9 +324,9 @@ if (save_results) {
 
 
 
-```{r forestplot_k2,fig.width = 9, fig.height = 6}
+```{r forestplot_k2, fig.width = 9, fig.height = 6}
 
-Ksims <- 5
+#Ksims <- 200
 
 output_dir <- "results/"
 load_results <- dir.exists(output_dir)
@@ -375,7 +375,7 @@ pgr_negative = list(
    treat.name = "hormon",
    E.name = "Hormon",
    C.name = "CT",
-   ci_column_spaces = 17
+   ci_column_spaces = 25
  )
 
 # Display the plot
