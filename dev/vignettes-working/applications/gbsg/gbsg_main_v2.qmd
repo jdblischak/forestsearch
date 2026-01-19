@@ -47,19 +47,15 @@ library(DiagrammeR)
 
 #library(grid)
 #library(forestploter)
-
 #library(randomizr)
+
 # library(devtools)
 # install_github("larry-leon/weightedsurv", force = TRUE)
 #install.packages("weightedsurv")
 # install_github("larry-leon/forestsearch", force = TRUE)
 
-
 library(forestsearch)
 library(weightedsurv)
-
-#help(forestsearch)
-#help(generate_aft_dgm_flex)
 
 # Set theme for plots
 theme_set(theme_minimal(base_size = 12))
@@ -183,7 +179,7 @@ res_tabs$tab_estimates
 
 ## Bootstrap Inference
 
-```{r, eval = FALSE}
+```{r bias-correction, eval = TRUE}
 
 #output_dir <- "dev/vignettes-working/applications/gbsg/results"
 output_dir <- "results/"
@@ -193,7 +189,7 @@ save_results <- dir.exists(output_dir)
 library(patchwork)
 
 # Number of bootstrap samples
-NB <- 1000
+NB <- 10
 
 system.time({fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs, 
@@ -210,7 +206,7 @@ if (save_results) {
                          paste0("gbsg_k2_B=", 
                                 format(NB), 
                                 ".RData"))
-    save(fs_bc, fs, file = filename)
+    save(df.analysis, fs, fs_bc, file = filename)
     cat("\nResults saved to:", filename, "\n")
 }
 
@@ -218,15 +214,15 @@ if (save_results) {
 
 ### Diagnostics and Summaries
 
-```{r}
+```{r bootstrap-diagnostics, eval = TRUE}
 
 #load("~/Documents/GitHub/forestsearch/vignettes/results/sim_gbsg_example_B=1000.RData")
 
 output_dir <- "results/"
 
+#NB <- 1000
 
 load_results <- dir.exists(output_dir)
-NB <- 1000
 if(load_results){
 filename <- file.path(output_dir, 
                          paste0("gbsg_k2_B=", 
@@ -266,12 +262,12 @@ summaries$plots$combined
 
 
 ## Forest Search n-fold cross-validation  
-```{r FSnfold_k2, echo=TRUE, eval=TRUE}
+```{r FSnfold_k2, echo=TRUE, eval = TRUE}
 
 
 output_dir <- "results/"
 load_results <- dir.exists(output_dir)
-NB <- 1000
+#NB <- 1000
 if(load_results){
 filename <- file.path(output_dir, 
                          paste0("gbsg_k2_B=", 
@@ -280,33 +276,22 @@ filename <- file.path(output_dir,
 load(file = filename)
 }
 
-# library(doFuture)
-# library(doRNG)
-# registerDoFuture()
-# registerDoRNG()
-# # workers=48 works well on popOS
-#plan("multisession", workers=48)
-
 # Kfolds = n (default to n-fold cross-validations)
 
-fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE, parallel_args = list(plan = "callr", workers = 36, 
-        show_message = TRUE))
+fs_OOB <- NULL
 
-
+fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE,
+                             parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
 # Reset workers to single
 plan(sequential)
-
-#summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
-# Append sens_summary to fs_OOB
-#fs_OOB$sens_summary <- summary_OOB$sens_metrics_original
-
+summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
 table(summary_OOB$SGs_found[,1])
 table(summary_OOB$SGs_found[,2])
 
+Ksims <- 5
 
-fs_ten <- forestsearch_tenfold(fs.est = fs, sims = 50, Kfolds = 10, details=TRUE, parallel_args = list(plan = "callr", workers = 36, 
-        show_message = TRUE))
-
+fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details=TRUE, 
+                       parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
 
 # Reset workers to single
 plan(sequential)
@@ -317,20 +302,38 @@ print(fs_ten$sens_summary)
 print(head(fs_ten$sens_out))
 print(head(fs_ten$find_out))
 
+
+# Save all results
+
+output_dir <- "results/"
+save_results <- dir.exists(output_dir)
+
+if (save_results) {
+    filename <- file.path(output_dir, 
+                         paste0("gbsg_k2_CV=", 
+                                format(Ksims), 
+                                ".RData"))
+    save(df.analysis, fs, fs_bc, fs_ten, fs_OOB, file = filename)
+    cat("\nResults saved to:", filename, "\n")
+}
+
+
 ```
+
 
 
 
 
 ```{r forestplot_k2}
 
+Ksims <- 5
+
 output_dir <- "results/"
 load_results <- dir.exists(output_dir)
-NB <- 1000
 if(load_results){
 filename <- file.path(output_dir, 
-                         paste0("gbsg_k2_B=", 
-                                format(NB),".RData"))
+                         paste0("gbsg_k2_CV=", 
+                                format(Ksims),".RData"))
 
 load(file = filename)
 }
@@ -353,13 +356,18 @@ pgr_positive = list(
  subset_expr = "pgr > 0",
  name = "pgr > 0",
      type = "reference"
+   ),
+pgr_negative = list(
+ subset_expr = "pgr <= 0",
+ name = "pgr <= 0",
+     type = "reference"
    )
   )
 
 
 # Create the forest plot
  result <- plot_subgroup_results_forestplot(
-   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_kfold = fs_ten, cv_source="oob"),
+   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_OOB = fs_OOB, fs_kfold = fs_ten),
    df_analysis = df.analysis,
    subgroup_list = subgroups,
    outcome.name = "time_months",
@@ -373,58 +381,6 @@ pgr_positive = list(
 plot(result$plot)
 
 
-
-```
-
-```{r forestplot_k1}
-
-output_dir <- "results/"
-load_results <- dir.exists(output_dir)
-NB <- 1000
-if(load_results){
-filename <- file.path(output_dir, 
-                         paste0("gbsg_k1_B=", 
-                                format(NB),".RData"))
-
-load(file = filename)
-}
-
-
-
-#' # Define subgroups to display
-subgroups <- list(
- age_gt65 = list(
- subset_expr = "age > 65",
- name = "age > 65",
-     type = "reference"
-   ),
- age_lt65 = list(
- subset_expr = "age <= 65",
- name = "age <= 65",
-     type = "reference"
-   ),
-pgr_positive = list(
- subset_expr = "pgr > 0",
- name = "pgr > 0",
-     type = "reference"
-   )
-  )
-
-
-# Create the forest plot
- result <- plot_subgroup_results_forestplot(
-   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_kfold = NULL),
-   df_analysis = df.analysis,
-   subgroup_list = subgroups,
-   outcome.name = "time_months",
-   event.name = "status",
-   treat.name = "hormon",
-   E.name = "Hormon",
-   C.name = "CT"
- )
-
-# Display the plot
-plot(result$plot)
 
 ```
 

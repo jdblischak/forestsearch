@@ -12,6 +12,10 @@
 # ==============================================================================
 
 
+# Declare global variables to avoid R CMD check NOTEs for foreach loop variables
+utils::globalVariables(c("ksim"))
+
+
 #' ForestSearch K-Fold Cross-Validation
 #'
 #' Performs K-fold cross-validation for ForestSearch, evaluating subgroup

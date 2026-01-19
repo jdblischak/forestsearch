@@ -16,12 +16,11 @@ plot_subgroup_results_forestplot(
   est.scale = "hr",
   title_text = NULL,
   arrow_text = c("Favors Experimental", "Favors Control"),
-  footnote_text =
-    c(c("Eg, 80\% of CV training identified subgroup, 70\% of estimated (full-analysis)\\n                   benefitting (+) agreed with (also benefitting in) CV testing")),
+  footnote_text = c(c("Eg, 80\% training SG found: 70\% of B (+) also B in CV testing")),
   xlim = c(0.25, 1.5),
   ticks_at = c(0.25, 0.7, 1, 1.5),
   show_cv_metrics = TRUE,
-  cv_source = c("auto", "kfold", "oob"),
+  cv_source = c("auto", "kfold", "oob", "both"),
   posthoc_colors = c("powderblue", "beige"),
   reference_colors = c("yellow", "powderblue")
 )
@@ -76,8 +75,11 @@ Each element should be a list with:
 \item{show_cv_metrics}{Logical. Whether to show cross-validation metrics
 (default: TRUE if fs_kfold or fs_OOB available).}
 
-\item{cv_source}{Character. Source for CV metrics: "auto" (default, prefers kfold),
-"kfold" (use fs_kfold only), or "oob" (use fs_OOB only).}
+\item{cv_source}{Character. Source for CV metrics:
+"auto" (default, uses both if available, otherwise whichever is present),
+"kfold" (use fs_kfold only),
+"oob" (use fs_OOB only), or
+"both" (explicitly use both fs_kfold and fs_OOB, with K-fold first then OOB).}
 
 \item{posthoc_colors}{Character vector. Colors for post-hoc subgroup rows
 (default: c("powderblue", "beige")).}
