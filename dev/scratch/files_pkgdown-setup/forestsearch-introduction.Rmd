@@ -1,0 +1,225 @@
+---
+title: "Introduction to ForestSearch"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to ForestSearch}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  eval = FALSE
+)
+```
+
+## Overview
+
+**ForestSearch** is an R package for exploratory subgroup identification in clinical trials with survival endpoints. The methodology is based on:
+ 
+> León, L.F., Marceau-West, C., Chen, C., & Bailleux, C. (2024). Exploratory subgroup identification in the heterogeneous Cox model: A relatively simple procedure. *Statistics in Medicine*.
+
+The package provides:
+
+- **Subgroup identification** using exhaustive search over biomarker combinations
+- **Bootstrap bias correction** to address optimism from data-driven selection
+- **Cross-validation** to assess subgroup stability
+- **Consistency evaluation** across random data splits
+- **Integration with GRF** (Generalized Random Forests) for causal forest-based methods
+- **Publication-ready outputs** including forest plots and formatted tables
+
+## Installation
+ 
+```{r install, eval = FALSE}
+# Install from GitHub (development version)
+# install.packages("devtools")
+devtools::install_github("yourusername/forestsearch")
+
+# Load the package
+library(forestsearch)
+```
+
+## Quick Start Example
+
+This example demonstrates a basic ForestSearch analysis using the German Breast Cancer Study Group (GBSG) dataset.
+
+### Step 1: Load and Prepare Data
+
+```{r load-data}
+library(forestsearch)
+library(survival)
+
+# Load GBSG data
+data(gbsg, package = "survival")
+
+# Define analysis variables
+outcome.name <- "rfstime"
+event.name <- "status"
+treat.name <- "hormon"
+confounders <- c("age", "meno", "size", "grade", "nodes", "pgr", "er")
+
+# Prepare data for ForestSearch
+fs_data <- get_FSdata(
+  df.analysis = gbsg,
+  confounders.name = confounders,
+  outcome.name = outcome.name,
+  event.name = event.name,
+  details = TRUE
+)
+```
+
+### Step 2: Run ForestSearch Analysis
+
+```{r run-forestsearch}
+# Run the main analysis
+fs_results <- forestsearch(
+  df.analysis = fs_data$df.FS,
+  confounders.name = confounders,
+  outcome.name = outcome.name,
+  event.name = event.name,
+  treat.name = treat.name,
+  # Search parameters
+  M.max = 3,                    # Maximum markers in subgroup definition
+  n.min = 30,                   # Minimum subgroup size
+  hr.threshold = 0.8,           # HR threshold for treatment effect
+  # Analysis settings
+  est.scale = "hr",             # Report hazard ratios
+  details = TRUE
+)
+
+# View results
+print(fs_results)
+summary(fs_results)
+```
+
+### Step 3: Bootstrap Bias Correction
+
+```{r bootstrap}
+# Run bootstrap for bias-corrected estimates
+fs_boot <- forestsearch_bootstrap_dofuture(
+  fs.est = fs_results,
+  df_boot_analysis = fs_data$df.FS,
+  nb_boots = 500,               # Number of bootstrap iterations
+  # Parallel processing
+  n_workers = 4,
+  chunk_size = 50
+)
+
+# Summarize bootstrap results
+summarize_bootstrap_results(
+  sgharm = fs_results$sg.harm,
+  boot_results = fs_boot
+)
+```
+
+### Step 4: Cross-Validation
+
+```{r cross-validation}
+# Run K-fold cross-validation for stability assessment
+fs_cv <- forestsearch_Kfold(
+  fs.est = fs_results,
+  df = fs_data$df.FS,
+  K = 5,                        # Number of folds
+  confounders.name = confounders,
+  outcome.name = outcome.name,
+  event.name = event.name,
+  treat.name = treat.name
+)
+
+# View cross-validation summary
+print(fs_cv)
+```
+
+### Step 5: Visualization
+
+```{r visualization}
+# Create forest plot
+forest_plot <- plot_subgroup_results_forestplot(
+  fs_results = fs_results,
+  df_analysis = fs_data$df.FS,
+  outcome.name = outcome.name,
+  event.name = event.name,
+  treat.name = treat.name,
+  E.name = "Hormonal Therapy",
+  C.name = "Control"
+)
+
+# Display the plot
+plot(forest_plot)
+```
+
+## Key Concepts
+
+### Subgroup Definition
+
+ForestSearch identifies subgroups defined by combinations of biomarker cutpoints. A subgroup definition might look like:
+
+```
+age >= 50 & nodes >= 3 & pgr < 100
+```
+
+### Bootstrap Bias Correction
+
+Data-driven subgroup selection introduces optimism—the observed treatment effect is typically more extreme than the true effect. Bootstrap bias correction adjusts for this by:
+
+1. Generating bootstrap samples from the original data
+2. Re-running subgroup identification on each bootstrap sample
+3. Estimating bias as the difference between apparent and bootstrap-averaged effects
+4. Adjusting the original estimate accordingly
+
+### Consistency Evaluation
+
+Subgroup consistency assesses whether the identified subgroup is reproducible across random data splits. High consistency (e.g., > 80%) suggests the subgroup is robust.
+
+## Package Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    DATA PREPARATION                         │
+│                      get_FSdata()                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   SUBGROUP SEARCH                           │
+│                     forestsearch()                          │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│    BOOTSTRAP    │ │ CROSS-VALIDATION│ │   CONSISTENCY   │
+│ forestsearch_   │ │ forestsearch_   │ │   evaluate_     │
+│ bootstrap_      │ │ Kfold()         │ │   subgroup_     │
+│ dofuture()      │ │                 │ │   consistency() │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+              │               │               │
+              └───────────────┼───────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    VISUALIZATION                            │
+│              plot_subgroup_results_forestplot()             │
+│                       sg_tables()                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Further Reading
+
+- `vignette("bootstrap-bias-correction")` - Detailed bootstrap methodology
+- `vignette("cross-validation")` - K-fold cross-validation guide
+- `vignette("simulation-studies")` - Using ForestSearch for simulation studies
+- `vignette("methodology")` - Statistical methodology details
+
+## References
+
+León, L.F., Marceau-West, C., Chen, C., & Bailleux, C. (2024). Exploratory subgroup identification in the heterogeneous Cox model: A relatively simple procedure. *Statistics in Medicine*.
+
+## Session Info
+
+```{r session-info, eval = TRUE}
+sessionInfo()
+```
