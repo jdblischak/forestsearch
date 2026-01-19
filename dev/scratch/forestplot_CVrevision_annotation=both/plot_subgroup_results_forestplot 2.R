@@ -54,8 +54,9 @@
 #'   (default: c("powderblue", "beige")).
 #' @param reference_colors Character vector. Colors for reference subgroup rows
 #'   (default: c("yellow", "powderblue")).
-#' @param ci_column_spaces Integer. Number of spaces for the CI plot column width.
-#'   More spaces = wider CI column (default: 20).
+#' @param col_widths Numeric vector of length 5. Column widths in inches for:
+#'   Subgroup, E.name, C.name, CI plot, HR (95% CI).
+#'   (default: c(2.5, 0.5, 0.5, 1.5, 1)).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -152,7 +153,7 @@ plot_subgroup_results_forestplot <- function(
     cv_source = c("auto", "kfold", "oob", "both"),
     posthoc_colors = c("powderblue", "beige"),
     reference_colors = c("yellow", "powderblue"),
-    ci_column_spaces = 20
+    col_widths = c(6.0, 0.5, 0.5, 1.5, 2.5)
 ) {
 
   # ==========================================================================
@@ -601,14 +602,16 @@ plot_subgroup_results_forestplot <- function(
     footnote_gp = grid::gpar(cex = 0.65, fontface = "italic", col = "darkcyan")
   )
 
-  # Add spacing column for CI plot (width controlled by ci_column_spaces)
-  dt$` ` <- paste(rep(" ", ci_column_spaces), collapse = " ")
+  # Add spacing column
+  dt$` ` <- paste(rep(" ", 20), collapse = " ")
 
   # Create HR (95% CI) text column
   dt$`HR (95% CI)` <- ifelse(is.na(dt$se), "",
                              sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
 
   # Generate the forest plot
+  # widths: Subgroup, E.name, C.name, CI plot, HR (95% CI)
+  # autofit = FALSE prevents auto-sizing based on content
   p <- forestploter::forest(
     dt[, c("Subgroup", E.name, C.name, " ", "HR (95% CI)")],
     title = title_text,
@@ -622,7 +625,9 @@ plot_subgroup_results_forestplot <- function(
     xlim = xlim,
     ticks_at = ticks_at,
     footnote = footnote_text,
-    theme = tm
+    theme = tm,
+    widths = grid::unit(col_widths, "inches"),
+    autofit = FALSE
   )
 
   # Add CV annotation text using insert_text (spans across first 3 columns)

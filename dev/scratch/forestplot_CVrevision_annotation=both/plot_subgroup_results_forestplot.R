@@ -54,9 +54,8 @@
 #'   (default: c("powderblue", "beige")).
 #' @param reference_colors Character vector. Colors for reference subgroup rows
 #'   (default: c("yellow", "powderblue")).
-#' @param col_widths Numeric vector of length 5. Column widths in inches for:
-#'   Subgroup, E.name, C.name, CI plot, HR (95% CI).
-#'   (default: c(2.5, 0.5, 0.5, 1.5, 1)).
+#' @param ci_column_spaces Integer. Number of spaces for the CI plot column width.
+#'   More spaces = wider CI column (default: 20).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -146,14 +145,14 @@ plot_subgroup_results_forestplot <- function(
     est.scale = "hr",
     title_text = NULL,
     arrow_text = c("Favors Experimental", "Favors Control"),
-    footnote_text = c("eg 70% of B (+) also B in CV testing"),
+    footnote_text = c("Eg 80% of training found SG: 70% of B (+) also B in CV testing"),
     xlim = c(0.25, 1.5),
     ticks_at = c(0.25, 0.70, 1.0, 1.5),
     show_cv_metrics = TRUE,
     cv_source = c("auto", "kfold", "oob", "both"),
     posthoc_colors = c("powderblue", "beige"),
     reference_colors = c("yellow", "powderblue"),
-    col_widths = c(3.0, 0.5, 0.5, 1.5, 1.0)
+    ci_column_spaces = 20
 ) {
 
   # ==========================================================================
@@ -602,16 +601,14 @@ plot_subgroup_results_forestplot <- function(
     footnote_gp = grid::gpar(cex = 0.65, fontface = "italic", col = "darkcyan")
   )
 
-  # Add spacing column
-  dt$` ` <- paste(rep(" ", 20), collapse = " ")
+  # Add spacing column for CI plot (width controlled by ci_column_spaces)
+  dt$` ` <- paste(rep(" ", ci_column_spaces), collapse = " ")
 
   # Create HR (95% CI) text column
   dt$`HR (95% CI)` <- ifelse(is.na(dt$se), "",
                              sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
 
   # Generate the forest plot
-  # widths: Subgroup, E.name, C.name, CI plot, HR (95% CI)
-  # autofit = FALSE prevents auto-sizing based on content
   p <- forestploter::forest(
     dt[, c("Subgroup", E.name, C.name, " ", "HR (95% CI)")],
     title = title_text,
@@ -625,9 +622,7 @@ plot_subgroup_results_forestplot <- function(
     xlim = xlim,
     ticks_at = ticks_at,
     footnote = footnote_text,
-    theme = tm,
-    widths = grid::unit(col_widths, "inches"),
-    autofit = TRUE
+    theme = tm
   )
 
   # Add CV annotation text using insert_text (spans across first 3 columns)
@@ -639,7 +634,7 @@ plot_subgroup_results_forestplot <- function(
         row = cv_row_positions[[i]],
         col = 1:3,
         part = "body",
-        just = "left",
+        just = "center",
         gp = grid::gpar(fontsize = 7, fontface = "italic", col = "gray30")
       )
     }

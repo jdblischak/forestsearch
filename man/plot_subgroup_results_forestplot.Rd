@@ -23,7 +23,7 @@ plot_subgroup_results_forestplot(
   cv_source = c("auto", "kfold", "oob", "both"),
   posthoc_colors = c("powderblue", "beige"),
   reference_colors = c("yellow", "powderblue"),
-  col_widths = c(2, 0.5, 0.5, 1.5, 2.5)
+  ci_column_spaces = 20
 )
 }
 \arguments{
@@ -88,9 +88,8 @@ Each element should be a list with:
 \item{reference_colors}{Character vector. Colors for reference subgroup rows
 (default: c("yellow", "powderblue")).}
 
-\item{col_widths}{Numeric vector of length 5. Column widths in inches for:
-Subgroup, E.name, C.name, CI plot, HR (95\% CI).
-(default: c(2.5, 0.5, 0.5, 1.5, 1)).}
+\item{ci_column_spaces}{Integer. Number of spaces for the CI plot column width.
+More spaces = wider CI column (default: 20).}
 }
 \value{
 A list containing:

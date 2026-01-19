@@ -374,7 +374,8 @@ pgr_negative = list(
    event.name = "status",
    treat.name = "hormon",
    E.name = "Hormon",
-   C.name = "CT"
+   C.name = "CT",
+   ci_column_spaces = 17
  )
 
 # Display the plot
