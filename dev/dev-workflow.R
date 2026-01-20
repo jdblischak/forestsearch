@@ -46,6 +46,11 @@ usethis::use_package("rlang")
 
 usethis::use_package("dplyr")
 
+# Required per mrct_simulation()
+
+usethis::use_package("progressr")
+
+
 # Step 5: Generate documentation
 # Also, run this if revising R files such as @importFrom
 
