@@ -152,7 +152,7 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 df.test = NULL,
                                 flag_harm.name = NULL,
                                 hr.threshold = 1.25, hr.consistency = 1.0, pconsistency.threshold = 0.90,
-                                sg_focus = "maxSG", max_subgroups_search = 30,
+                                sg_focus = "hrMaxSG", max_subgroups_search = 30,
                                 use_twostage = TRUE,
                                 showten_subgroups = TRUE, details=TRUE,
                                 conf_force = NULL,

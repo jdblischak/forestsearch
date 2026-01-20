@@ -212,7 +212,7 @@ plot_subgroup_results_forestplot <- function(
 
   # Calculate z-multiplier for confidence intervals
   z_alpha <- qnorm(1 - (1 - conf.level) / 2)
-
+  
   # Create dynamic CI column label
   ci_label <- sprintf("HR (%d%% CI)", round(conf.level * 100))
 
@@ -221,6 +221,7 @@ plot_subgroup_results_forestplot <- function(
   # ==========================================================================
 
   # Create HR table row for a subgroup
+  # Uses robust (sandwich) standard errors for consistency with cox_summary()
   create_hr_row <- function(dfa, sg_name, outcome.name, event.name, treat.name,
                             E.name, C.name) {
 
@@ -229,12 +230,37 @@ plot_subgroup_results_forestplot <- function(
       warning(paste("Subgroup", sg_name, "has fewer than 10 observations"))
       return(NULL)
     }
+    
+    # Extract vectors for validation
+    Y <- dfa[[outcome.name]]
+    E <- dfa[[event.name]]
+    Treat <- dfa[[treat.name]]
+    
+    # Check for sufficient events
+    n_events <- sum(E)
+    if (n_events < 2) {
+      warning(paste("Subgroup", sg_name, "has fewer than 2 events"))
+      return(NULL)
+    }
+    
+    # Check treatment variation
+    if (length(unique(Treat)) < 2) {
+      warning(paste("Subgroup", sg_name, "has no variation in treatment"))
+      return(NULL)
+    }
 
     sf <- paste0("Surv(", outcome.name, ",", event.name, ") ~ ", treat.name)
     cox.formula <- as.formula(sf)
 
     fit <- tryCatch(
-      survival::coxph(cox.formula, data = dfa),
+      survival::coxph(
+        cox.formula, 
+        data = dfa,
+        robust = TRUE,
+        model = FALSE,
+        x = FALSE,
+        y = FALSE
+      ),
       error = function(e) {
         warning(paste("Cox model failed for", sg_name, ":", e$message))
         NULL
@@ -244,10 +270,19 @@ plot_subgroup_results_forestplot <- function(
     if (is.null(fit)) return(NULL)
 
     # Use conf.level for confidence intervals
-    hr <- summary(fit, conf.int = conf.level)$conf.int[c(1, 3, 4)]
+    fit_summary <- summary(fit, conf.int = conf.level)
+    conf_int <- fit_summary$conf.int
+    
+    # Handle edge case where conf.int might not exist
+    if (is.null(conf_int) || nrow(conf_int) == 0) {
+      warning(paste("Subgroup", sg_name, "has no confidence interval available"))
+      return(NULL)
+    }
+    
+    hr <- conf_int[1, c(1, 3, 4)]
 
-    ntreat <- sum(dfa[, treat.name])
-    ncontrol <- sum(1 - dfa[, treat.name])
+    ntreat <- sum(Treat)
+    ncontrol <- sum(1 - Treat)
 
     est <- hr[1]
     low <- hr[2]
@@ -744,7 +779,7 @@ create_subgroup_summary_df <- function(
 
   # ITT
   results[["ITT"]] <- compute_sg_hr(
-    df_analysis, "ITT", outcome.name, event.name, treat.name, E.name, C.name,
+    df_analysis, "ITT", outcome.name, event.name, treat.name, E.name, C.name, 
     z_alpha, conf.level
   )
 
@@ -755,7 +790,7 @@ create_subgroup_summary_df <- function(
 
     if (nrow(df_sg) > 10) {
       results[[sg_name]] <- compute_sg_hr(
-        df_sg, sg$name, outcome.name, event.name, treat.name, E.name, C.name,
+        df_sg, sg$name, outcome.name, event.name, treat.name, E.name, C.name, 
         z_alpha, conf.level
       )
 
@@ -790,6 +825,7 @@ create_subgroup_summary_df <- function(
 #' Compute Hazard Ratio for a Single Subgroup
 #'
 #' Internal helper function to compute HR and CI for a subgroup.
+#' Uses robust (sandwich) standard errors for consistency with cox_summary().
 #'
 #' @param df Data frame for the subgroup.
 #' @param sg_name Character. Name of the subgroup.
@@ -801,22 +837,118 @@ create_subgroup_summary_df <- function(
 #' @param z_alpha Numeric. Z-multiplier for CI (default: qnorm(0.975) for 95% CI).
 #' @param conf.level Numeric. Confidence level for intervals (default: 0.95).
 #'
-#' @return Data frame with single row of HR estimates.
+#' @return Data frame with single row of HR estimates, or NULL if model fails.
 #' @keywords internal
 
 compute_sg_hr <- function(df, sg_name, outcome.name, event.name, treat.name,
-                          E.name, C.name, z_alpha = qnorm(0.975),
+                          E.name, C.name, z_alpha = qnorm(0.975), 
                           conf.level = 0.95) {
 
+ # -------------------------------------------------------------------------
+  # Input validation
+  # -------------------------------------------------------------------------
+  
+  Y <- df[[outcome.name]]
+  E <- df[[event.name]]
+  Treat <- df[[treat.name]]
+  
+  # Check for sufficient events
+ n_events <- sum(E)
+  if (n_events < 2) {
+    warning("Subgroup '", sg_name, "': Fewer than 2 events; returning NA")
+    ntreat <- sum(Treat)
+    ncontrol <- sum(1 - Treat)
+    return(data.frame(
+      Subgroup = sg_name,
+      n_treat = ntreat,
+      n_control = ncontrol,
+      est = NA_real_,
+      low = NA_real_,
+      hi = NA_real_,
+      se = NA_real_
+    ))
+  }
+  
+  # Check treatment variation
+  if (length(unique(Treat)) < 2) {
+    warning("Subgroup '", sg_name, "': No variation in treatment; returning NA")
+    ntreat <- sum(Treat)
+    ncontrol <- sum(1 - Treat)
+    return(data.frame(
+      Subgroup = sg_name,
+      n_treat = ntreat,
+      n_control = ncontrol,
+      est = NA_real_,
+      low = NA_real_,
+      hi = NA_real_,
+      se = NA_real_
+    ))
+  }
+
+  # -------------------------------------------------------------------------
+  # Fit Cox model with robust SE and memory optimization
+  # -------------------------------------------------------------------------
+  
   sf <- paste0("Surv(", outcome.name, ",", event.name, ") ~ ", treat.name)
   cox.formula <- as.formula(sf)
 
-  fit <- survival::coxph(cox.formula, data = df, robust = TRUE)
-  # Use conf.level for confidence intervals
-  hr <- summary(fit, conf.int = conf.level)$conf.int[c(1, 3, 4)]
+  fit <- tryCatch({
+    survival::coxph(
+      cox.formula, 
+      data = df,
+      robust = TRUE,
+      model = FALSE,
+      x = FALSE,
+      y = FALSE
+    )
+  }, error = function(e) {
+    warning("Subgroup '", sg_name, "': Cox model failed: ", e$message)
+    return(NULL)
+  })
+  
+  # Handle fitting errors
+  if (is.null(fit)) {
+    ntreat <- sum(Treat)
+    ncontrol <- sum(1 - Treat)
+    return(data.frame(
+      Subgroup = sg_name,
+      n_treat = ntreat,
+      n_control = ncontrol,
+      est = NA_real_,
+      low = NA_real_,
+      hi = NA_real_,
+      se = NA_real_
+    ))
+  }
 
-  ntreat <- sum(df[, treat.name])
-  ncontrol <- sum(1 - df[, treat.name])
+  # -------------------------------------------------------------------------
+  # Extract results
+  # -------------------------------------------------------------------------
+  
+  # Use conf.level for confidence intervals
+  fit_summary <- summary(fit, conf.int = conf.level)
+  conf_int <- fit_summary$conf.int
+  
+  # Handle edge case where conf.int might not exist
+  if (is.null(conf_int) || nrow(conf_int) == 0) {
+    warning("Subgroup '", sg_name, "': No confidence interval available")
+    ntreat <- sum(Treat)
+    ncontrol <- sum(1 - Treat)
+    return(data.frame(
+      Subgroup = sg_name,
+      n_treat = ntreat,
+      n_control = ncontrol,
+      est = NA_real_,
+      low = NA_real_,
+      hi = NA_real_,
+      se = NA_real_
+    ))
+  }
+  
+  hr <- conf_int[1, c(1, 3, 4)]
+
+  ntreat <- sum(Treat)
+  ncontrol <- sum(1 - Treat)
 
   data.frame(
     Subgroup = sg_name,

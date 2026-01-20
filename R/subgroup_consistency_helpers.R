@@ -24,8 +24,10 @@ quiet <- function(x) {
 
 sort_subgroups <- function(result_new, sg_focus) {
   if (sg_focus == "hr") data.table::setorder(result_new, -Pcons, -hr, K)
-  if (sg_focus %in% c("hrMaxSG", "maxSG")) data.table::setorder(result_new, -N, -Pcons, K)
-  if (sg_focus %in% c("hrMinSG", "minSG")) data.table::setorder(result_new, N, -Pcons, K)
+  if (sg_focus == "maxSG") data.table::setorder(result_new, -N, -Pcons, K)
+  if (sg_focus == "hrMaxSG") data.table::setorder(result_new, -N, -hr, K)
+  if (sg_focus == "minSG") data.table::setorder(result_new, N, -Pcons, K)
+  if (sg_focus == "hrMinSG") data.table::setorder(result_new, N, -hr, K)
   result_new
 }
 

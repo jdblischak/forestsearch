@@ -36,9 +36,10 @@ compute_sg_hr(
 \item{conf.level}{Numeric. Confidence level for intervals (default: 0.95).}
 }
 \value{
-Data frame with single row of HR estimates.
+Data frame with single row of HR estimates, or NULL if model fails.
 }
 \description{
 Internal helper function to compute HR and CI for a subgroup.
+Uses robust (sandwich) standard errors for consistency with cox_summary().
 }
 \keyword{internal}

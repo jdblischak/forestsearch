@@ -44,6 +44,8 @@
 #'     \item{conf.level}{Numeric. Confidence level for early stopping decisions. Default 0.95.}
 #'     \item{min.valid.screen}{Integer. Minimum valid splits required in Stage 1. Default 10.}
 #'   }
+#' @param seed Integer. Random seed for reproducible consistency splits
+#'   (default: 8316951). Set to NULL for non-reproducible random splits.
 #'
 #' @return A list containing:
 #'   \describe{
@@ -55,6 +57,7 @@
 #'     \item{algorithm}{Character indicating which algorithm was used}
 #'     \item{n_candidates_evaluated}{Number of candidates that underwent consistency evaluation}
 #'     \item{n_passed}{Number of candidates meeting consistency threshold}
+#'     \item{seed}{Integer seed used for reproducibility (NULL if not set)}
 #'   }
 #'
 #' @details
@@ -142,7 +145,8 @@ subgroup.consistency <- function(df,
                                  parallel_args = list(NULL),
                                  # New two-stage parameters
                                  use_twostage = FALSE,
-                                 twostage_args = list()) {
+                                 twostage_args = list(),
+                                 seed = 8316951) {
 
   # ===========================================================================
   # SECTION 1: INPUT VALIDATION
@@ -188,6 +192,14 @@ subgroup.consistency <- function(df,
 
   if (!data.table::is.data.table(hr.subgroups)) {
     hr.subgroups <- data.table::as.data.table(hr.subgroups)
+  }
+
+  # Set random seed for reproducible splits
+ if (!is.null(seed)) {
+    set.seed(seed)
+    if (details) {
+      cat("Random seed set to:", seed, "\n")
+    }
   }
 
   # ===========================================================================
@@ -505,10 +517,11 @@ subgroup.consistency <- function(df,
       FS_labels = .FS_labels
     )
 
+    # Use seed for reproducible parallel RNG (TRUE uses current RNG state from set.seed)
     results_list <- future.apply::future_lapply(
       seq_len(n_candidates),
       eval_fun,
-      future.seed = TRUE,
+      future.seed = if (!is.null(seed)) seed else TRUE,
       future.packages = c("survival", "data.table"),
       future.globals = globals_list
     )
@@ -668,7 +681,8 @@ subgroup.consistency <- function(df,
     sg.harm.id = sg.harm.id,
     algorithm = ifelse(use_twostage, "twostage", "fixed"),
     n_candidates_evaluated = n_candidates,
-    n_passed = n_passed
+    n_passed = n_passed,
+    seed = seed
   )
 
   return(output)
@@ -786,22 +800,19 @@ evaluate_subgroup_consistency <- function(m, index.Z, names.Z, df, found.hrs,
 
   id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
 
-  # Ensure df is a data.table
-  if (!data.table::is.data.table(df)) df <- as.data.table(df)
-
-  # Subgroup extraction (efficient)
   df.sub <- tryCatch({
-    df[Reduce(`&`, lapply(this.m, function(col) get(col) == 1))]
+    subset(df, eval(parse(text = id.m)))
   }, error = function(e) {
     warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
     return(NULL)
   })
 
-  if (is.null(df.sub) || nrow(df.sub) == 0) {
+  if (is.null(df.sub)) return(NULL)
+
+  if (nrow(df.sub) == 0) {
     warning("Subgroup ", m, ": no observations match criteria. Skipping.")
     return(NULL)
   }
-
 
   df.x <- data.table::data.table(df.sub)
   N.x <- nrow(df.x)
@@ -1282,12 +1293,8 @@ evaluate_consistency_twostage <- function(
 
   id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
 
-  # Ensure df is a data.table
-  if (!data.table::is.data.table(df)) df <- as.data.table(df)
-
-  # Subgroup extraction (efficient)
   df.sub <- tryCatch({
-    df[Reduce(`&`, lapply(this.m, function(col) get(col) == 1))]
+    subset(df, eval(parse(text = id.m)))
   }, error = function(e) {
     warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
     return(NULL)
