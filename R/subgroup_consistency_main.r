@@ -786,19 +786,22 @@ evaluate_subgroup_consistency <- function(m, index.Z, names.Z, df, found.hrs,
 
   id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
 
+  # Ensure df is a data.table
+  if (!data.table::is.data.table(df)) df <- as.data.table(df)
+
+  # Subgroup extraction (efficient)
   df.sub <- tryCatch({
-    subset(df, eval(parse(text = id.m)))
+    df[Reduce(`&`, lapply(this.m, function(col) get(col) == 1))]
   }, error = function(e) {
     warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
     return(NULL)
   })
 
-  if (is.null(df.sub)) return(NULL)
-
-  if (nrow(df.sub) == 0) {
+  if (is.null(df.sub) || nrow(df.sub) == 0) {
     warning("Subgroup ", m, ": no observations match criteria. Skipping.")
     return(NULL)
   }
+
 
   df.x <- data.table::data.table(df.sub)
   N.x <- nrow(df.x)
@@ -1279,8 +1282,12 @@ evaluate_consistency_twostage <- function(
 
   id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
 
+  # Ensure df is a data.table
+  if (!data.table::is.data.table(df)) df <- as.data.table(df)
+
+  # Subgroup extraction (efficient)
   df.sub <- tryCatch({
-    subset(df, eval(parse(text = id.m)))
+    df[Reduce(`&`, lapply(this.m, function(col) get(col) == 1))]
   }, error = function(e) {
     warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
     return(NULL)

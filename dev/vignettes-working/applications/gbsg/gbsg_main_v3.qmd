@@ -194,7 +194,7 @@ fileout_cv <- c("gbsg-k2_v3_CV=200")
 library(patchwork)
 
 # Number of bootstrap samples
-NB <- 1000
+NB <- 100
 
 system.time({fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs, 
