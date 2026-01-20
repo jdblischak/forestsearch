@@ -253,7 +253,7 @@ forestsearch <- function(df.analysis,
                          max_subgroups_search = 10,
                          vi.grf.min = -0.2,
                          # NEW: Two-stage consistency parameters
-                         use_twostage = FALSE,
+                         use_twostage = TRUE,
                          twostage_args = list()) {
 
   # ===========================================================================
@@ -306,10 +306,10 @@ forestsearch <- function(df.analysis,
 
   if (details && use_twostage) {
     cat("\n=== Two-Stage Consistency Evaluation Enabled ===\n")
-    cat("Stage 1 screening splits:", 
+    cat("Stage 1 screening splits:",
         ifelse(is.null(twostage_args$n.splits.screen), 30, twostage_args$n.splits.screen), "\n")
     cat("Maximum total splits:", fs.splits, "\n")
-    cat("Batch size:", 
+    cat("Batch size:",
         ifelse(is.null(twostage_args$batch.size), 20, twostage_args$batch.size), "\n")
     cat("================================================\n\n")
   }

@@ -156,7 +156,7 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 use_twostage = TRUE,
                                 showten_subgroups = TRUE, details=TRUE,
                                 conf_force = NULL,
-                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = TRUE,
+                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = FALSE,
                                 maxk = 2, fs.splits = 1000,
                                 n.min = 60, d0.min = 10, d1.min = 10,
                                 plot.sg = TRUE, by.risk = 6,
@@ -194,7 +194,7 @@ fileout_cv <- c("gbsg-k2_v4_CV=20")
 library(patchwork)
 
 # Number of bootstrap samples
-NB <- 100
+NB <- 1000
 
 system.time({fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs, 
@@ -279,8 +279,7 @@ load(file = filename)
 
 fs_OOB <- NULL
 
-fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE, 
-                             Kfolds = 30,
+fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE,
                              parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
 # Reset workers to single
 plan(sequential)
@@ -290,7 +289,7 @@ summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
 table(summary_OOB$SGs_found[,1])
 table(summary_OOB$SGs_found[,2])
 
-Ksims <- 20
+Ksims <- 200
 
 fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details = TRUE, 
                        parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
