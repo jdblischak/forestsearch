@@ -23,7 +23,8 @@ plot_subgroup_results_forestplot(
   cv_source = c("auto", "kfold", "oob", "both"),
   posthoc_colors = c("powderblue", "beige"),
   reference_colors = c("yellow", "powderblue"),
-  ci_column_spaces = 20
+  ci_column_spaces = 20,
+  conf.level = 0.95
 )
 }
 \arguments{
@@ -90,6 +91,9 @@ Each element should be a list with:
 
 \item{ci_column_spaces}{Integer. Number of spaces for the CI plot column width.
 More spaces = wider CI column (default: 20).}
+
+\item{conf.level}{Numeric. Confidence level for intervals (default: 0.95 for 95\% CI).
+Used to calculate the z-multiplier as qnorm(1 - (1 - conf.level)/2).}
 }
 \value{
 A list containing:

@@ -56,6 +56,8 @@
 #'   (default: c("yellow", "powderblue")).
 #' @param ci_column_spaces Integer. Number of spaces for the CI plot column width.
 #'   More spaces = wider CI column (default: 20).
+#' @param conf.level Numeric. Confidence level for intervals (default: 0.95 for 95% CI).
+#'   Used to calculate the z-multiplier as qnorm(1 - (1 - conf.level)/2).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -152,7 +154,8 @@ plot_subgroup_results_forestplot <- function(
     cv_source = c("auto", "kfold", "oob", "both"),
     posthoc_colors = c("powderblue", "beige"),
     reference_colors = c("yellow", "powderblue"),
-    ci_column_spaces = 20
+    ci_column_spaces = 20,
+    conf.level = 0.95
 ) {
 
   # ==========================================================================
@@ -207,6 +210,12 @@ plot_subgroup_results_forestplot <- function(
     stop("Either fs_results$fs.est or subgroup_list must be provided")
   }
 
+  # Calculate z-multiplier for confidence intervals
+  z_alpha <- qnorm(1 - (1 - conf.level) / 2)
+
+  # Create dynamic CI column label
+  ci_label <- sprintf("HR (%d%% CI)", round(conf.level * 100))
+
   # ==========================================================================
   # Helper Functions
   # ==========================================================================
@@ -234,7 +243,8 @@ plot_subgroup_results_forestplot <- function(
 
     if (is.null(fit)) return(NULL)
 
-    hr <- summary(fit)$conf.int[c(1, 3, 4)]
+    # Use conf.level for confidence intervals
+    hr <- summary(fit, conf.int = conf.level)$conf.int[c(1, 3, 4)]
 
     ntreat <- sum(dfa[, treat.name])
     ncontrol <- sum(1 - dfa[, treat.name])
@@ -242,7 +252,7 @@ plot_subgroup_results_forestplot <- function(
     est <- hr[1]
     low <- hr[2]
     hi <- hr[3]
-    se <- (hi - est) / 1.96
+    se <- (hi - est) / z_alpha
 
     row <- data.frame(
       Subgroup = sg_name,
@@ -290,7 +300,7 @@ plot_subgroup_results_forestplot <- function(
     row$est <- bc_estimates$H2
     row$low <- bc_estimates$H2_lower
     row$hi <- bc_estimates$H2_upper
-    row$se <- (bc_estimates$H2_upper - bc_estimates$H2) / 1.96
+    row$se <- (bc_estimates$H2_upper - bc_estimates$H2) / z_alpha
 
     return(row)
   }
@@ -604,13 +614,13 @@ plot_subgroup_results_forestplot <- function(
   # Add spacing column for CI plot (width controlled by ci_column_spaces)
   dt$` ` <- paste(rep(" ", ci_column_spaces), collapse = " ")
 
-  # Create HR (95% CI) text column
-  dt$`HR (95% CI)` <- ifelse(is.na(dt$se), "",
-                             sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
+  # Create HR (xx% CI) text column with dynamic label
+  dt[[ci_label]] <- ifelse(is.na(dt$se), "",
+                           sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
 
   # Generate the forest plot
   p <- forestploter::forest(
-    dt[, c("Subgroup", E.name, C.name, " ", "HR (95% CI)")],
+    dt[, c("Subgroup", E.name, C.name, " ", ci_label)],
     title = title_text,
     est = dt$est,
     lower = dt$low,
@@ -709,6 +719,7 @@ plot.fs_forestplot <- function(x, ...) {
 #' @param C.name Character. Label for control arm.
 #' @param fs_bc_list List. Named list of bootstrap results for each subgroup.
 #' @param fs_kfold_list List. Named list of k-fold results for each subgroup.
+#' @param conf.level Numeric. Confidence level for intervals (default: 0.95).
 #'
 #' @return Data frame with HR estimates for all subgroups.
 #' @export
@@ -722,14 +733,19 @@ create_subgroup_summary_df <- function(
     E.name = "E",
     C.name = "C",
     fs_bc_list = NULL,
-    fs_kfold_list = NULL
+    fs_kfold_list = NULL,
+    conf.level = 0.95
 ) {
+
+  # Calculate z-multiplier for confidence intervals
+  z_alpha <- qnorm(1 - (1 - conf.level) / 2)
 
   results <- list()
 
   # ITT
   results[["ITT"]] <- compute_sg_hr(
-    df_analysis, "ITT", outcome.name, event.name, treat.name, E.name, C.name
+    df_analysis, "ITT", outcome.name, event.name, treat.name, E.name, C.name,
+    z_alpha, conf.level
   )
 
   # Each subgroup
@@ -739,7 +755,8 @@ create_subgroup_summary_df <- function(
 
     if (nrow(df_sg) > 10) {
       results[[sg_name]] <- compute_sg_hr(
-        df_sg, sg$name, outcome.name, event.name, treat.name, E.name, C.name
+        df_sg, sg$name, outcome.name, event.name, treat.name, E.name, C.name,
+        z_alpha, conf.level
       )
 
       # Add bootstrap results if available
@@ -752,7 +769,7 @@ create_subgroup_summary_df <- function(
           est = bc$H2,
           low = bc$H2_lower,
           hi = bc$H2_upper,
-          se = (bc$H2_upper - bc$H2) / 1.96
+          se = (bc$H2_upper - bc$H2) / z_alpha
         )
       }
     }
@@ -781,18 +798,22 @@ create_subgroup_summary_df <- function(
 #' @param treat.name Character. Name of treatment variable.
 #' @param E.name Character. Label for experimental arm.
 #' @param C.name Character. Label for control arm.
+#' @param z_alpha Numeric. Z-multiplier for CI (default: qnorm(0.975) for 95% CI).
+#' @param conf.level Numeric. Confidence level for intervals (default: 0.95).
 #'
 #' @return Data frame with single row of HR estimates.
 #' @keywords internal
 
 compute_sg_hr <- function(df, sg_name, outcome.name, event.name, treat.name,
-                          E.name, C.name) {
+                          E.name, C.name, z_alpha = qnorm(0.975),
+                          conf.level = 0.95) {
 
   sf <- paste0("Surv(", outcome.name, ",", event.name, ") ~ ", treat.name)
   cox.formula <- as.formula(sf)
 
-  fit <- survival::coxph(cox.formula, data = df)
-  hr <- summary(fit)$conf.int[c(1, 3, 4)]
+  fit <- survival::coxph(cox.formula, data = df, robust = TRUE)
+  # Use conf.level for confidence intervals
+  hr <- summary(fit, conf.int = conf.level)$conf.int[c(1, 3, 4)]
 
   ntreat <- sum(df[, treat.name])
   ncontrol <- sum(1 - df[, treat.name])
@@ -804,7 +825,7 @@ compute_sg_hr <- function(df, sg_name, outcome.name, event.name, treat.name,
     est = hr[1],
     low = hr[2],
     hi = hr[3],
-    se = (hr[3] - hr[1]) / 1.96
+    se = (hr[3] - hr[1]) / z_alpha
   )
 }
 

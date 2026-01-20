@@ -11,7 +11,9 @@ compute_sg_hr(
   event.name,
   treat.name,
   E.name,
-  C.name
+  C.name,
+  z_alpha = qnorm(0.975),
+  conf.level = 0.95
 )
 }
 \arguments{
@@ -28,6 +30,10 @@ compute_sg_hr(
 \item{E.name}{Character. Label for experimental arm.}
 
 \item{C.name}{Character. Label for control arm.}
+
+\item{z_alpha}{Numeric. Z-multiplier for CI (default: qnorm(0.975) for 95\% CI).}
+
+\item{conf.level}{Numeric. Confidence level for intervals (default: 0.95).}
 }
 \value{
 Data frame with single row of HR estimates.

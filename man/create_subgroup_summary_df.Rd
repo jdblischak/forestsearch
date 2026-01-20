@@ -13,7 +13,8 @@ create_subgroup_summary_df(
   E.name = "E",
   C.name = "C",
   fs_bc_list = NULL,
-  fs_kfold_list = NULL
+  fs_kfold_list = NULL,
+  conf.level = 0.95
 )
 }
 \arguments{
@@ -34,6 +35,8 @@ create_subgroup_summary_df(
 \item{fs_bc_list}{List. Named list of bootstrap results for each subgroup.}
 
 \item{fs_kfold_list}{List. Named list of k-fold results for each subgroup.}
+
+\item{conf.level}{Numeric. Confidence level for intervals (default: 0.95).}
 }
 \value{
 Data frame with HR estimates for all subgroups.
