@@ -328,6 +328,10 @@ cat("Per simulation:", round(runtime_mins / sim_config$n_sims * 60, 1), "seconds
 ## Running Null Hypothesis Simulations (Type I Error)
 
 ```{r run-null-simulation}
+
+# Track timing
+t_start <- Sys.time()
+
 # Run null hypothesis simulations
 results_null <- foreach(
   sim = 1:sim_config$n_sims,
@@ -357,6 +361,17 @@ results_null <- foreach(
 
 cat("Null simulations completed:", 
     nrow(results_null) / length(unique(results_null$analysis)), "\n")
+
+# Calculate runtime
+t_end <- Sys.time()
+runtime_mins <- as.numeric(difftime(t_end, t_start, units = "mins"))
+
+cat("\n=== Simulation Complete ===\n")
+cat("Total simulations:", sim_config$n_sims, "\n")
+cat("Successful:", nrow(results_null) / length(unique(results_null$analysis)), "\n")
+cat("Runtime:", round(runtime_mins, 2), "minutes\n")
+cat("Per simulation:", round(runtime_mins / sim_config$n_sims * 60, 1), "seconds\n")
+
 ```
 
 # Analyzing Simulation Results
