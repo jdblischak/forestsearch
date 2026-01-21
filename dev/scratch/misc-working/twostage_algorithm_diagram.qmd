@@ -1,5 +1,10 @@
 ---
 title: "Two-Stage Consistency Algorithm"
+format:
+  html:
+    self-contained: true
+    theme: cosmo
+    highlight-style: github
 ---
 
 ## Algorithm Flowchart
