@@ -42,7 +42,8 @@ Suggests:
     DiagrammeR,
     patchwork,
     tidyr,
-    forestploter
+    forestploter,
+    cubature
 URL: https://github.com/larry-leon/forestsearch
 BugReports: https://github.com/larry-leon/forestsearch/issues
 Remotes: 

@@ -1,0 +1,598 @@
+---
+title: "Sample Size for Subgroup Detection"
+subtitle: "Asymptotic Approximations for ForestSearch Power Analysis"
+author: "ForestSearch Development Team"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    code-fold: show
+    code-summary: "Show code"
+    fig-width: 8
+    fig-height: 6
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+bibliography: references.bib
+---
+
+```{r setup}
+#| include: false
+library(forestsearch)
+library(data.table)
+library(ggplot2)
+
+# Set seed for reproducibility
+set.seed(42)
+
+# Custom theme for plots
+theme_set(theme_minimal(base_size = 12))
+```
+
+# Introduction
+
+A critical question in designing clinical trials with planned subgroup analyses is: 
+**How large must a subgroup be to reliably detect treatment effect heterogeneity?**
+This vignette demonstrates how to use ForestSearch's asymptotic approximation 
+functions to answer this question across various scenarios.
+## The Detection Problem
+ForestSearch identifies subgroups where the treatment effect (hazard ratio) 
+exceeds a threshold. The probability of detection depends on:
+
+1. **True hazard ratio (θ)** in the subgroup
+2. **Subgroup sample size (n~sg~)**
+3. **Censoring proportion (p~C~)**
+4. **Detection threshold (HR~threshold~)**
+5. **Consistency threshold (HR~consistency~)**
+
+## Asymptotic Approximation
+
+Under large-sample theory, the log hazard ratio estimator follows approximately:
+
+$$\log(\widehat{HR}) \sim N\left(\log(\theta), \frac{4}{d_0} + \frac{4}{d_1}\right)$$
+
+where $d_0$ and $d_1$ are the number of events in control and treatment arms.
+For balanced designs with total events $d = n_{sg}(1 - p_C)$:
+
+$$\text{Var}(\log(\widehat{HR})) \approx \frac{8}{d}$$
+
+ForestSearch uses split-sample consistency, requiring both halves to exceed 
+thresholds. The detection probability integrates over the joint distribution 
+of the two split-half estimators.
+
+# Single Scenario Analysis
+
+Let's start with a concrete example: detecting a subgroup with HR = 1.5.
+
+```{r single-scenario}
+# Define scenario parameters
+scenario <- list(
+ theta = 1.5,           # True HR in subgroup
+  n_sg = 60,             # Subgroup sample size
+  prop_cens = 0.30,      # 30% censoring
+  hr_threshold = 1.25,   # Detection threshold
+  hr_consistency = 1.0   # Consistency threshold
+)
+
+# Compute detection probability
+prob_detect <- compute_detection_probability(
+  theta = scenario$theta,
+  n_sg = scenario$n_sg,
+  prop_cens = scenario$prop_cens,
+  hr_threshold = scenario$hr_threshold,
+  hr_consistency = scenario$hr_consistency
+)
+
+cat("=== Single Scenario Analysis ===\n")
+cat(sprintf("True HR (θ):          %.2f\n", scenario$theta))
+cat(sprintf("Subgroup size:        %d\n", scenario$n_sg))
+cat(sprintf("Censoring:            %.0f%%\n", 100 * scenario$prop_cens))
+cat(sprintf("Events expected:      %.0f\n", scenario$n_sg * (1 - scenario$prop_cens)))
+cat(sprintf("HR threshold:         %.2f\n", scenario$hr_threshold))
+cat(sprintf("\nP(Detect subgroup):   %.3f (%.1f%%)\n", prob_detect, 100 * prob_detect))
+```
+
+With 60 subjects in the subgroup, 30% censoring, and a true HR of 1.5, 
+we have approximately `r round(100 * prob_detect)`% probability of detecting 
+the subgroup using ForestSearch's consistency criteria.
+
+# Detection Probability Curves
+
+## Effect of True Hazard Ratio
+
+The detection probability increases with the true effect size. Let's visualize 
+this relationship:
+
+```{r detection-curve}
+#| fig-cap: "Detection probability as a function of true hazard ratio"
+
+# Generate detection curve
+curve_n60 <- generate_detection_curve(
+  theta_range = c(0.5, 3.0),
+  n_points = 60,
+  n_sg = 60,
+  prop_cens = 0.30,
+  hr_threshold = 1.25,
+  verbose = FALSE
+)
+
+# Plot with base R
+plot_detection_curve(curve_n60)
+```
+
+```{r detection-curve-ggplot}
+#| fig-cap: "Detection probability curve (ggplot2 version)"
+
+# ggplot2 version for more customization
+ggplot(curve_n60, aes(x = theta, y = probability)) +
+  geom_line(linewidth = 1.2, color = "#2563eb") +
+  geom_hline(yintercept = c(0.05, 0.10, 0.80), 
+             linetype = "dashed", color = c("gray50", "red", "darkgreen"),
+             linewidth = 0.5) +
+  geom_vline(xintercept = 1.25, linetype = "dotted", color = "orange") +
+  annotate("text", x = 2.8, y = 0.82, label = "80% power", size = 3, color = "darkgreen") +
+  annotate("text", x = 2.8, y = 0.12, label = "10% (Type I)", size = 3, color = "red") +
+  annotate("text", x = 1.30, y = 0.50, label = "threshold", size = 3, 
+           color = "orange", angle = 90, vjust = -0.5) +
+  scale_x_continuous(breaks = seq(0.5, 3.0, 0.5)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), labels = scales::percent) +
+  labs(
+    x = "True Hazard Ratio (θ)",
+    y = "Detection Probability",
+    title = "Subgroup Detection Power Curve",
+    subtitle = sprintf("n = %d, censoring = %.0f%%, threshold = %.2f",
+                       60, 30, 1.25)
+  ) +
+  theme(panel.grid.minor = element_blank())
+```
+
+**Key observations:**
+
+- At θ = 1.0 (no true effect), detection probability is near 0 (low false positive rate)
+- At θ = HR~threshold~ = 1.25, detection probability is ~`r round(100 * curve_n60$probability[which.min(abs(curve_n60$theta - 1.25))])`%
+- 80% power requires θ ≈ `r round(curve_n60$theta[which.min(abs(curve_n60$probability - 0.80))], 2)`
+
+## Effect of Sample Size
+
+Sample size has a major impact on detection probability:
+
+```{r compare-sample-sizes}
+#| fig-cap: "Detection curves for different subgroup sample sizes"
+
+# Compare across sample sizes
+comparison_n <- compare_detection_curves(
+ n_sg_values = c(40, 60, 80, 100, 150),
+  prop_cens = 0.30,
+  hr_threshold = 1.25,
+  theta_range = c(0.8, 2.5),
+  n_points = 50,
+  verbose = FALSE
+)
+
+# Plot comparison
+ggplot(comparison_n, aes(x = theta, y = probability, color = factor(n_sg))) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0.80, linetype = "dashed", color = "gray40") +
+  scale_color_viridis_d(option = "plasma", end = 0.85) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), labels = scales::percent) +
+  labs(
+    x = "True Hazard Ratio (θ)",
+    y = "Detection Probability",
+    color = "Subgroup\nSize (n)",
+    title = "Impact of Sample Size on Detection Power",
+    subtitle = "30% censoring, HR threshold = 1.25"
+  ) +
+  theme(legend.position = "right")
+```
+
+```{r sample-size-table}
+#| tbl-cap: "HR required for 80% detection probability by sample size"
+
+# Find HR needed for 80% power at each sample size
+power_80_hr <- sapply(c(40, 60, 80, 100, 150, 200), function(n) {
+  curve <- generate_detection_curve(
+    theta_range = c(1.0, 3.0),
+    n_points = 100,
+    n_sg = n,
+    prop_cens = 0.30,
+    hr_threshold = 1.25,
+    verbose = FALSE
+  )
+  # Find HR where probability crosses 0.80
+  idx <- which.min(abs(curve$probability - 0.80))
+  curve$theta[idx]
+})
+
+hr_table <- data.frame(
+  `Subgroup Size` = c(40, 60, 80, 100, 150, 200),
+  `Events (expected)` = round(c(40, 60, 80, 100, 150, 200) * 0.70),
+  `HR for 80% Power` = round(power_80_hr, 2)
+)
+
+knitr::kable(hr_table, align = "c")
+```
+
+# Effect of Censoring
+
+Censoring reduces the effective information (events) available for HR estimation:
+
+```{r compare-censoring}
+#| fig-cap: "Impact of censoring on detection probability"
+
+# Compare censoring rates
+cens_rates <- c(0.10, 0.20, 0.30, 0.40, 0.50)
+curves_cens <- lapply(cens_rates, function(pc) {
+  curve <- generate_detection_curve(
+    theta_range = c(0.8, 2.5),
+    n_points = 50,
+    n_sg = 80,
+    prop_cens = pc,
+    hr_threshold = 1.25,
+    verbose = FALSE
+  )
+  curve$cens_label <- sprintf("%.0f%% censoring", 100 * pc)
+  curve
+})
+curves_cens_df <- do.call(rbind, curves_cens)
+
+ggplot(curves_cens_df, aes(x = theta, y = probability, color = cens_label)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0.80, linetype = "dashed", color = "gray40") +
+  scale_color_brewer(palette = "RdYlGn", direction = -1) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), labels = scales::percent) +
+  labs(
+    x = "True Hazard Ratio (θ)",
+    y = "Detection Probability",
+    color = "Censoring",
+    title = "Impact of Censoring on Detection Power",
+    subtitle = "n = 80, HR threshold = 1.25"
+  )
+```
+
+**Rule of thumb:** For every 10% increase in censoring, you need approximately 
+15-20% more subjects to maintain the same detection power.
+
+# Required Sample Size Calculations
+
+## Finding Minimum Sample Size
+
+Given a target power and expected effect size, what subgroup size do we need?
+
+```{r find-sample-size}
+# Example: 80% power to detect HR = 1.5
+ss_result <- find_required_sample_size(
+  theta = 1.5,
+  target_power = 0.80,
+  prop_cens = 0.30,
+  hr_threshold = 1.25,
+  verbose = TRUE
+)
+
+cat("\n=== Sample Size Result ===\n")
+cat(sprintf("Required subgroup size: %d\n", ss_result$n_sg_required))
+cat(sprintf("Achieved power: %.3f\n", ss_result$achieved_power))
+cat(sprintf("Required events: %.0f\n", ss_result$n_sg_required * (1 - 0.30)))
+```
+
+## Sample Size Table for Multiple Scenarios
+
+For study planning, it's useful to have a comprehensive table:
+
+```{r sample-size-comprehensive}
+#| tbl-cap: "Required subgroup sample sizes for 80% detection power"
+
+# Create comprehensive sample size table
+ss_table <- create_sample_size_table(
+  theta_values = c(1.3, 1.5, 1.75, 2.0, 2.5),
+  prop_cens_values = c(0.20, 0.30, 0.40),
+  target_power = 0.80,
+  hr_threshold = 1.25,
+  verbose = FALSE
+)
+
+# Reshape for display
+ss_wide <- dcast(
+  as.data.table(ss_table),
+  theta ~ prop_cens,
+  value.var = "n_required"
+)
+names(ss_wide) <- c("True HR", "20% Cens", "30% Cens", "40% Cens")
+
+knitr::kable(
+  ss_wide,
+  caption = "Required subgroup n for 80% power (HR threshold = 1.25)",
+  align = "c"
+)
+```
+
+```{r sample-size-events}
+#| tbl-cap: "Required events for 80% detection power"
+
+# Convert to required events
+ss_events <- ss_table
+ss_events$events_required <- round(ss_events$n_required * (1 - ss_events$prop_cens))
+
+events_wide <- dcast(
+  as.data.table(ss_events),
+  theta ~ prop_cens,
+  value.var = "events_required"
+)
+names(events_wide) <- c("True HR", "20% Cens", "30% Cens", "40% Cens")
+
+knitr::kable(
+  events_wide,
+  caption = "Required events in subgroup for 80% power",
+  align = "c"
+)
+```
+
+# Impact of Detection Threshold
+
+The choice of HR threshold affects the trade-off between sensitivity and specificity:
+
+```{r threshold-comparison}
+#| fig-cap: "Detection curves for different HR thresholds"
+
+# Compare thresholds
+thresholds <- c(1.10, 1.25, 1.50)
+curves_thresh <- lapply(thresholds, function(thr) {
+  curve <- generate_detection_curve(
+    theta_range = c(0.8, 3.0),
+    n_points = 60,
+    n_sg = 80,
+    prop_cens = 0.30,
+    hr_threshold = thr,
+    verbose = FALSE
+  )
+  curve$threshold_label <- sprintf("Threshold = %.2f", thr)
+  curve
+})
+curves_thresh_df <- do.call(rbind, curves_thresh)
+
+ggplot(curves_thresh_df, aes(x = theta, y = probability, color = threshold_label)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = c(0.10, 0.80), linetype = "dashed", color = "gray40") +
+  scale_color_manual(values = c("#e63946", "#457b9d", "#1d3557")) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2), labels = scales::percent) +
+  labs(
+    x = "True Hazard Ratio (θ)",
+    y = "Detection Probability",
+    color = "HR Threshold",
+    title = "Trade-off: Lower Threshold = Higher Sensitivity, Lower Specificity"
+  )
+```
+
+**Observations:**
+
+- **Lower threshold (1.10):** Detects smaller effects but higher false positive rate
+- **Higher threshold (1.50):** More conservative, requires larger true effects
+- **Standard threshold (1.25):** Balanced approach used in ForestSearch
+
+# Planning a Subgroup Analysis
+
+## Example: Planning for Expected Subgroup Prevalence
+
+Suppose you're designing a trial with:
+
+- Total sample size: N = 500
+- Expected subgroup prevalence: 20%
+- Expected censoring: 30%
+- Minimum clinically meaningful HR: 1.5
+
+```{r planning-example}
+# Trial planning parameters
+N_total <- 500
+prevalence <- 0.20
+prop_cens <- 0.30
+target_hr <- 1.5
+
+# Expected subgroup size
+n_sg_expected <- N_total * prevalence
+
+cat("=== Trial Planning Analysis ===\n")
+cat(sprintf("Total sample size: %d\n", N_total))
+cat(sprintf("Expected subgroup prevalence: %.0f%%\n", 100 * prevalence))
+cat(sprintf("Expected subgroup size: %.0f\n", n_sg_expected))
+cat(sprintf("Expected events in subgroup: %.0f\n", n_sg_expected * (1 - prop_cens)))
+
+# Detection probability at target HR
+prob_at_target <- compute_detection_probability(
+  theta = target_hr,
+  n_sg = n_sg_expected,
+  prop_cens = prop_cens,
+  hr_threshold = 1.25
+)
+
+cat(sprintf("\nAt target HR = %.2f:\n", target_hr))
+cat(sprintf("  Detection probability: %.1f%%\n", 100 * prob_at_target))
+
+# What's the minimum detectable HR for 80% power?
+curve_planning <- generate_detection_curve(
+  theta_range = c(1.0, 3.0),
+  n_points = 100,
+  n_sg = n_sg_expected,
+  prop_cens = prop_cens,
+  hr_threshold = 1.25,
+  verbose = FALSE
+)
+min_hr_80 <- curve_planning$theta[which.min(abs(curve_planning$probability - 0.80))]
+
+cat(sprintf("\nMinimum HR for 80%% power: %.2f\n", min_hr_80))
+
+# If we want 80% power for HR = 1.5, what prevalence do we need?
+ss_needed <- find_required_sample_size(
+  theta = target_hr,
+  target_power = 0.80,
+  prop_cens = prop_cens,
+  hr_threshold = 1.25,
+  verbose = FALSE
+)
+
+prevalence_needed <- ss_needed$n_sg_required / N_total
+
+cat(sprintf("\nTo achieve 80%% power for HR = %.2f:\n", target_hr))
+cat(sprintf("  Required subgroup size: %d\n", ss_needed$n_sg_required))
+cat(sprintf("  Required prevalence: %.1f%%\n", 100 * prevalence_needed))
+```
+
+## Visualization: Power by Prevalence
+
+```{r power-by-prevalence}
+#| fig-cap: "Detection power by subgroup prevalence for different trial sizes"
+
+# Different total sample sizes
+N_values <- c(300, 500, 750, 1000)
+prevalence_seq <- seq(0.10, 0.40, by = 0.02)
+
+power_by_prev <- expand.grid(
+  N_total = N_values,
+  prevalence = prevalence_seq
+)
+
+power_by_prev$n_sg <- power_by_prev$N_total * power_by_prev$prevalence
+power_by_prev$probability <- sapply(power_by_prev$n_sg, function(n) {
+  compute_detection_probability(
+    theta = 1.5,
+    n_sg = n,
+    prop_cens = 0.30,
+    hr_threshold = 1.25
+  )
+})
+
+ggplot(power_by_prev, aes(x = prevalence, y = probability, 
+                          color = factor(N_total), group = N_total)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 0.80, linetype = "dashed") +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  scale_color_viridis_d(option = "viridis", end = 0.85) +
+  labs(
+    x = "Subgroup Prevalence",
+    y = "Detection Probability",
+    color = "Total N",
+    title = "Power to Detect HR = 1.5 by Subgroup Prevalence",
+    subtitle = "30% censoring, HR threshold = 1.25"
+  ) +
+  annotate("text", x = 0.38, y = 0.82, label = "80% power", size = 3)
+```
+
+# Quick Reference Tables
+
+## Standard Scenarios (HR Threshold = 1.25)
+
+```{r reference-table-125}
+#| tbl-cap: "Sample size reference table (HR threshold = 1.25)"
+
+ref_table_125 <- expand.grid(
+  theta = c(1.3, 1.5, 1.75, 2.0),
+  prop_cens = c(0.20, 0.30, 0.40),
+  power = c(0.70, 0.80, 0.90)
+)
+
+ref_table_125$n_required <- mapply(function(th, pc, pw) {
+  res <- find_required_sample_size(
+    theta = th,
+    target_power = pw,
+    prop_cens = pc,
+    hr_threshold = 1.25,
+    verbose = FALSE
+  )
+  res$n_sg_required
+}, ref_table_125$theta, ref_table_125$prop_cens, ref_table_125$power)
+
+# Format for display
+ref_wide <- dcast(
+  as.data.table(ref_table_125),
+  theta + prop_cens ~ power,
+  value.var = "n_required"
+)
+names(ref_wide) <- c("True HR", "Censoring", "70% Power", "80% Power", "90% Power")
+ref_wide$Censoring <- sprintf("%.0f%%", 100 * ref_wide$Censoring)
+
+knitr::kable(ref_wide, align = "c")
+```
+
+## Conservative Scenarios (HR Threshold = 1.50)
+
+```{r reference-table-150}
+#| tbl-cap: "Sample size reference table (HR threshold = 1.50)"
+
+ref_table_150 <- expand.grid(
+  theta = c(1.75, 2.0, 2.5, 3.0),
+  prop_cens = c(0.20, 0.30, 0.40),
+  power = c(0.70, 0.80, 0.90)
+)
+
+ref_table_150$n_required <- mapply(function(th, pc, pw) {
+  res <- find_required_sample_size(
+    theta = th,
+    target_power = pw,
+    prop_cens = pc,
+    hr_threshold = 1.50,
+    n_range = c(10, 800),
+    verbose = FALSE
+  )
+  res$n_sg_required
+}, ref_table_150$theta, ref_table_150$prop_cens, ref_table_150$power)
+
+# Format for display
+ref_wide_150 <- dcast(
+  as.data.table(ref_table_150),
+  theta + prop_cens ~ power,
+  value.var = "n_required"
+)
+names(ref_wide_150) <- c("True HR", "Censoring", "70% Power", "80% Power", "90% Power")
+ref_wide_150$Censoring <- sprintf("%.0f%%", 100 * ref_wide_150$Censoring)
+
+knitr::kable(ref_wide_150, align = "c")
+```
+
+# Limitations and Considerations
+
+## Assumptions
+
+The asymptotic approximation assumes:
+1. **Large samples:** The normal approximation for log(HR) requires sufficient events
+2. **Proportional hazards:** The Cox model assumption holds
+3. **Independent splits:** The two split-halves are conditionally independent
+4. **Known censoring:** Censoring proportion is accurately estimated
+
+## When Approximations May Fail
+```{r approximation-limits}
+# Check where approximation breaks down
+small_n_probs <- sapply(c(10, 20, 30, 40, 50), function(n) {
+  compute_detection_probability(
+    theta = 1.5,
+    n_sg = n,
+    prop_cens = 0.30,
+    hr_threshold = 1.25
+  )
+})
+
+cat("Detection probability by small sample sizes:\n")
+cat(sprintf("  n = %2d: %.3f\n", c(10, 20, 30, 40, 50), small_n_probs))
+cat("\nNote: For n < 30, asymptotic approximations may be unreliable.\n")
+cat("Consider simulation-based power analysis for small subgroups.\n")
+```
+
+## Practical Recommendations
+
+1. **Minimum subgroup size:** Aim for n ≥ 40-60 for reliable asymptotic results
+2. **Event requirement:** Ensure ≥ 20-30 events in the subgroup
+3. **Validation:** For critical decisions, validate with simulation studies
+4. **Multiple testing:** Account for multiplicity when analyzing many subgroups
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
+
+# References
+
+::: {#refs}
+:::

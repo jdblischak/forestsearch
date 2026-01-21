@@ -12,13 +12,14 @@ extract_grf_estimates(
   cox_formula_adj = NULL,
   analysis = "GRF",
   frac_tau = 1,
-  verbose = FALSE
+  verbose = FALSE,
+  debug = FALSE
 )
 }
 \arguments{
 \item{df}{Simulated data frame}
 
-\item{grf_est}{GRF estimation result}
+\item{grf_est}{GRF estimation result from grf.subg.harm.survival()}
 
 \item{dgm}{DGM object}
 
@@ -31,6 +32,8 @@ extract_grf_estimates(
 \item{frac_tau}{Fraction of tau used}
 
 \item{verbose}{Print extraction details}
+
+\item{debug}{Print detailed debugging information about GRF result structure}
 }
 \value{
 data.table with extracted estimates

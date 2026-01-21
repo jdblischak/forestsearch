@@ -55,19 +55,19 @@ default_fs_params <- function() {
     event.name = "event.sim",
     treat.name = "treat",
     id.name = "id",
-    use_lasso = TRUE,
-    use_grf = FALSE,
+    use_lasso = FALSE,
+    use_grf = TRUE,
     hr.threshold = 1.25,
     hr.consistency = 1.0,
     pconsistency.threshold = 0.90,
-    fs.splits = 300,
+    fs.splits = 400,
     n.min = 60,
-    d0.min = 20,
-    d1.min = 20,
+    d0.min = 12,
+    d1.min = 12,
     maxk = 2,
     max.minutes = 5,
     by.risk = 12,
-    vi.grf.min = NULL
+    vi.grf.min = -0.2
   )
 }
 
@@ -87,8 +87,8 @@ default_grf_params <- function() {
     treat.name = "treat",
     id.name = "id",
     n.min = 60,
-    dmin.grf = 20,
-    frac.tau = 1.0,
+    dmin.grf = 12,
+    frac.tau = 0.60,
     maxdepth = 2
   )
 }
@@ -445,13 +445,14 @@ run_forestsearch_analysis <- function(
 #' Extract Estimates from GRF Results
 #'
 #' @param df Simulated data frame
-#' @param grf_est GRF estimation result
+#' @param grf_est GRF estimation result from grf.subg.harm.survival()
 #' @param dgm DGM object
 #' @param cox_formula Cox formula
 #' @param cox_formula_adj Adjusted Cox formula
 #' @param analysis Analysis label
 #' @param frac_tau Fraction of tau used
 #' @param verbose Print extraction details
+#' @param debug Print detailed debugging information about GRF result structure
 #'
 #' @return data.table with extracted estimates
 #'
@@ -464,8 +465,11 @@ extract_grf_estimates <- function(
     cox_formula_adj = NULL,
     analysis = "GRF",
     frac_tau = 1.0,
-    verbose = FALSE
+    verbose = FALSE,
+    debug = FALSE
 ) {
+
+  # Initialize with base estimates (no subgroup)
   out <- extract_fs_estimates(
     df = df,
     fs_res = NULL,
@@ -477,23 +481,128 @@ extract_grf_estimates <- function(
     verbose = FALSE
   )
 
-  if (!is.null(grf_est) && !is.null(grf_est$harm_indicator)) {
-    out$any.H <- 1L
-    out$size.H <- sum(grf_est$harm_indicator, na.rm = TRUE)
-    out$size.Hc <- sum(!grf_est$harm_indicator, na.rm = TRUE)
+ # Check if GRF found a subgroup
+  # grf.subg.harm.survival() returns:
+  #   - grf_est$sg.harm.id: subgroup definition (e.g., "z3 <= 0")
+  #   - grf_est$data: data with treat.recommend column (0 = harm, 1 = complement)
 
-    if (!is.null(grf_est$hr_harm)) {
-      out$hr.H.hat <- grf_est$hr_harm
+  # Debug: Check what we actually received
+  if (debug) {
+    message(sprintf("  [%s] DEBUG: Checking GRF result structure...", analysis))
+    message(sprintf("  [%s] DEBUG:   grf_est is NULL: %s", analysis, is.null(grf_est)))
+    if (!is.null(grf_est)) {
+      message(sprintf("  [%s] DEBUG:   grf_est names: %s", analysis, paste(names(grf_est), collapse = ", ")))
+      message(sprintf("  [%s] DEBUG:   sg.harm.id is NULL: %s", analysis, is.null(grf_est$sg.harm.id)))
+      if (!is.null(grf_est$sg.harm.id)) {
+        message(sprintf("  [%s] DEBUG:   sg.harm.id value: %s", analysis, paste(grf_est$sg.harm.id, collapse = ", ")))
+        message(sprintf("  [%s] DEBUG:   sg.harm.id length: %d", analysis, length(grf_est$sg.harm.id)))
+      }
+      message(sprintf("  [%s] DEBUG:   data is NULL: %s", analysis, is.null(grf_est$data)))
+      if (!is.null(grf_est$data)) {
+        message(sprintf("  [%s] DEBUG:   data has treat.recommend: %s", analysis, "treat.recommend" %in% names(grf_est$data)))
+        message(sprintf("  [%s] DEBUG:   data columns: %s", analysis, paste(head(names(grf_est$data), 10), collapse = ", ")))
+      }
     }
-    if (!is.null(grf_est$hr_no_harm)) {
-      out$hr.Hc.hat <- grf_est$hr_no_harm
+  }
+
+  # Check for subgroup - sg.harm.id might be character(0) or empty
+  has_sg_harm_id <- !is.null(grf_est$sg.harm.id) &&
+                    length(grf_est$sg.harm.id) > 0 &&
+                    nchar(grf_est$sg.harm.id[1]) > 0
+
+  has_treat_recommend <- !is.null(grf_est$data) &&
+                         "treat.recommend" %in% names(grf_est$data)
+
+  has_subgroup <- !is.null(grf_est) && has_sg_harm_id && has_treat_recommend
+
+  if (has_subgroup) {
+    out$any.H <- 1L
+
+    # Extract subgroup indicator from GRF result
+    # treat.recommend = 0 means harm subgroup, 1 means complement
+    grf_data <- grf_est$data
+    harm_indicator <- grf_data$treat.recommend == 0
+
+    out$size.H <- sum(harm_indicator, na.rm = TRUE)
+    out$size.Hc <- sum(!harm_indicator, na.rm = TRUE)
+
+    if (verbose) {
+      message(sprintf("  [%s] Subgroup found: %s", analysis, grf_est$sg.harm.id))
+      message(sprintf("  [%s] Subgroup size: n_H = %d (%.1f%%), n_Hc = %d",
+                      analysis, out$size.H, 100 * out$size.H / nrow(df), out$size.Hc))
+    }
+
+    # Compute HRs in identified subgroups using original df
+    # Need to match by row or use grf_data directly
+    if (out$size.H > 10) {
+      out$hr.H.hat <- tryCatch({
+        # Use grf_data which has treat.recommend
+        df_H <- grf_data[grf_data$treat.recommend == 0, ]
+        exp(survival::coxph(
+          survival::Surv(y.sim, event.sim) ~ treat,
+          data = df_H
+        )$coefficients)
+      }, error = function(e) NA_real_)
+    }
+
+    if (out$size.Hc > 10) {
+      out$hr.Hc.hat <- tryCatch({
+        df_Hc <- grf_data[grf_data$treat.recommend == 1, ]
+        exp(survival::coxph(
+          survival::Surv(y.sim, event.sim) ~ treat,
+          data = df_Hc
+        )$coefficients)
+      }, error = function(e) NA_real_)
     }
 
     if (verbose) {
-      message(sprintf("  [%s] Subgroup found: n_H = %d, n_Hc = %d",
-                      analysis, out$size.H, out$size.Hc))
       message(sprintf("  [%s] HR estimates: H = %.3f, Hc = %.3f",
-                      analysis, out$hr.H.hat, out$hr.Hc.hat))
+                      analysis,
+                      ifelse(is.na(out$hr.H.hat), NA, out$hr.H.hat),
+                      ifelse(is.na(out$hr.Hc.hat), NA, out$hr.Hc.hat)))
+    }
+
+    # Compute classification metrics if true subgroup is known
+    if ("flag.harm" %in% names(df)) {
+      # Match grf_data rows back to original df by id or row order
+      if ("id" %in% names(grf_data) && "id" %in% names(df)) {
+        # Match by id
+        df_matched <- merge(df[, c("id", "flag.harm")],
+                           grf_data[, c("id", "treat.recommend")],
+                           by = "id")
+        true_H <- df_matched$flag.harm == 1
+        hat_H <- df_matched$treat.recommend == 0
+      } else {
+        # Assume same row order
+        true_H <- df$flag.harm == 1
+        hat_H <- harm_indicator
+      }
+
+      tp <- sum(true_H & hat_H)
+      fp <- sum(!true_H & hat_H)
+      tn <- sum(!true_H & !hat_H)
+      fn <- sum(true_H & !hat_H)
+
+      out$sensitivity <- if ((tp + fn) > 0) tp / (tp + fn) else NA_real_
+      out$specificity <- if ((tn + fp) > 0) tn / (tn + fp) else NA_real_
+      out$ppv <- if ((tp + fp) > 0) tp / (tp + fp) else NA_real_
+      out$npv <- if ((tn + fn) > 0) tn / (tn + fn) else NA_real_
+
+      if (verbose) {
+        message(sprintf("  [%s] Classification: Sens = %.3f, Spec = %.3f, PPV = %.3f, NPV = %.3f",
+                        analysis, out$sensitivity, out$specificity, out$ppv, out$npv))
+      }
+
+      # Compute true HR in identified subgroup
+      if (out$size.H > 10) {
+        out$hr.H.true <- tryCatch({
+          df_H <- grf_data[grf_data$treat.recommend == 0, ]
+          exp(survival::coxph(
+            survival::Surv(y.sim, event.sim) ~ treat,
+            data = df_H
+          )$coefficients)
+        }, error = function(e) dgm$hr_H_true)
+      }
     }
   } else if (verbose) {
     message(sprintf("  [%s] No subgroup identified", analysis))
@@ -519,6 +628,7 @@ extract_grf_estimates <- function(
 #' @param cox_formula_adj Adjusted Cox formula
 #' @param analysis_label Character label for this analysis
 #' @param verbose Print details
+#' @param debug Print detailed debugging information
 #'
 #' @return data.table with analysis estimates
 #'
@@ -531,27 +641,28 @@ run_grf_analysis <- function(
     cox_formula = NULL,
     cox_formula_adj = NULL,
     analysis_label = "GRF",
-    verbose = FALSE
+    verbose = FALSE,
+    debug = FALSE
 ) {
 
   if (verbose) {
     message(sprintf("\n  [%s] Starting GRF analysis...", analysis_label))
   }
 
-  # Try to get grf_subg_harm_survival function
+  # Try to get grf.subg.harm.survival function
   grf_fun <- tryCatch({
-    get("grf_subg_harm_survival", mode = "function", envir = parent.frame())
+    get("grf.subg.harm.survival", mode = "function", envir = parent.frame())
   }, error = function(e) {
     tryCatch({
-      get("grf_subg_harm_survival", mode = "function", envir = globalenv())
+      get("grf.subg.harm.survival", mode = "function", envir = globalenv())
     }, error = function(e2) NULL)
   })
 
   if (is.null(grf_fun)) {
     if (verbose) {
-      message(sprintf("  [%s] grf_subg_harm_survival not found. Skipping.", analysis_label))
+      message(sprintf("  [%s] grf.subg.harm.survival not found. Skipping.", analysis_label))
     }
-    warning("grf_subg_harm_survival function not found. Skipping GRF analysis.")
+    warning("grf.subg.harm.survival function not found. Skipping GRF analysis.")
     return(extract_grf_estimates(
       df = data,
       grf_est = NULL,
@@ -559,7 +670,8 @@ run_grf_analysis <- function(
       cox_formula = cox_formula,
       cox_formula_adj = cox_formula_adj,
       analysis = analysis_label,
-      verbose = verbose
+      verbose = verbose,
+      debug = debug
     ))
   }
 
@@ -594,7 +706,8 @@ run_grf_analysis <- function(
     cox_formula_adj = cox_formula_adj,
     analysis = analysis_label,
     frac_tau = params$frac.tau,
-    verbose = verbose
+    verbose = verbose,
+    debug = debug
   )
 }
 
@@ -625,6 +738,9 @@ run_grf_analysis <- function(
 #' @param n_sims_total Integer. Total simulations (for progress display)
 #' @param seed_base Integer. Base random seed. Default: 8316951
 #' @param verbose Logical. Print progress. Default: FALSE
+#' @param verbose_n Integer. Only print verbose output for first N simulations.
+#'   Default: NULL (print for all simulations when verbose = TRUE)
+#' @param debug Logical. Print detailed debugging information. Default: FALSE
 #'
 #' @return A data.table with analysis results for all requested methods
 #'
@@ -654,6 +770,9 @@ run_grf_analysis <- function(
 #'   \item Classification metrics (sensitivity, specificity, PPV, NPV)
 #' }
 #'
+#' Use \code{verbose_n} to limit verbose output to the first N simulations,
+#' which is useful when running many simulations in a loop.
+#'
 #' @examples
 #' \dontrun{
 #' # Create DGM
@@ -669,6 +788,17 @@ run_grf_analysis <- function(
 #'   run_grf = FALSE,
 #'   verbose = TRUE
 #' )
+#'
+#' # Run multiple simulations, verbose for first 3 only
+#' results <- lapply(1:100, function(i) {
+#'   run_simulation_analysis(
+#'     sim_id = i,
+#'     dgm = dgm,
+#'     n_sample = 500,
+#'     verbose = TRUE,
+#'     verbose_n = 3  # Only print for sim_id <= 3
+#'   )
+#' })
 #' }
 #'
 #' @importFrom data.table data.table rbindlist
@@ -683,7 +813,7 @@ run_simulation_analysis <- function(
     confounders_base = c("z1", "z2", "z3", "z4", "z5", "size", "grade3"),
     n_add_noise = 0L,
     run_fs = TRUE,
-    run_fs_grf = FALSE,
+    run_fs_grf = TRUE,
     run_grf = TRUE,
     fs_params = list(),
     grf_params = list(),
@@ -691,13 +821,23 @@ run_simulation_analysis <- function(
     cox_formula_adj = NULL,
     n_sims_total = NULL,
     seed_base = 8316951L,
-    verbose = FALSE
+    verbose = FALSE,
+    verbose_n = NULL,
+    debug = FALSE
 ) {
+
+  # -------------------------------------------------------------------------
+  # Determine effective verbosity based on verbose_n
+ # -------------------------------------------------------------------------
+  show_verbose <- verbose
+  if (verbose && !is.null(verbose_n)) {
+    show_verbose <- sim_id <= verbose_n
+  }
 
   # -------------------------------------------------------------------------
   # Verbose: Header
   # -------------------------------------------------------------------------
-  if (verbose) {
+  if (show_verbose) {
     message("\n", paste(rep("=", 60), collapse = ""))
     message(sprintf("Simulation %d", sim_id))
     if (!is.null(n_sims_total)) {
@@ -710,7 +850,7 @@ run_simulation_analysis <- function(
   # -------------------------------------------------------------------------
   # Simulate Data
   # -------------------------------------------------------------------------
-  if (verbose) {
+  if (show_verbose) {
     message("\n[1] Simulating data...")
     message(sprintf("    n_sample = %d, max_follow = %s",
                     n_sample, ifelse(is.infinite(max_follow), "Inf", max_follow)))
@@ -724,7 +864,7 @@ run_simulation_analysis <- function(
     muC_adj = muC_adj
   )
 
-  if (verbose) {
+  if (show_verbose) {
     message(sprintf("    Simulated: n = %d, events = %d (%.1f%%)",
                     nrow(sim_data), sum(sim_data$event.sim),
                     100 * mean(sim_data$event.sim)))
@@ -744,7 +884,7 @@ run_simulation_analysis <- function(
     }
     confounders_name <- c(confounders_base, noise_names)
 
-    if (verbose) {
+    if (show_verbose) {
       message(sprintf("    Added %d noise variables", n_add_noise))
     }
   }
@@ -757,7 +897,7 @@ run_simulation_analysis <- function(
   size_Hc_true <- sum(!sim_data$flag.harm)
   prop_Hc_true <- mean(!sim_data$flag.harm)
 
-  if (verbose) {
+  if (show_verbose) {
     message("\n[2] True subgroup properties:")
     message(sprintf("    True H:  n = %d (%.1f%%)", size_H_true, 100 * prop_H_true))
     message(sprintf("    True Hc: n = %d (%.1f%%)", size_Hc_true, 100 * prop_Hc_true))
@@ -786,7 +926,7 @@ run_simulation_analysis <- function(
   # -------------------------------------------------------------------------
   results_list <- list()
 
-  if (verbose) {
+  if (show_verbose) {
     analyses_to_run <- c(
       if (run_fs) "FS" else NULL,
       if (run_fs_grf) "FSlg" else NULL,
@@ -800,12 +940,12 @@ run_simulation_analysis <- function(
     fs_result <- run_forestsearch_analysis(
       data = sim_data,
       confounders_name = confounders_name,
-      params = modifyList(fs_merged, list(use_lasso = TRUE, use_grf = FALSE)),
+      params = fs_merged,
       dgm = dgm,
       cox_formula = cox_formula,
       cox_formula_adj = cox_formula_adj,
       analysis_label = "FS",
-      verbose = verbose
+      verbose = show_verbose
     )
     results_list[["FS"]] <- cbind(df_pop, fs_result)
   }
@@ -820,7 +960,7 @@ run_simulation_analysis <- function(
       cox_formula = cox_formula,
       cox_formula_adj = cox_formula_adj,
       analysis_label = "FSlg",
-      verbose = verbose
+      verbose = show_verbose
     )
     results_list[["FSlg"]] <- cbind(df_pop, fs_grf_result)
   }
@@ -835,7 +975,8 @@ run_simulation_analysis <- function(
       cox_formula = cox_formula,
       cox_formula_adj = cox_formula_adj,
       analysis_label = "GRF",
-      verbose = verbose
+      verbose = show_verbose,
+      debug = debug
     )
     results_list[["GRF"]] <- cbind(df_pop, grf_result)
   }
@@ -850,7 +991,7 @@ run_simulation_analysis <- function(
 
   result <- data.table::rbindlist(results_list, fill = TRUE)
 
-  if (verbose) {
+  if (show_verbose) {
     message("\n[4] Simulation complete.")
     message(sprintf("    Results: %d rows x %d columns", nrow(result), ncol(result)))
     message(paste(rep("=", 60), collapse = ""), "\n")
@@ -1024,3 +1165,255 @@ compute_theoretical_power <- function(
 
   power
 }
+
+#' Format Operating Characteristics Results as GT Table
+#'
+#' Creates a formatted gt table from simulation operating characteristics results.
+#'
+#' @param results data.table or data.frame. Simulation results from
+#'   \code{\link{run_simulation_analysis}} or combined results from multiple simulations.
+#' @param analyses Character vector. Analysis methods to include.
+#'   Default: NULL (all analyses in results)
+#' @param metrics Character vector. Metrics to display. Options include:
+#'   "detection", "classification", "hr_estimates", "subgroup_size", "all".
+#'   Default: "all"
+#' @param digits Integer. Decimal places for proportions. Default: 3
+#' @param digits_hr Integer. Decimal places for hazard ratios. Default: 3
+#' @param title Character. Table title. Default: "Operating Characteristics Summary"
+#' @param subtitle Character. Table subtitle. Default: NULL
+#' @param use_gt Logical. Return gt table if TRUE, data.frame if FALSE. Default: TRUE
+#'
+#' @return A gt table object (if use_gt = TRUE and gt package available) or data.frame
+#'
+#' @details
+#' The function summarizes simulation results across multiple metrics:
+#' \itemize{
+#'   \item \strong{Detection}: Proportion of simulations finding a subgroup (any.H)
+#'   \item \strong{Classification}: Sensitivity, specificity, PPV, NPV
+#'   \item \strong{HR Estimates}: Mean hazard ratios in H and Hc subgroups
+#'   \item \strong{Subgroup Size}: Average, min, max sizes
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Run simulations
+#' results <- lapply(1:100, function(i) {
+#'   run_simulation_analysis(sim_id = i, dgm = dgm, n_sample = 500)
+#' })
+#' all_results <- data.table::rbindlist(results)
+#'
+#' # Create formatted table
+#' format_oc_results(all_results)
+#' }
+#'
+#' @importFrom data.table is.data.table as.data.table
+#' @export
+format_oc_results <- function(
+    results,
+    analyses = NULL,
+    metrics = "all",
+    digits = 3,
+    digits_hr = 3,
+    title = "Operating Characteristics Summary",
+    subtitle = NULL,
+    use_gt = TRUE
+) {
+
+  # Convert to data.table if needed
+  if (!data.table::is.data.table(results)) {
+    results <- data.table::as.data.table(results)
+  }
+
+  # Get analyses if not specified
+  if (is.null(analyses)) {
+    analyses <- unique(results$analysis)
+  }
+
+  # Filter to requested analyses
+  results <- results[results$analysis %in% analyses, ]
+
+  # Compute summary statistics for each analysis
+  summary_list <- lapply(analyses, function(a) {
+    res <- results[results$analysis == a, ]
+    n_sims <- nrow(res)
+
+    # Detection rate
+    detection_rate <- mean(res$any.H, na.rm = TRUE)
+
+    # Classification metrics (averaged across all sims)
+    sensitivity_mean <- mean(res$sensitivity, na.rm = TRUE)
+    specificity_mean <- mean(res$specificity, na.rm = TRUE)
+    ppv_mean <- mean(res$ppv, na.rm = TRUE)
+    npv_mean <- mean(res$npv, na.rm = TRUE)
+
+    # HR estimates (only from sims where subgroup found)
+    res_found <- res[res$any.H == 1, ]
+    if (nrow(res_found) > 0) {
+      hr_H_hat_mean <- mean(res_found$hr.H.hat, na.rm = TRUE)
+      hr_Hc_hat_mean <- mean(res_found$hr.Hc.hat, na.rm = TRUE)
+      size_H_mean <- mean(res_found$size.H, na.rm = TRUE)
+      size_H_min <- min(res_found$size.H, na.rm = TRUE)
+      size_H_max <- max(res_found$size.H, na.rm = TRUE)
+    } else {
+      hr_H_hat_mean <- hr_Hc_hat_mean <- NA
+      size_H_mean <- size_H_min <- size_H_max <- NA
+    }
+
+    # ITT HR (all sims)
+    hr_itt_mean <- mean(res$hr.itt, na.rm = TRUE)
+
+    # True values (from DGM)
+    hr_H_true <- mean(res$hr.H.true, na.rm = TRUE)
+    hr_Hc_true <- mean(res$hr.Hc.true, na.rm = TRUE)
+
+    data.frame(
+      Analysis = a,
+      N_sims = n_sims,
+      Detection = detection_rate,
+      Sensitivity = sensitivity_mean,
+      Specificity = specificity_mean,
+      PPV = ppv_mean,
+      NPV = npv_mean,
+      HR_H_hat = hr_H_hat_mean,
+      HR_Hc_hat = hr_Hc_hat_mean,
+      HR_H_true = hr_H_true,
+      HR_Hc_true = hr_Hc_true,
+      HR_ITT = hr_itt_mean,
+      Size_H_mean = size_H_mean,
+      Size_H_min = size_H_min,
+      Size_H_max = size_H_max,
+      stringsAsFactors = FALSE
+    )
+  })
+
+  summary_df <- do.call(rbind, summary_list)
+
+  # Select metrics based on request
+  if ("all" %in% metrics) {
+    # Keep all columns
+  } else {
+    cols_to_keep <- c("Analysis", "N_sims")
+    if ("detection" %in% metrics) {
+      cols_to_keep <- c(cols_to_keep, "Detection")
+    }
+    if ("classification" %in% metrics) {
+      cols_to_keep <- c(cols_to_keep, "Sensitivity", "Specificity", "PPV", "NPV")
+    }
+    if ("hr_estimates" %in% metrics) {
+      cols_to_keep <- c(cols_to_keep, "HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT")
+    }
+    if ("subgroup_size" %in% metrics) {
+      cols_to_keep <- c(cols_to_keep, "Size_H_mean", "Size_H_min", "Size_H_max")
+    }
+    summary_df <- summary_df[, cols_to_keep, drop = FALSE]
+  }
+
+  # Format as gt table if requested and available
+  if (use_gt && requireNamespace("gt", quietly = TRUE)) {
+    gt_table <- gt::gt(summary_df)
+
+    # Add title
+    gt_table <- gt::tab_header(
+      gt_table,
+      title = title,
+      subtitle = subtitle
+    )
+
+    # Format numeric columns
+    numeric_cols <- setdiff(names(summary_df), c("Analysis", "N_sims"))
+
+    # Proportion columns (0-1 scale)
+    prop_cols <- intersect(c("Detection", "Sensitivity", "Specificity", "PPV", "NPV"),
+                           names(summary_df))
+    if (length(prop_cols) > 0) {
+      gt_table <- gt::fmt_number(
+        gt_table,
+        columns = gt::all_of(prop_cols),
+        decimals = digits
+      )
+    }
+
+    # HR columns
+    hr_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT"),
+                         names(summary_df))
+    if (length(hr_cols) > 0) {
+      gt_table <- gt::fmt_number(
+        gt_table,
+        columns = gt::all_of(hr_cols),
+        decimals = digits_hr
+      )
+    }
+
+    # Size columns
+    size_cols <- intersect(c("Size_H_mean", "Size_H_min", "Size_H_max"),
+                           names(summary_df))
+    if (length(size_cols) > 0) {
+      gt_table <- gt::fmt_number(
+        gt_table,
+        columns = gt::all_of(size_cols),
+        decimals = 0
+      )
+    }
+
+    # Rename columns for display
+    gt_table <- gt::cols_label(
+      gt_table,
+      Analysis = "Method",
+      N_sims = "N Sims",
+      .fn = function(x) {
+        x <- gsub("_", " ", x)
+        x <- gsub("HR ", "HR(", x)
+        x <- gsub(" hat", ")est", x)
+        x <- gsub(" true", ")true", x)
+        x <- gsub("Size H ", "Size(H) ", x)
+        x
+      }
+    )
+
+    # Add column spanners
+    if ("all" %in% metrics || "classification" %in% metrics) {
+      class_cols <- intersect(c("Sensitivity", "Specificity", "PPV", "NPV"), names(summary_df))
+      if (length(class_cols) > 0) {
+        gt_table <- gt::tab_spanner(
+          gt_table,
+          label = "Classification",
+          columns = gt::all_of(class_cols)
+        )
+      }
+    }
+
+    if ("all" %in% metrics || "hr_estimates" %in% metrics) {
+      hr_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT"),
+                           names(summary_df))
+      if (length(hr_cols) > 0) {
+        gt_table <- gt::tab_spanner(
+          gt_table,
+          label = "Hazard Ratios",
+          columns = gt::all_of(hr_cols)
+        )
+      }
+    }
+
+    # Style
+    gt_table <- gt::tab_style(
+      gt_table,
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_column_labels()
+    )
+
+    # Handle missing values
+    if (utils::packageVersion("gt") >= "0.6.0") {
+      gt_table <- gt::sub_missing(
+        gt_table,
+        columns = gt::everything(),
+        missing_text = "-"
+      )
+    }
+
+    return(gt_table)
+  }
+
+  # Return data.frame if gt not available or not requested
+  summary_df
+}
+

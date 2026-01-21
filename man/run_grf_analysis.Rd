@@ -12,7 +12,8 @@ run_grf_analysis(
   cox_formula = NULL,
   cox_formula_adj = NULL,
   analysis_label = "GRF",
-  verbose = FALSE
+  verbose = FALSE,
+  debug = FALSE
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ run_grf_analysis(
 \item{analysis_label}{Character label for this analysis}
 
 \item{verbose}{Print details}
+
+\item{debug}{Print detailed debugging information}
 }
 \value{
 data.table with analysis estimates

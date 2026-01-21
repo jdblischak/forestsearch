@@ -50,6 +50,8 @@ usethis::use_package("dplyr")
 
 usethis::use_package("progressr")
 
+usethis::use_package("cubature", type = "Suggests")
+
 
 # Step 5: Generate documentation
 # Also, run this if revising R files such as @importFrom

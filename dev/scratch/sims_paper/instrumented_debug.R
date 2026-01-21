@@ -398,6 +398,8 @@ if (!is.null(result)) {
   cat("\nResult is NULL - check debug output above for where it failed\n")
 }
 
+
+library(weightedsurv)
 library(forestsearch)
 
 # Now it should work
@@ -405,12 +407,12 @@ dgm <- create_gbsg_dgm(model = "alt", k_inter = 2)
 
 
 result <- run_simulation_analysis(
-  sim_id = 1,
+  sim_id = 2,
   dgm = dgm,
   n_sample = 500,
   confounders_base = c("z1", "z2", "z3", "z4", "z5", "size", "grade3"),
   run_fs = TRUE,
-  run_grf = FALSE,
+  run_grf = TRUE,
   verbose = TRUE
 )
 

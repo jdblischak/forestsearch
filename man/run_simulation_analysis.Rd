@@ -13,7 +13,7 @@ run_simulation_analysis(
   confounders_base = c("z1", "z2", "z3", "z4", "z5", "size", "grade3"),
   n_add_noise = 0L,
   run_fs = TRUE,
-  run_fs_grf = FALSE,
+  run_fs_grf = TRUE,
   run_grf = TRUE,
   fs_params = list(),
   grf_params = list(),
@@ -21,7 +21,9 @@ run_simulation_analysis(
   cox_formula_adj = NULL,
   n_sims_total = NULL,
   seed_base = 8316951L,
-  verbose = FALSE
+  verbose = FALSE,
+  verbose_n = NULL,
+  debug = FALSE
 )
 }
 \arguments{
@@ -58,6 +60,11 @@ run_simulation_analysis(
 \item{seed_base}{Integer. Base random seed. Default: 8316951}
 
 \item{verbose}{Logical. Print progress. Default: FALSE}
+
+\item{verbose_n}{Integer. Only print verbose output for first N simulations.
+Default: NULL (print for all simulations when verbose = TRUE)}
+
+\item{debug}{Logical. Print detailed debugging information. Default: FALSE}
 }
 \value{
 A data.table with analysis results for all requested methods
@@ -93,6 +100,9 @@ When \code{verbose = TRUE}, the function prints:
 \item Identified subgroups and HR estimates
 \item Classification metrics (sensitivity, specificity, PPV, NPV)
 }
+
+Use \code{verbose_n} to limit verbose output to the first N simulations,
+which is useful when running many simulations in a loop.
 }
 }
 \examples{
@@ -110,6 +120,17 @@ result <- run_simulation_analysis(
   run_grf = FALSE,
   verbose = TRUE
 )
+
+# Run multiple simulations, verbose for first 3 only
+results <- lapply(1:100, function(i) {
+  run_simulation_analysis(
+    sim_id = i,
+    dgm = dgm,
+    n_sample = 500,
+    verbose = TRUE,
+    verbose_n = 3  # Only print for sim_id <= 3
+  )
+})
 }
 
 }
