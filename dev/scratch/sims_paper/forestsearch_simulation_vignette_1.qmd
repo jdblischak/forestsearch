@@ -204,7 +204,7 @@ cat("  Estimated ITT HR =", round(exp(coef(fit_itt)), 3), "\n")
 
 ## Examining Covariate Structure
 
-```{r KMplot, fig.width = 7, fig.height = 5}
+```{r, fig.width = 7, fig.height = 5}
 
 dfcount <- df_counting(
   df = sim_data,
