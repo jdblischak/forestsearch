@@ -5,6 +5,7 @@ author: "ForestSearch Package"
 date: today
 format:
   html:
+    self-contained: true
     toc: true
     toc-depth: 3
     code-fold: false
@@ -21,6 +22,7 @@ vignette: >
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -249,7 +251,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config <- list(
-  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
+  n_sims = 20,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,        # Sample size per trial
   max_follow = 84,       # Maximum follow-up (months)
   seed_base = 8316951,
@@ -264,7 +266,7 @@ fs_params <- list(
   id.name = "id",
   hr.threshold = 1.25,
   hr.consistency = 1.0,
-  pconsistency.threshold = 0.80,
+  pconsistency.threshold = 0.90,
   use_grf = TRUE,
   use_lasso = FALSE,
   fs.splits = 400,
