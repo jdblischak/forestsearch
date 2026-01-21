@@ -251,7 +251,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config <- list(
-  n_sims = 20,          # Number of simulations (use 500-1000 for final)
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,        # Sample size per trial
   max_follow = 84,       # Maximum follow-up (months)
   seed_base = 8316951,

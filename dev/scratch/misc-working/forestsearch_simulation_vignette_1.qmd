@@ -5,6 +5,7 @@ author: "ForestSearch Package"
 date: today
 format:
   html:
+    self-contained: true
     toc: true
     toc-depth: 3
     code-fold: false
@@ -21,6 +22,7 @@ vignette: >
   %\VignetteEngine{quarto::html}
   %\VignetteEncoding{UTF-8}
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
@@ -202,7 +204,7 @@ cat("  Estimated ITT HR =", round(exp(coef(fit_itt)), 3), "\n")
 
 ## Examining Covariate Structure
 
-```{r KMplot, fig.width = 7, fig.height = 5}
+```{r, fig.width = 7, fig.height = 5}
 
 dfcount <- df_counting(
   df = sim_data,
@@ -264,7 +266,7 @@ fs_params <- list(
   id.name = "id",
   hr.threshold = 1.25,
   hr.consistency = 1.0,
-  pconsistency.threshold = 0.80,
+  pconsistency.threshold = 0.90,
   use_grf = TRUE,
   use_lasso = FALSE,
   fs.splits = 400,

@@ -5,6 +5,7 @@ author: "ForestSearch Development Team"
 date: today
 format:
   html:
+    self-contained: true
     toc: true
     toc-depth: 3
     toc-location: left
@@ -17,7 +18,6 @@ format:
 execute:
   warning: false
   message: false
-bibliography: references.bib
 ---
 
 ```{r setup}
@@ -594,5 +594,14 @@ sessionInfo()
 
 # References
 
-::: {#refs}
-:::
+1. León LF, Marceau-West CT, He W, et al. (2024). "Identifying Patient Subgroups 
+   with Differential Treatment Effects: A Forest Search Approach." 
+   *Statistics in Medicine*.
+
+2. Athey S, Imbens GW. (2016). "Recursive partitioning for heterogeneous causal 
+   effects." *PNAS*, 113(27):7353-7360.
+
+3. Wager S, Athey S. (2018). "Estimation and inference of heterogeneous treatment 
+   effects using random forests." *JASA*, 113(523):1228-1242.
+
+
