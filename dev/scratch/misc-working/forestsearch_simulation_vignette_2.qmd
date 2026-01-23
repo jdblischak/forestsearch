@@ -250,13 +250,22 @@ cat("Using", n_workers, "parallel workers\n")
 
 ```{r define-params}
 # Simulation settings
-sim_config <- list(
-  n_sims = 5000,          # Number of simulations (use 500-1000 for final)
+sim_config_alt <- list(
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,        # Sample size per trial
   max_follow = 84,       # Maximum follow-up (months)
   seed_base = 8316951,
   muC_adj = log(1.5)
 )
+
+sim_config_null <- list(
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
+  n_sample = 700,        # Sample size per trial
+  max_follow = 84,       # Maximum follow-up (months)
+  seed_base = 8316951,
+  muC_adj = log(1.5)
+)
+
 
 # ForestSearch parameters
 fs_params <- list(
@@ -283,6 +292,8 @@ confounders_base <- c("z1", "z2", "z3", "z4", "z5", "size", "grade3")
 ```{r run-simulation}
 # Track timing
 t_start <- Sys.time()
+
+sim_config <- sim_config_alt
 
 # Run simulations in parallel
 results_alt <- foreach(
@@ -328,13 +339,6 @@ cat("Per simulation:", round(runtime_mins / sim_config$n_sims * 60, 1), "seconds
 ## Running Null Hypothesis Simulations (Type I Error)
 
 ```{r run-null-simulation}
-sim_config_null <- list(
-  n_sims = 2500,          # Number of simulations (use 500-1000 for final)
-  n_sample = 700,        # Sample size per trial
-  max_follow = 84,       # Maximum follow-up (months)
-  seed_base = 8316951,
-  muC_adj = log(1.5)
-)
 
 sim_config <- sim_config_null
 
