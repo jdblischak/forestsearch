@@ -42,7 +42,7 @@ effects. The simulation framework allows you to:
  
 - Generate synthetic clinical trial data with known treatment effect heterogeneity
 - Evaluate subgroup identification rates (power)
-- Assess classification accuracy (sensitivity, specificity, PPV, NPV)
+- Assess classification accuracy (sens, spec, PPV, NPV)
 - Compare different analysis methods (ForestSearch, GRF)
 - Estimate Type I error under null hypothesis
 
@@ -222,7 +222,7 @@ Often, you want to specify the exact hazard ratio in the harm subgroup. Use
 k_inter_cox <- calibrate_k_inter(
   target_hr_harm = 2.0,
   model = "alt",
-  k_treat = 0.9,
+  k_treat = 1.0,
   cens_type = "weibull",
   use_ahr = FALSE,  # Default: calibrate to Cox-based HR
   verbose = TRUE
@@ -231,7 +231,7 @@ k_inter_cox <- calibrate_k_inter(
 # Create DGM with calibrated k_inter
 dgm_calibrated_cox <- create_gbsg_dgm(
   model = "alt",
-  k_treat = 0.9,
+  k_treat = 1.0,
   k_inter = k_inter_cox,
   verbose = TRUE
 )
@@ -249,7 +249,7 @@ cat("Overall HR:", round(dgm_calibrated_cox$hr_causal, 3), "\n")
 k_inter_ahr <- calibrate_k_inter(
   target_hr_harm = 2.0,
   model = "alt",
-  k_treat = 0.9,
+  k_treat = 1.0,
   cens_type = "weibull",
   use_ahr = TRUE,  # NEW: calibrate to AHR instead
   verbose = TRUE
@@ -258,7 +258,7 @@ k_inter_ahr <- calibrate_k_inter(
 # Create DGM with AHR-calibrated k_inter
 dgm_calibrated_ahr <- create_gbsg_dgm(
   model = "alt",
-  k_treat = 0.9,
+  k_treat = 1.0,
   k_inter = k_inter_ahr,
   verbose = TRUE
 )
@@ -304,7 +304,7 @@ For Type I error evaluation, create a DGM with uniform treatment effect:
 # Create null DGM (no treatment effect heterogeneity)
 dgm_null <- create_gbsg_dgm(
   model = "null",
-  k_treat = 0.9,
+  k_treat = 1.0,
   verbose = TRUE
 )
 
@@ -403,7 +403,7 @@ For efficient simulation studies, use parallel processing:
 # Configure parallel backend
 n_workers <- min(parallel::detectCores() - 1, 120)
 
-plan(sequential, workers = n_workers)
+plan(multisession, workers = n_workers)
 registerDoFuture()
 
 cat("Using", n_workers, "parallel workers\n")
@@ -435,15 +435,15 @@ fs_params <- list(
   event.name = "event.sim",
   treat.name = "treat",
   id.name = "id",
-  use_lasso = FALSE,
+  use_lasso = TRUE,
   use_grf = TRUE,
   hr.threshold = 1.25,
   hr.consistency = 1.0,
   pconsistency.threshold = 0.90,
-  fs.splits = 400,
+  fs.splits = 1000,
   n.min = 60,
-  d0.min = 10,
-  d1.min = 10,
+  d0.min = 12,
+  d1.min = 12,
   maxk = 2,
   by.risk = 12,
   vi.grf.min = -0.2,
@@ -508,7 +508,7 @@ results_alt <- foreach(
     run_grf = TRUE,
     fs_params = fs_params,
     verbose = TRUE,
-    debug = TRUE,
+    debug = FALSE,
     verbose_n = 3  # Only print first 3 simulations
   )
 }
@@ -637,8 +637,8 @@ for (analysis in unique(results_alt$analysis)) {
   cat(sprintf("  %s: Power = %.3f, Sens = %.3f, Spec = %.3f, PPV = %.3f\n",
               analysis,
               mean(res$any.H),
-              mean(res$sensitivity, na.rm = TRUE),
-              mean(res$specificity, na.rm = TRUE),
+              mean(res$sens, na.rm = TRUE),
+              mean(res$spec, na.rm = TRUE),
               mean(res$ppv, na.rm = TRUE)))
 }
 
@@ -719,7 +719,7 @@ cat("With 10 noise vars:", round(mean(results_noise$any.H), 3), "\n")
 
 ## Sensitivity Analysis: Varying Parameters
 
-```{r sensitivity-analysis, eval=FALSE}
+```{r sens-analysis, eval=FALSE}
 # Test different HR thresholds
 thresholds <- c(1.10, 1.25, 1.50)
 results_by_thresh <- list()

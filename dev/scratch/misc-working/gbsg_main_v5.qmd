@@ -151,17 +151,16 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 potentialOutcome.name = NULL, 
                                 df.test = NULL,
                                 flag_harm.name = NULL,
-                                hr.threshold = 1.0, hr.consistency = 0.9, pconsistency.threshold = 0.90,
-                                sg_focus = "hr", max_subgroups_search = 30,
-                                use_twostage = TRUE,
+                                hr.threshold = 1.0, hr.consistency = 0.9, 
+                                pconsistency.threshold = 0.90, stop_threshold = 0.975,
+                                sg_focus = "hr", max_subgroups_search = 20, use_twostage = TRUE,
+                                parallel_args = list(plan="callr", workers = 30, show_message = TRUE, batch_size = 2),
                                 showten_subgroups = TRUE, details=TRUE,
                                 conf_force = NULL,
                                 cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = FALSE,
                                 maxk = 2, fs.splits = 1000,
                                 n.min = 60, d0.min = 10, d1.min = 10,
-                                plot.sg = TRUE, by.risk = 6,
-                                parallel_args = list(plan="callr", workers = 30, show_message = TRUE)
-)
+                                plot.sg = TRUE, by.risk = 6)
 })
 
 plan("sequential")

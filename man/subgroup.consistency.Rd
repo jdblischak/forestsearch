@@ -2,7 +2,7 @@
 % Please edit documentation in R/subgroup_consistency_main.R
 \name{subgroup.consistency}
 \alias{subgroup.consistency}
-\title{Subgroup Consistency Evaluation}
+\title{Evaluate Subgroup Consistency}
 \usage{
 subgroup.consistency(
   df,
@@ -20,155 +20,160 @@ subgroup.consistency(
   confs_labels,
   sg_focus = "hr",
   stop_Kgroups = 10,
+  stop_threshold = NULL,
+  showten_subgroups = FALSE,
   pconsistency.digits = 2,
+  seed = 8316951,
   checking = FALSE,
-  parallel_args = list(NULL),
   use_twostage = FALSE,
   twostage_args = list(),
-  seed = 8316951
+  parallel_args = list()
 )
 }
 \arguments{
-\item{df}{The original data.frame with columns Y, Event, Treat, id.}
+\item{df}{Data frame containing the analysis dataset. Must include columns
+for outcome (Y), event indicator (Event), and treatment (Treat).}
 
-\item{hr.subgroups}{Data.table of subgroup hazard ratio results from subgroup search.}
+\item{hr.subgroups}{Data.table of candidate subgroups from subgroup search,
+containing columns: HR, n, E, K, d0, d1, m0, m1, grp, and factor indicators.}
 
-\item{hr.threshold}{Numeric. Minimum hazard ratio for subgroup inclusion. Default 1.0.}
+\item{hr.threshold}{Numeric. Minimum hazard ratio threshold for candidates.
+Default: 1.0}
 
-\item{hr.consistency}{Numeric. Minimum hazard ratio for consistency in splits. Default 1.0.}
+\item{hr.consistency}{Numeric. Minimum HR required in each split for
+consistency. Default: 1.0}
 
-\item{pconsistency.threshold}{Numeric. Minimum proportion of splits meeting consistency. Default 0.9.}
+\item{pconsistency.threshold}{Numeric. Minimum proportion of splits that
+must be consistent. Default: 0.9}
 
-\item{m1.threshold}{Numeric. Maximum median survival for treatment arm. Default Inf.}
+\item{m1.threshold}{Numeric. Maximum m1 threshold for filtering. Default: Inf}
 
-\item{n.splits}{Integer. Number of random splits for consistency evaluation (or maximum
-splits when \code{use_twostage = TRUE}). Default 100.}
+\item{n.splits}{Integer. Number of splits for consistency evaluation.
+Default: 100}
 
-\item{details}{Logical. Print progress details. Default FALSE.}
+\item{details}{Logical. Print progress details. Default: FALSE}
 
-\item{by.risk}{Numeric. Risk interval for plotting. Default 12.}
+\item{by.risk}{Numeric. Risk interval for KM plots. Default: 12}
 
-\item{plot.sg}{Logical. Plot subgroup survival curves. Default FALSE.}
+\item{plot.sg}{Logical. Generate subgroup plots. Default: FALSE}
 
-\item{maxk}{Integer. Maximum number of covariates in a subgroup. Default 7.}
+\item{maxk}{Integer. Maximum number of factors in subgroup. Default: 7}
 
-\item{Lsg}{Integer. Number of covariates (required).}
+\item{Lsg}{List of subgroup parameters.}
 
-\item{confs_labels}{Character vector. Covariate label mapping (required).}
+\item{confs_labels}{Character vector mapping factor names to labels.}
 
-\item{sg_focus}{Character. Sorting focus for subgroup selection. One of
-"hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG". Default "hr".}
+\item{sg_focus}{Character. Subgroup selection criterion: "hr", "maxSG",
+or "minSG". Default: "hr"}
 
-\item{stop_Kgroups}{Integer. Maximum number of subgroups to evaluate. Default 10.}
+\item{stop_Kgroups}{Integer. Maximum number of candidates to evaluate.
+Default: 10}
 
-\item{pconsistency.digits}{Integer. Significant digits for pconsistency.threshold. Default 2.}
+\item{stop_threshold}{Numeric or NULL. If specified, evaluation stops once
+any subgroup achieves consistency >= stop_threshold. This enables early
+termination when a sufficiently consistent subgroup is found. Default: NULL
+(evaluate all candidates up to stop_Kgroups).
 
-\item{checking}{Logical. Enable debugging output. Default FALSE.}
+When combined with HR-based sorting (sg_focus = "hr"), this ensures the
+highest-HR subgroup meeting the threshold is identified efficiently.
 
-\item{parallel_args}{List. Parallel processing configuration with elements:
+Note: For parallel execution, early stopping is checked after each batch
+completes, so some additional candidates beyond the first meeting the
+threshold may be evaluated. Use a smaller batch_size in parallel_args
+for finer-grained early stopping.}
+
+\item{showten_subgroups}{Logical. If TRUE, prints up to 10 candidate
+subgroups after sorting by sg_focus, showing their rank, HR, sample size,
+events, and factor definitions. Useful for reviewing which candidates
+will be evaluated for consistency. Default: FALSE}
+
+\item{pconsistency.digits}{Integer. Decimal places for consistency
+proportion. Default: 2}
+
+\item{seed}{Integer. Random seed for reproducible consistency splits.
+Default: 8316951. Set to NULL for non-reproducible random splits.
+The seed is used both for sequential execution (via set.seed()) and
+parallel execution (via future.seed).}
+
+\item{checking}{Logical. Enable additional validation checks. Default: FALSE}
+
+\item{use_twostage}{Logical. Use two-stage adaptive algorithm. Default: FALSE}
+
+\item{twostage_args}{List. Parameters for two-stage algorithm:
 \describe{
-\item{plan}{Character. One of "multisession", "multicore", "callr", "sequential"}
-\item{workers}{Integer. Number of parallel workers}
-\item{show_message}{Logical. Show parallel setup messages}
+\item{n.splits.screen}{Splits for Stage 1 screening. Default: 30}
+\item{screen.threshold}{Consistency threshold for Stage 1. Default: auto}
+\item{batch.size}{Splits per batch in Stage 2. Default: 20}
+\item{conf.level}{Confidence level for early stopping. Default: 0.95}
+\item{min.valid.screen}{Minimum valid Stage 1 splits. Default: 10}
 }}
 
-\item{use_twostage}{Logical. Use two-stage sequential algorithm for improved
-performance. Default FALSE for backward compatibility. When TRUE, enables
-early stopping and screening to reduce computation time by 3-10x for most
-analyses.}
-
-\item{twostage_args}{List. Parameters for two-stage algorithm (only used when
-\code{use_twostage = TRUE}):
+\item{parallel_args}{List. Parallel processing configuration:
 \describe{
-\item{n.splits.screen}{Integer. Splits for Stage 1 screening. Default 30.}
-\item{screen.threshold}{Numeric. Consistency threshold for Stage 1. Default
-is automatically calculated to provide ~2.5 SE margin below pconsistency.threshold.}
-\item{batch.size}{Integer. Splits per batch in Stage 2. Default 20.}
-\item{conf.level}{Numeric. Confidence level for early stopping decisions. Default 0.95.}
-\item{min.valid.screen}{Integer. Minimum valid splits required in Stage 1. Default 10.}
+\item{plan}{Future plan: "multisession", "multicore", or "sequential"}
+\item{workers}{Number of parallel workers}
+\item{batch_size}{Number of candidates to evaluate per batch. Smaller
+values provide finer-grained early stopping but may increase overhead.
+Default: auto (workers when stop_threshold set, workers*2 otherwise)}
+\item{show_message}{Print parallel config messages}
 }}
-
-\item{seed}{Integer. Random seed for reproducible consistency splits
-(default: 8316951). Set to NULL for non-reproducible random splits.}
 }
 \value{
 A list containing:
 \describe{
-\item{out_sg}{Results object from sg_consistency_out()}
-\item{sg_focus}{The sg_focus value used}
-\item{df_flag}{Data.frame with id and treat.recommend columns}
-\item{sg.harm}{Character vector of selected subgroup labels}
-\item{sg.harm.id}{Numeric ID of selected subgroup}
-\item{algorithm}{Character indicating which algorithm was used}
-\item{n_candidates_evaluated}{Number of candidates that underwent consistency evaluation}
-\item{n_passed}{Number of candidates meeting consistency threshold}
-\item{seed}{Integer seed used for reproducibility (NULL if not set)}
+\item{out_sg}{Selected subgroup results}
+\item{sg_focus}{Selection criterion used}
+\item{df_flag}{Data frame with treatment recommendations}
+\item{sg.harm}{Subgroup definition labels}
+\item{sg.harm.id}{Subgroup membership indicator}
+\item{algorithm}{"twostage" or "fixed"}
+\item{n_candidates_evaluated}{Number of candidates actually evaluated}
+\item{n_candidates_total}{Total candidates available}
+\item{n_passed}{Number meeting consistency threshold}
+\item{early_stop_triggered}{Logical indicating if early stop occurred}
+\item{early_stop_candidate}{Index of candidate triggering early stop}
+\item{stop_threshold}{Threshold used for early stopping}
+\item{seed}{Random seed used for reproducibility (NULL if not set)}
 }
 }
 \description{
-Evaluates consistency of subgroups found in a survival analysis, using random
-splits and hazard ratio criteria. Supports both fixed-sample and two-stage
-sequential evaluation algorithms.
+Evaluates candidate subgroups using split-sample consistency validation.
+For each candidate, repeatedly splits the data and checks whether the
+treatment effect direction is consistent across splits.
 }
-\details{
-The function supports two evaluation algorithms:
-
-\strong{Fixed-Sample Algorithm} (\code{use_twostage = FALSE}):
-\itemize{
-\item Runs exactly \code{n.splits} random splits for each candidate
-\item Consistent and predictable runtime
-\item Recommended for final analyses requiring exact reproducibility
-}
-
-\strong{Two-Stage Sequential Algorithm} (\code{use_twostage = TRUE}):
-\itemize{
-\item Stage 1: Quick screening with \code{n.splits.screen} splits
-\item Stage 2: Sequential batched evaluation with early stopping
-\item Candidates clearly passing/failing stop early
-\item 3-10x faster for typical analyses
-\item Recommended for exploratory analyses and large candidate sets
-}
-}
-\section{Performance Considerations}{
-
-The two-stage algorithm provides significant speedups when:
-\itemize{
-\item Many candidates clearly fail consistency (screened at Stage 1)
-\item Many candidates have consistency well above/below threshold
-\item \code{n.splits} is large (>200)
-}
-
-Speedup is minimal when most candidates have true consistency near the threshold.
-}
-
 \examples{
 \dontrun{
-# Standard fixed-sample evaluation
+# Standard evaluation
 result <- subgroup.consistency(
   df = trial_data,
   hr.subgroups = candidates,
+  sg_focus = "hr",
   n.splits = 400,
-  pconsistency.threshold = 0.90,
-  use_twostage = FALSE
+  parallel_args = list(plan = "multisession", workers = 6)
 )
 
-# Two-stage sequential evaluation (faster)
-result_fast <- subgroup.consistency(
+# Show top 10 candidates before evaluation
+result <- subgroup.consistency(
   df = trial_data,
   hr.subgroups = candidates,
-  n.splits = 400,  # Maximum splits
-  pconsistency.threshold = 0.90,
-  use_twostage = TRUE,
-  twostage_args = list(
-    n.splits.screen = 30,
-    batch.size = 20
+  sg_focus = "hr",
+  showten_subgroups = TRUE,  # Display candidates
+  n.splits = 400
+)
+
+# With early stopping and custom batch size
+result <- subgroup.consistency(
+  df = trial_data,
+  hr.subgroups = candidates,
+  sg_focus = "hr",
+  stop_threshold = 0.95,
+  showten_subgroups = TRUE,
+  parallel_args = list(
+    plan = "multisession",
+    workers = 6,
+    batch_size = 2  # Check early stopping after every 2 candidates
   )
 )
 }
 
-}
-\seealso{
-\code{\link{evaluate_subgroup_consistency}} for fixed-sample evaluation
-\code{\link{evaluate_consistency_twostage}} for two-stage evaluation
-\code{\link{forestsearch}} for the main analysis function
 }

@@ -87,7 +87,7 @@ including both HR and AHR metrics. Contains columns:
 \item{hr.H.true, hr.H.hat}{True and estimated HR in identified H}
 \item{hr.Hc.true, hr.Hc.hat}{True and estimated HR in identified Hc}
 \item{ahr.H.true, ahr.H.hat}{True and estimated AHR in identified H}
-\item{sensitivity, specificity, ppv, npv}{Classification metrics}
+\item{sens, spec, ppv, npv}{Classification metrics}
 }
 }
 \description{

@@ -29,7 +29,7 @@ NULL
 # =============================================================================
 
 utils::globalVariables(c(
-  "any.H", "ppv", "npv", "sensitivity", "specificity",
+  "any.H", "ppv", "npv", "sens", "spec",
   "size.H", "size.Hc", "hr.H.true", "hr.H.hat", "hr.Hc.true", "hr.Hc.hat",
   "hr.itt", "hr.adj.itt", "p.cens", "taumax",
   "analysis", "sim", "aa", "sg_hat",
@@ -279,8 +279,8 @@ extract_fs_estimates <- function(
     hr.adj.itt = NA_real_,
     ppv = NA_real_,
     npv = NA_real_,
-    sensitivity = NA_real_,
-    specificity = NA_real_,
+    sens = NA_real_,
+    spec = NA_real_,
     p.cens = 1 - mean(df$event.sim),
     taumax = max(df$y.sim)
   )
@@ -389,14 +389,14 @@ extract_fs_estimates <- function(
     tn <- sum(!true_H & !hat_H)
     fn <- sum(true_H & !hat_H)
 
-    out$sensitivity <- if ((tp + fn) > 0) tp / (tp + fn) else NA_real_
-    out$specificity <- if ((tn + fp) > 0) tn / (tn + fp) else NA_real_
+    out$sens <- if ((tp + fn) > 0) tp / (tp + fn) else NA_real_
+    out$spec <- if ((tn + fp) > 0) tn / (tn + fp) else NA_real_
     out$ppv <- if ((tp + fp) > 0) tp / (tp + fp) else NA_real_
     out$npv <- if ((tn + fn) > 0) tn / (tn + fn) else NA_real_
 
     if (verbose) {
       message(sprintf("  [%s] Classification: Sens = %.3f, Spec = %.3f, PPV = %.3f, NPV = %.3f",
-                      analysis, out$sensitivity, out$specificity, out$ppv, out$npv))
+                      analysis, out$sens, out$spec, out$ppv, out$npv))
     }
 
     if (out$size.H > 10) {
@@ -616,8 +616,8 @@ extract_grf_estimates <- function(
     # Classification metrics
     ppv = NA_real_,
     npv = NA_real_,
-    sensitivity = NA_real_,
-    specificity = NA_real_,
+    sens = NA_real_,
+    spec = NA_real_,
     # Data summary
     p.cens = 1 - mean(df$event.sim),
     taumax = max(df$y.sim)
@@ -808,14 +808,14 @@ extract_grf_estimates <- function(
       tn <- sum(!true_H & !hat_H)
       fn <- sum(true_H & !hat_H)
 
-      out$sensitivity <- if ((tp + fn) > 0) tp / (tp + fn) else NA_real_
-      out$specificity <- if ((tn + fp) > 0) tn / (tn + fp) else NA_real_
+      out$sens <- if ((tp + fn) > 0) tp / (tp + fn) else NA_real_
+      out$spec <- if ((tn + fp) > 0) tn / (tn + fp) else NA_real_
       out$ppv <- if ((tp + fp) > 0) tp / (tp + fp) else NA_real_
       out$npv <- if ((tn + fn) > 0) tn / (tn + fn) else NA_real_
 
       if (verbose) {
         message(sprintf("  [%s] Classification: Sens = %.3f, Spec = %.3f, PPV = %.3f, NPV = %.3f",
-                        analysis, out$sensitivity, out$specificity, out$ppv, out$npv))
+                        analysis, out$sens, out$spec, out$ppv, out$npv))
       }
     }
   }
@@ -1006,7 +1006,7 @@ run_grf_analysis <- function(
 #'     \item{hr.H.true, hr.H.hat}{True and estimated HR in identified H}
 #'     \item{hr.Hc.true, hr.Hc.hat}{True and estimated HR in identified Hc}
 #'     \item{ahr.H.true, ahr.H.hat}{True and estimated AHR in identified H}
-#'     \item{sensitivity, specificity, ppv, npv}{Classification metrics}
+#'     \item{sens, spec, ppv, npv}{Classification metrics}
 #'   }
 #'
 #' @details
@@ -1367,7 +1367,7 @@ summarize_simulation_results <- function(
 summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 
   # Classification metrics
-  class_cols <- c("any.H", "sensitivity", "specificity", "ppv", "npv")
+  class_cols <- c("any.H", "sens", "spec", "ppv", "npv")
   class_cols <- intersect(class_cols, names(result))
   class_means <- sapply(result[, class_cols, with = FALSE], mean, na.rm = TRUE)
   class_means <- round(class_means, digits)
@@ -1462,7 +1462,7 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 #' The function summarizes simulation results across multiple metrics:
 #' \itemize{
 #'   \item \strong{Detection}: Proportion of simulations finding a subgroup (any.H)
-#'   \item \strong{Classification}: Sensitivity, specificity, PPV, NPV
+#'   \item \strong{Classification}: Sen, spec, PPV, NPV
 #'   \item \strong{HR Estimates}: Mean hazard ratios in H and Hc subgroups
 #'   \item \strong{Subgroup Size}: Average, min, max sizes
 #' }
@@ -1502,8 +1502,8 @@ format_oc_results <- function(
     detection_rate <- mean(res$any.H, na.rm = TRUE)
 
     # Classification metrics (averaged across all sims)
-    sensitivity <- mean(res$sensitivity, na.rm = TRUE)
-    specificity <- mean(res$specificity, na.rm = TRUE)
+    sens <- mean(res$sens, na.rm = TRUE)
+    spec <- mean(res$spec, na.rm = TRUE)
     ppv <- mean(res$ppv, na.rm = TRUE)
     npv <- mean(res$npv, na.rm = TRUE)
 
@@ -1529,8 +1529,8 @@ format_oc_results <- function(
       Analysis = a,
       N_sims = n_sims,
       Detection = detection_rate,
-      Sensitivity = sensitivity,
-      Specificity = specificity,
+      Sen = sens,
+      Spec = spec,
       PPV = ppv,
       NPV = npv,
       HR_H_hat = hr_H_hat,
@@ -1554,7 +1554,7 @@ format_oc_results <- function(
       cols_to_keep <- c(cols_to_keep, "Detection")
     }
     if ("classification" %in% metrics) {
-      cols_to_keep <- c(cols_to_keep, "Sensitivity", "Specificity", "PPV", "NPV")
+      cols_to_keep <- c(cols_to_keep, "Sen", "Spec", "PPV", "NPV")
     }
     if ("hr_estimates" %in% metrics) {
       cols_to_keep <- c(cols_to_keep, "HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT")
@@ -1580,7 +1580,7 @@ format_oc_results <- function(
     numeric_cols <- setdiff(names(summary_df), c("Analysis", "N_sims"))
 
     # Proportion columns (0-1 scale)
-    prop_cols <- intersect(c("Detection", "Sensitivity", "Specificity", "PPV", "NPV"),
+    prop_cols <- intersect(c("Detection", "Sen", "Spec", "PPV", "NPV"),
                            names(summary_df))
     if (length(prop_cols) > 0) {
       gt_table <- gt::fmt_number(
@@ -1621,7 +1621,7 @@ format_oc_results <- function(
 
     # Add column spanners
     if ("all" %in% metrics || "classification" %in% metrics) {
-      class_cols <- intersect(c("Sensitivity", "Specificity", "PPV", "NPV"), names(summary_df))
+      class_cols <- intersect(c("Sen", "Spec", "PPV", "NPV"), names(summary_df))
       if (length(class_cols) > 0) {
         gt_table <- gt::tab_spanner(
           gt_table,

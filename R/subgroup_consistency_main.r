@@ -1,123 +1,141 @@
-#' @title Subgroup Consistency Evaluation
+# =============================================================================
+# Subgroup Consistency Evaluation with Early Stopping
+# =============================================================================
+#
+# Main function for evaluating subgroup consistency using split-sample
+# validation. Supports both fixed-sample and two-stage adaptive algorithms.
+#
+# Key features:
+#   - Split-sample consistency evaluation
+#   - Two-stage adaptive algorithm option
+#   - Parallel processing support
+#   - Early stopping when stop_threshold is met
+#   - Configurable batch size for parallel execution
+#
+# =============================================================================
+
+#' Evaluate Subgroup Consistency
 #'
-#' @description
-#' Evaluates consistency of subgroups found in a survival analysis, using random
-#' splits and hazard ratio criteria. Supports both fixed-sample and two-stage
-#' sequential evaluation algorithms.
+#' Evaluates candidate subgroups using split-sample consistency validation.
+#' For each candidate, repeatedly splits the data and checks whether the
+#' treatment effect direction is consistent across splits.
 #'
-#' @param df The original data.frame with columns Y, Event, Treat, id.
-#' @param hr.subgroups Data.table of subgroup hazard ratio results from subgroup search.
-#' @param hr.threshold Numeric. Minimum hazard ratio for subgroup inclusion. Default 1.0.
-#' @param hr.consistency Numeric. Minimum hazard ratio for consistency in splits. Default 1.0.
-#' @param pconsistency.threshold Numeric. Minimum proportion of splits meeting consistency. Default 0.9.
-#' @param pconsistency.digits Integer. Significant digits for pconsistency.threshold. Default 2.
-#' @param m1.threshold Numeric. Maximum median survival for treatment arm. Default Inf.
-#' @param n.splits Integer. Number of random splits for consistency evaluation (or maximum
-#'   splits when \code{use_twostage = TRUE}). Default 100.
-#' @param details Logical. Print progress details. Default FALSE.
-#' @param by.risk Numeric. Risk interval for plotting. Default 12.
-#' @param plot.sg Logical. Plot subgroup survival curves. Default FALSE.
-#' @param maxk Integer. Maximum number of covariates in a subgroup. Default 7.
-#' @param Lsg Integer. Number of covariates (required).
-#' @param confs_labels Character vector. Covariate label mapping (required).
-#' @param sg_focus Character. Sorting focus for subgroup selection. One of
-#'   "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG". Default "hr".
-#' @param stop_Kgroups Integer. Maximum number of subgroups to evaluate. Default 10.
-#' @param checking Logical. Enable debugging output. Default FALSE.
-#' @param parallel_args List. Parallel processing configuration with elements:
+#' @param df Data frame containing the analysis dataset. Must include columns
+#'   for outcome (Y), event indicator (Event), and treatment (Treat).
+#' @param hr.subgroups Data.table of candidate subgroups from subgroup search,
+#'   containing columns: HR, n, E, K, d0, d1, m0, m1, grp, and factor indicators.
+#' @param hr.threshold Numeric. Minimum hazard ratio threshold for candidates.
+#'   Default: 1.0
+#' @param hr.consistency Numeric. Minimum HR required in each split for
+#'   consistency. Default: 1.0
+#' @param pconsistency.threshold Numeric. Minimum proportion of splits that
+#'   must be consistent. Default: 0.9
+#' @param m1.threshold Numeric. Maximum m1 threshold for filtering. Default: Inf
+#' @param n.splits Integer. Number of splits for consistency evaluation.
+#'   Default: 100
+#' @param details Logical. Print progress details. Default: FALSE
+#' @param by.risk Numeric. Risk interval for KM plots. Default: 12
+#' @param plot.sg Logical. Generate subgroup plots. Default: FALSE
+#' @param maxk Integer. Maximum number of factors in subgroup. Default: 7
+#' @param Lsg List of subgroup parameters.
+#' @param confs_labels Character vector mapping factor names to labels.
+#' @param sg_focus Character. Subgroup selection criterion: "hr", "maxSG",
+#'   or "minSG". Default: "hr"
+#' @param stop_Kgroups Integer. Maximum number of candidates to evaluate.
+#'   Default: 10
+#' @param stop_threshold Numeric or NULL. If specified, evaluation stops once
+#'   any subgroup achieves consistency >= stop_threshold. This enables early
+#'   termination when a sufficiently consistent subgroup is found. Default: NULL
+#'   (evaluate all candidates up to stop_Kgroups).
+#'
+#'   When combined with HR-based sorting (sg_focus = "hr"), this ensures the
+#'   highest-HR subgroup meeting the threshold is identified efficiently.
+#'
+#'   Note: For parallel execution, early stopping is checked after each batch
+#'   completes, so some additional candidates beyond the first meeting the
+#'   threshold may be evaluated. Use a smaller batch_size in parallel_args
+#'   for finer-grained early stopping.
+#' @param showten_subgroups Logical. If TRUE, prints up to 10 candidate
+#'   subgroups after sorting by sg_focus, showing their rank, HR, sample size,
+#'   events, and factor definitions. Useful for reviewing which candidates
+#'   will be evaluated for consistency. Default: FALSE
+#' @param pconsistency.digits Integer. Decimal places for consistency
+#'   proportion. Default: 2
+#' @param seed Integer. Random seed for reproducible consistency splits.
+#'   Default: 8316951. Set to NULL for non-reproducible random splits.
+#'   The seed is used both for sequential execution (via set.seed()) and
+#'   parallel execution (via future.seed).
+#' @param checking Logical. Enable additional validation checks. Default: FALSE
+#' @param use_twostage Logical. Use two-stage adaptive algorithm. Default: FALSE
+#' @param twostage_args List. Parameters for two-stage algorithm:
 #'   \describe{
-#'     \item{plan}{Character. One of "multisession", "multicore", "callr", "sequential"}
-#'     \item{workers}{Integer. Number of parallel workers}
-#'     \item{show_message}{Logical. Show parallel setup messages}
+#'     \item{n.splits.screen}{Splits for Stage 1 screening. Default: 30}
+#'     \item{screen.threshold}{Consistency threshold for Stage 1. Default: auto}
+#'     \item{batch.size}{Splits per batch in Stage 2. Default: 20}
+#'     \item{conf.level}{Confidence level for early stopping. Default: 0.95}
+#'     \item{min.valid.screen}{Minimum valid Stage 1 splits. Default: 10}
 #'   }
-#' @param use_twostage Logical. Use two-stage sequential algorithm for improved
-#'   performance. Default FALSE for backward compatibility. When TRUE, enables
-#'   early stopping and screening to reduce computation time by 3-10x for most
-#'   analyses.
-#' @param twostage_args List. Parameters for two-stage algorithm (only used when
-#'   \code{use_twostage = TRUE}):
+#' @param parallel_args List. Parallel processing configuration:
 #'   \describe{
-#'     \item{n.splits.screen}{Integer. Splits for Stage 1 screening. Default 30.}
-#'     \item{screen.threshold}{Numeric. Consistency threshold for Stage 1. Default
-#'       is automatically calculated to provide ~2.5 SE margin below pconsistency.threshold.}
-#'     \item{batch.size}{Integer. Splits per batch in Stage 2. Default 20.}
-#'     \item{conf.level}{Numeric. Confidence level for early stopping decisions. Default 0.95.}
-#'     \item{min.valid.screen}{Integer. Minimum valid splits required in Stage 1. Default 10.}
+#'     \item{plan}{Future plan: "multisession", "multicore", or "sequential"}
+#'     \item{workers}{Number of parallel workers}
+#'     \item{batch_size}{Number of candidates to evaluate per batch. Smaller
+#'       values provide finer-grained early stopping but may increase overhead.
+#'       Default: auto (workers when stop_threshold set, workers*2 otherwise)}
+#'     \item{show_message}{Print parallel config messages}
 #'   }
-#' @param seed Integer. Random seed for reproducible consistency splits
-#'   (default: 8316951). Set to NULL for non-reproducible random splits.
 #'
 #' @return A list containing:
 #'   \describe{
-#'     \item{out_sg}{Results object from sg_consistency_out()}
-#'     \item{sg_focus}{The sg_focus value used}
-#'     \item{df_flag}{Data.frame with id and treat.recommend columns}
-#'     \item{sg.harm}{Character vector of selected subgroup labels}
-#'     \item{sg.harm.id}{Numeric ID of selected subgroup}
-#'     \item{algorithm}{Character indicating which algorithm was used}
-#'     \item{n_candidates_evaluated}{Number of candidates that underwent consistency evaluation}
-#'     \item{n_passed}{Number of candidates meeting consistency threshold}
-#'     \item{seed}{Integer seed used for reproducibility (NULL if not set)}
+#'     \item{out_sg}{Selected subgroup results}
+#'     \item{sg_focus}{Selection criterion used}
+#'     \item{df_flag}{Data frame with treatment recommendations}
+#'     \item{sg.harm}{Subgroup definition labels}
+#'     \item{sg.harm.id}{Subgroup membership indicator}
+#'     \item{algorithm}{"twostage" or "fixed"}
+#'     \item{n_candidates_evaluated}{Number of candidates actually evaluated}
+#'     \item{n_candidates_total}{Total candidates available}
+#'     \item{n_passed}{Number meeting consistency threshold}
+#'     \item{early_stop_triggered}{Logical indicating if early stop occurred}
+#'     \item{early_stop_candidate}{Index of candidate triggering early stop}
+#'     \item{stop_threshold}{Threshold used for early stopping}
+#'     \item{seed}{Random seed used for reproducibility (NULL if not set)}
 #'   }
-#'
-#' @details
-#' The function supports two evaluation algorithms:
-#'
-#' \strong{Fixed-Sample Algorithm} (\code{use_twostage = FALSE}):
-#' \itemize{
-#'   \item Runs exactly \code{n.splits} random splits for each candidate
-#'   \item Consistent and predictable runtime
-#'   \item Recommended for final analyses requiring exact reproducibility
-#' }
-#'
-#' \strong{Two-Stage Sequential Algorithm} (\code{use_twostage = TRUE}):
-#' \itemize{
-#'   \item Stage 1: Quick screening with \code{n.splits.screen} splits
-#'   \item Stage 2: Sequential batched evaluation with early stopping
-#'   \item Candidates clearly passing/failing stop early
-#'   \item 3-10x faster for typical analyses
-#'   \item Recommended for exploratory analyses and large candidate sets
-#' }
-#'
-#' @section Performance Considerations:
-#' The two-stage algorithm provides significant speedups when:
-#' \itemize{
-#'   \item Many candidates clearly fail consistency (screened at Stage 1)
-#'   \item Many candidates have consistency well above/below threshold
-#'   \item \code{n.splits} is large (>200)
-#' }
-#'
-#' Speedup is minimal when most candidates have true consistency near the threshold.
 #'
 #' @examples
 #' \dontrun{
-#' # Standard fixed-sample evaluation
+#' # Standard evaluation
 #' result <- subgroup.consistency(
 #'   df = trial_data,
 #'   hr.subgroups = candidates,
+#'   sg_focus = "hr",
 #'   n.splits = 400,
-#'   pconsistency.threshold = 0.90,
-#'   use_twostage = FALSE
+#'   parallel_args = list(plan = "multisession", workers = 6)
 #' )
 #'
-#' # Two-stage sequential evaluation (faster)
-#' result_fast <- subgroup.consistency(
+#' # Show top 10 candidates before evaluation
+#' result <- subgroup.consistency(
 #'   df = trial_data,
 #'   hr.subgroups = candidates,
-#'   n.splits = 400,  # Maximum splits
-#'   pconsistency.threshold = 0.90,
-#'   use_twostage = TRUE,
-#'   twostage_args = list(
-#'     n.splits.screen = 30,
-#'     batch.size = 20
+#'   sg_focus = "hr",
+#'   showten_subgroups = TRUE,  # Display candidates
+#'   n.splits = 400
+#' )
+#'
+#' # With early stopping and custom batch size
+#' result <- subgroup.consistency(
+#'   df = trial_data,
+#'   hr.subgroups = candidates,
+#'   sg_focus = "hr",
+#'   stop_threshold = 0.95,
+#'   showten_subgroups = TRUE,
+#'   parallel_args = list(
+#'     plan = "multisession",
+#'     workers = 6,
+#'     batch_size = 2  # Check early stopping after every 2 candidates
 #'   )
 #' )
 #' }
-#'
-#' @seealso
-#' \code{\link{evaluate_subgroup_consistency}} for fixed-sample evaluation
-#' \code{\link{evaluate_consistency_twostage}} for two-stage evaluation
-#' \code{\link{forestsearch}} for the main analysis function
 #'
 #' @importFrom data.table copy as.data.table is.data.table
 #' @importFrom survival coxph Surv
@@ -140,62 +158,72 @@ subgroup.consistency <- function(df,
                                  confs_labels,
                                  sg_focus = "hr",
                                  stop_Kgroups = 10,
+                                 stop_threshold = NULL,
+                                 showten_subgroups = FALSE,
                                  pconsistency.digits = 2,
+                                 seed = 8316951,
                                  checking = FALSE,
-                                 parallel_args = list(NULL),
-                                 # New two-stage parameters
                                  use_twostage = FALSE,
                                  twostage_args = list(),
-                                 seed = 8316951) {
+                                 parallel_args = list()) {
 
   # ===========================================================================
   # SECTION 1: INPUT VALIDATION
   # ===========================================================================
 
-  # Check required inputs exist
-  if (missing(df) || !is.data.frame(df)) {
-    stop("'df' must be provided and must be a data.frame")
+  if (!is.data.frame(df) || nrow(df) == 0) {
+    stop("df must be a non-empty data frame")
   }
 
-  if (missing(hr.subgroups) || is.null(hr.subgroups)) {
-    stop("'hr.subgroups' must be provided")
-  }
-
-  if (missing(Lsg) || !is.numeric(Lsg) || Lsg < 1) {
-    stop("'Lsg' must be a positive integer representing number of covariates")
-  }
-
-  if (missing(confs_labels) || !is.character(confs_labels)) {
-    stop("'confs_labels' must be a character vector of covariate labels")
-  }
-
-  # Validate use_twostage
- if (!is.logical(use_twostage) || length(use_twostage) != 1) {
-    stop("'use_twostage' must be a single logical value (TRUE or FALSE)")
-  }
-
-  # Validate twostage_args if provided
-  if (use_twostage && length(twostage_args) > 0) {
-    valid_ts_args <- c("n.splits.screen", "screen.threshold", "batch.size",
-                       "conf.level", "min.valid.screen")
-    invalid_args <- setdiff(names(twostage_args), valid_ts_args)
-    if (length(invalid_args) > 0) {
-      warning("Unknown twostage_args parameters ignored: ",
-              paste(invalid_args, collapse = ", "))
-    }
-  }
-
-  # Check data.table format
-  if (!requireNamespace("data.table", quietly = TRUE)) {
-    stop("Package 'data.table' is required")
+  required_cols <- c("Y", "Event", "Treat")
+  missing_cols <- setdiff(required_cols, names(df))
+  if (length(missing_cols) > 0) {
+    stop("df missing required columns: ", paste(missing_cols, collapse = ", "))
   }
 
   if (!data.table::is.data.table(hr.subgroups)) {
     hr.subgroups <- data.table::as.data.table(hr.subgroups)
   }
 
-  # Set random seed for reproducible splits
- if (!is.null(seed)) {
+  if (nrow(hr.subgroups) == 0) {
+    warning("No candidate subgroups provided")
+    return(list(
+      out_sg = NULL, sg_focus = sg_focus,
+      df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
+      algorithm = ifelse(use_twostage, "twostage", "fixed"),
+      n_candidates_evaluated = 0, n_candidates_total = 0, n_passed = 0,
+      early_stop_triggered = FALSE, early_stop_candidate = NA_integer_,
+      stop_threshold = stop_threshold,
+      seed = seed
+    ))
+  }
+
+  # Validate stop_threshold
+  if (!is.null(stop_threshold)) {
+    if (!is.numeric(stop_threshold) || length(stop_threshold) != 1 ||
+        stop_threshold < 0 || stop_threshold > 1) {
+      stop("stop_threshold must be NULL or a numeric value between 0 and 1")
+    }
+    if (stop_threshold < pconsistency.threshold) {
+      warning("stop_threshold (", stop_threshold, ") is less than ",
+              "pconsistency.threshold (", pconsistency.threshold, "). ",
+              "Early stopping may never trigger for passing candidates.")
+    }
+  }
+
+  # Validate batch_size if provided
+  if (!is.null(parallel_args$batch_size)) {
+    if (!is.numeric(parallel_args$batch_size) ||
+        parallel_args$batch_size < 1) {
+      stop("parallel_args$batch_size must be a positive integer")
+    }
+  }
+
+  # ===========================================================================
+  # SECTION 1b: SET RANDOM SEED FOR REPRODUCIBILITY
+  # ===========================================================================
+
+  if (!is.null(seed)) {
     set.seed(seed)
     if (details) {
       cat("Random seed set to:", seed, "\n")
@@ -203,55 +231,62 @@ subgroup.consistency <- function(df,
   }
 
   # ===========================================================================
-  # SECTION 2: SET UP TWO-STAGE PARAMETERS (WITH DEFAULTS)
+  # SECTION 2: EXTRACT FACTOR NAMES
   # ===========================================================================
 
-  # Default two-stage parameters
+  names.Z <- names(hr.subgroups)[
+    !names(hr.subgroups) %in% c("K", "n", "E", "d0", "d1", "m0", "m1",
+                                 "HR", "L(HR)", "U(HR)", "grp")
+  ]
+
+  if (length(names.Z) == 0) {
+    stop("No factor columns found in hr.subgroups")
+  }
+
+  # ===========================================================================
+  # SECTION 3: SETUP TWO-STAGE PARAMETERS
+  # ===========================================================================
+
   ts_defaults <- list(
     n.splits.screen = 30,
-    screen.threshold = NULL,  # Will be calculated if NULL
+    screen.threshold = NULL,
     batch.size = 20,
     conf.level = 0.95,
     min.valid.screen = 10
   )
-
-  # Merge user-provided args with defaults
   ts_params <- modifyList(ts_defaults, twostage_args)
 
-  # Calculate default screen threshold if not provided
   if (is.null(ts_params$screen.threshold)) {
-    se_estimate <- sqrt(pconsistency.threshold * (1 - pconsistency.threshold) /
-                          ts_params$n.splits.screen)
-    ts_params$screen.threshold <- max(0.5, pconsistency.threshold - 2.5 * se_estimate)
+    se_screen <- sqrt(pconsistency.threshold * (1 - pconsistency.threshold) /
+                        ts_params$n.splits.screen)
+    ts_params$screen.threshold <- max(0.5, pconsistency.threshold - 2.5 * se_screen)
+  }
+
+  if (details && use_twostage) {
+    cat("Two-stage parameters:\n")
+    cat("  n.splits.screen:", ts_params$n.splits.screen, "\n")
+    cat("  screen.threshold:", round(ts_params$screen.threshold, 3), "\n")
+    cat("  batch.size:", ts_params$batch.size, "\n")
+    cat("  conf.level:", ts_params$conf.level, "\n")
   }
 
   # ===========================================================================
-  # SECTION 3: EXTRACT COLUMN NAMES AND VALIDATE STRUCTURE
+  # SECTION 4: FILTER CANDIDATES BY HR THRESHOLD
   # ===========================================================================
 
-  names.Z <- colnames(hr.subgroups)[(ncol(hr.subgroups) - Lsg + 1):ncol(hr.subgroups)]
-
-  required_cols <- c("HR", "n", "E", "grp")
-  missing_cols <- setdiff(required_cols, names(hr.subgroups))
-  if (length(missing_cols) > 0) {
-    stop("hr.subgroups missing required columns: ", paste(missing_cols, collapse = ", "))
-  }
-
-  # ===========================================================================
-  # SECTION 4: FILTER SUBGROUPS BY CRITERIA
-  # ===========================================================================
-
-  if (nrow(hr.subgroups) == 0) {
-    warning("No subgroups provided in hr.subgroups")
+  if (nrow(hr.subgroups) == 0 || !"HR" %in% names(hr.subgroups)) {
+    warning("No valid hr.subgroups")
     return(list(
       out_sg = NULL, sg_focus = sg_focus,
       df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
       algorithm = ifelse(use_twostage, "twostage", "fixed"),
-      n_candidates_evaluated = 0, n_passed = 0
+      n_candidates_evaluated = 0, n_candidates_total = 0, n_passed = 0,
+      early_stop_triggered = FALSE, early_stop_candidate = NA_integer_,
+      stop_threshold = stop_threshold,
+      seed = seed
     ))
   }
 
-  # Apply m1.threshold filter if specified
   if (is.finite(m1.threshold)) {
     hr.subgroups <- hr.subgroups[!is.na(hr.subgroups$m1), ]
     if (nrow(hr.subgroups) == 0) {
@@ -260,7 +295,10 @@ subgroup.consistency <- function(df,
         out_sg = NULL, sg_focus = sg_focus,
         df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
         algorithm = ifelse(use_twostage, "twostage", "fixed"),
-        n_candidates_evaluated = 0, n_passed = 0
+        n_candidates_evaluated = 0, n_candidates_total = 0, n_passed = 0,
+        early_stop_triggered = FALSE, early_stop_candidate = NA_integer_,
+        stop_threshold = stop_threshold,
+      seed = seed
       ))
     }
     found.hrs <- hr.subgroups[hr.subgroups$HR >= hr.threshold &
@@ -279,7 +317,10 @@ subgroup.consistency <- function(df,
       out_sg = NULL, sg_focus = sg_focus,
       df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
       algorithm = ifelse(use_twostage, "twostage", "fixed"),
-      n_candidates_evaluated = 0, n_passed = 0
+      n_candidates_evaluated = 0, n_candidates_total = 0, n_passed = 0,
+      early_stop_triggered = FALSE, early_stop_candidate = NA_integer_,
+      stop_threshold = stop_threshold,
+      seed = seed
     ))
   }
 
@@ -293,16 +334,19 @@ subgroup.consistency <- function(df,
     tryCatch({
       found.hrs <- remove_near_duplicate_subgroups(found.hrs, details = details)
     }, error = function(e) {
-      warning("Error removing duplicates: ", e$message, ". Proceeding with original subgroups.")
+      warning("Error removing duplicates: ", e$message,
+              ". Proceeding with original subgroups.")
     })
 
     if (nrow(found.hrs) == 0) {
-      stop("All subgroups removed during duplicate removal. This should not happen.")
+      stop("All subgroups removed during duplicate removal.")
     }
   }
 
   # Sort based on sg_focus to prioritize candidates
-  if (sg_focus == "maxSG") {
+  if (sg_focus == "hr") {
+    found.hrs <- found.hrs[order(found.hrs$HR, decreasing = TRUE), ]
+  } else if (sg_focus == "maxSG") {
     found.hrs <- found.hrs[order(found.hrs$n, decreasing = TRUE), ]
   } else if (sg_focus == "minSG") {
     found.hrs <- found.hrs[order(found.hrs$n, decreasing = FALSE), ]
@@ -325,6 +369,91 @@ subgroup.consistency <- function(df,
   if (details) {
     cat("# Restricting to top stop_Kgroups =", stop_Kgroups, "\n")
     cat("# of candidates to evaluate:", n_candidates, "\n")
+    if (!is.null(stop_threshold)) {
+      cat("# Early stop threshold:", stop_threshold, "\n")
+    }
+  }
+
+  # ===========================================================================
+  # SECTION 5b: DISPLAY TOP CANDIDATE SUBGROUPS (if showten_subgroups = TRUE)
+  # ===========================================================================
+
+  if (showten_subgroups) {
+    n_show <- min(10, n_candidates)
+
+    cat("\n")
+    cat(paste(rep("=", 80), collapse = ""), "\n")
+    cat("TOP", n_show, "CANDIDATE SUBGROUPS FOR CONSISTENCY EVALUATION\n")
+    cat("Sorted by:", sg_focus, "\n")
+    cat(paste(rep("=", 80), collapse = ""), "\n\n")
+
+    # Print header
+    cat(sprintf("%-5s  %-8s  %-6s  %-6s  %-3s  %s\n",
+                "Rank", "HR", "N", "Events", "K", "Subgroup Definition"))
+    cat(paste(rep("-", 80), collapse = ""), "\n")
+
+    # Helper function to convert q-codes to labels (inline to avoid scope issues)
+    convert_q_to_label <- function(q_code, labels_vec) {
+      # Pattern: q<index>.<action> where action 0=NOT, 1=IN
+      pattern <- "^q(\\d+)\\.(\\d+)$"
+      match <- regmatches(q_code, regexec(pattern, q_code))[[1]]
+      
+      if (length(match) == 3) {
+        idx <- as.integer(match[2])
+        action <- match[3]
+        
+        if (idx >= 1 && idx <= length(labels_vec)) {
+          base_label <- labels_vec[idx]
+          if (action == "0") {
+            return(paste0("NOT(", base_label, ")"))
+          } else {
+            return(base_label)
+          }
+        }
+      }
+      return(q_code)  # Fallback to raw code
+    }
+
+    for (i in seq_len(n_show)) {
+      # Extract subgroup info
+      hr_i <- found.hrs$HR[i]
+      n_i <- found.hrs$n[i]
+      e_i <- found.hrs$E[i]
+
+      # Get factor names for this subgroup (e.g., "q1.1", "q3.0", "q5.1")
+      index_i <- as.numeric(unlist(index.Z[i, ]))
+      factors_i <- names.Z[index_i == 1]
+      k_i <- length(factors_i)
+
+      # Convert factor codes to labels
+      factors_labels <- tryCatch({
+        if (!missing(confs_labels) && !is.null(confs_labels) && length(confs_labels) > 0) {
+          sapply(factors_i, convert_q_to_label, labels_vec = confs_labels, 
+                 USE.NAMES = FALSE)
+        } else {
+          factors_i  # No labels available, use raw names
+        }
+      }, error = function(e) {
+        factors_i  # On error, fallback to raw names
+      })
+
+      # Format factors string (truncate if too long)
+      factors_str <- paste(factors_labels, collapse = " & ")
+      if (nchar(factors_str) > 45) {
+        factors_str <- paste0(substr(factors_str, 1, 42), "...")
+      }
+
+      # Print row
+      cat(sprintf("%-5d  %-8.3f  %-6d  %-6d  %-3d  %s\n",
+                  i, hr_i, n_i, e_i, k_i, factors_str))
+    }
+
+    cat(paste(rep("-", 80), collapse = ""), "\n")
+
+    if (n_candidates > 10) {
+      cat("... and", n_candidates - 10, "more candidates\n")
+    }
+    cat("\n")
   }
 
   # ===========================================================================
@@ -336,59 +465,47 @@ subgroup.consistency <- function(df,
   if (use_parallel) {
     required_parallel <- c("plan", "workers")
     if (!all(required_parallel %in% names(parallel_args))) {
-      warning("parallel_args missing required elements. Using sequential processing.")
+      warning("parallel_args missing required elements. Using sequential.")
       use_parallel <- FALSE
     }
 
     valid_plans <- c("multisession", "multicore", "callr", "sequential")
     if (use_parallel && !parallel_args$plan %in% valid_plans) {
-      warning("Invalid parallel plan '", parallel_args$plan,
-              "'. Using sequential processing.")
+      warning("Invalid parallel plan. Using sequential.")
       use_parallel <- FALSE
     }
 
-    if (use_parallel && (!is.numeric(parallel_args$workers) || parallel_args$workers < 1)) {
-      warning("Invalid workers value. Using sequential processing.")
+    if (use_parallel && (!is.numeric(parallel_args$workers) ||
+                         parallel_args$workers < 1)) {
+      warning("Invalid workers value. Using sequential.")
       use_parallel <- FALSE
     }
   }
 
-  if (details) {
-    algorithm_name <- ifelse(use_twostage, "Two-stage sequential", "Fixed-sample")
-    cat("Algorithm:", algorithm_name, "\n")
-    if (use_twostage) {
-      cat("  Stage 1 splits:", ts_params$n.splits.screen, "\n")
-      cat("  Screen threshold:", round(ts_params$screen.threshold, 3), "\n")
-      cat("  Max total splits:", n.splits, "\n")
-      cat("  Batch size:", ts_params$batch.size, "\n")
-    } else {
-      cat("  Splits per candidate:", n.splits, "\n")
-    }
-    if (use_parallel) {
-      cat("Parallel processing:", parallel_args$plan,
-          "with", parallel_args$workers, "workers\n")
-    } else {
-      cat("Sequential processing\n")
-    }
-  }
-
   # ===========================================================================
-  # SECTION 7: INITIALIZE TIMING
+  # SECTION 7: INITIALIZE TRACKING VARIABLES
   # ===========================================================================
 
-  t.start <- proc.time()[3]
+  early_stop_triggered <- FALSE
+  early_stop_candidate <- NA_integer_
+  n_evaluated <- 0L
+  results_list <- vector("list", n_candidates)
 
   # ===========================================================================
-  # SECTION 8: EVALUATE EACH SUBGROUP
+  # SECTION 8: EVALUATE CANDIDATES
   # ===========================================================================
-
-  # ----- EXECUTE EVALUATION -----
 
   if (!use_parallel) {
+    # -------------------------------------------------------------------------
     # SEQUENTIAL EXECUTION
-    if (use_twostage) {
-      results_list <- lapply(seq_len(n_candidates), function(m) {
-        evaluate_consistency_twostage(
+    # -------------------------------------------------------------------------
+
+    for (m in seq_len(n_candidates)) {
+
+      n_evaluated <- m
+
+      if (use_twostage) {
+        results_list[[m]] <- evaluate_consistency_twostage(
           m = m,
           index.Z = index.Z,
           names.Z = names.Z,
@@ -407,10 +524,8 @@ subgroup.consistency <- function(df,
           conf.level = ts_params$conf.level,
           min.valid.screen = ts_params$min.valid.screen
         )
-      })
-    } else {
-      results_list <- lapply(seq_len(n_candidates), function(m) {
-        evaluate_subgroup_consistency(
+      } else {
+        results_list[[m]] <- evaluate_subgroup_consistency(
           m = m,
           index.Z = index.Z,
           names.Z = names.Z,
@@ -424,29 +539,70 @@ subgroup.consistency <- function(df,
           confs_labels = confs_labels,
           details = details
         )
-      })
+      }
+
+      # Check early stopping condition
+      if (!is.null(stop_threshold) && !is.null(results_list[[m]])) {
+        pcons_m <- as.numeric(results_list[[m]]["Pcons"])
+
+        if (!is.na(pcons_m) && pcons_m >= stop_threshold) {
+          early_stop_triggered <- TRUE
+          early_stop_candidate <- m
+
+          if (details) {
+            cat("\n", paste(rep("=", 50), collapse = ""), "\n", sep = "")
+            cat("EARLY STOP TRIGGERED\n")
+            cat("  Candidate:", m, "of", n_candidates, "\n")
+            cat("  Pcons:", round(pcons_m, 4), ">=", stop_threshold, "\n")
+            cat("  HR:", round(as.numeric(results_list[[m]]["hr"]), 3), "\n")
+            cat(paste(rep("=", 50), collapse = ""), "\n\n", sep = "")
+          }
+          break
+        }
+      }
+    }
+
+    if (details) {
+      cat("Evaluated", n_evaluated, "of", n_candidates, "candidates",
+          if (early_stop_triggered) "(early stop)" else "(complete)", "\n")
     }
 
   } else {
-    # PARALLEL EXECUTION
+    # -------------------------------------------------------------------------
+    # PARALLEL EXECUTION WITH BATCHED EARLY STOPPING
+    # -------------------------------------------------------------------------
+
     old_plan <- future::plan()
     on.exit(future::plan(old_plan), add = TRUE)
-    setup_parallel_SGcons(parallel_args)
+    
+    # Suppress package version warnings during parallel setup
+    suppressWarnings({
+      setup_parallel_SGcons(parallel_args)
+    })
 
-    # Capture function references explicitly for parallel workers
-    # These must be captured BEFORE creating the eval_fun closure
-    .evaluate_consistency_twostage <- evaluate_consistency_twostage
-    .evaluate_subgroup_consistency <- evaluate_subgroup_consistency
-    .run_single_consistency_split <- run_single_consistency_split
-    .get_split_hr_fast <- get_split_hr_fast
-    .wilson_ci <- wilson_ci
-    .early_stop_decision <- early_stop_decision
-    .FS_labels <- FS_labels
+    # Determine batch size for parallel execution
+    n_workers <- parallel_args$workers
 
+    if (!is.null(parallel_args$batch_size)) {
+      # User-specified batch size
+      batch_size_parallel <- min(as.integer(parallel_args$batch_size), n_candidates)
+    } else if (!is.null(stop_threshold)) {
+      # Smaller batches for better early stopping granularity
+      batch_size_parallel <- min(n_workers, max(1L, n_candidates %/% 4), n_candidates)
+    } else {
+      # Larger batches when no early stopping
+      batch_size_parallel <- min(n_workers * 2L, n_candidates)
+    }
+
+    if (details) {
+      cat("Parallel config: workers =", n_workers,
+          ", batch_size =", batch_size_parallel, "\n")
+    }
+
+    # Create evaluation function closure
     if (use_twostage) {
-      # Create closure that captures all necessary functions and data
       eval_fun <- function(m) {
-        .evaluate_consistency_twostage(
+        evaluate_consistency_twostage(
           m = m,
           index.Z = index.Z,
           names.Z = names.Z,
@@ -457,7 +613,7 @@ subgroup.consistency <- function(df,
           pconsistency.digits = pconsistency.digits,
           maxk = maxk,
           confs_labels = confs_labels,
-          details = FALSE,  # Suppress details in parallel workers
+          details = FALSE,
           n.splits.screen = ts_params$n.splits.screen,
           screen.threshold = ts_params$screen.threshold,
           n.splits.max = n.splits,
@@ -468,7 +624,7 @@ subgroup.consistency <- function(df,
       }
     } else {
       eval_fun <- function(m) {
-        .evaluate_subgroup_consistency(
+        evaluate_subgroup_consistency(
           m = m,
           index.Z = index.Z,
           names.Z = names.Z,
@@ -480,99 +636,111 @@ subgroup.consistency <- function(df,
           pconsistency.digits = pconsistency.digits,
           maxk = maxk,
           confs_labels = confs_labels,
-          details = FALSE  # Suppress details in parallel workers
+          details = FALSE
         )
       }
     }
 
-    # Build globals list with all captured functions
-    globals_list <- list(
-      # Data objects
-      index.Z = index.Z,
-      names.Z = names.Z,
-      df = df,
-      found.hrs = found.hrs,
-      n.splits = n.splits,
-      hr.consistency = hr.consistency,
-      pconsistency.threshold = pconsistency.threshold,
-      pconsistency.digits = pconsistency.digits,
-      maxk = maxk,
-      confs_labels = confs_labels,
-      ts_params = ts_params,
-      # Captured functions with dot prefix
-      .evaluate_consistency_twostage = .evaluate_consistency_twostage,
-      .evaluate_subgroup_consistency = .evaluate_subgroup_consistency,
-      .run_single_consistency_split = .run_single_consistency_split,
-      .get_split_hr_fast = .get_split_hr_fast,
-      .wilson_ci = .wilson_ci,
-      .early_stop_decision = .early_stop_decision,
-      .FS_labels = .FS_labels,
-      # Also include original names for internal calls
-      evaluate_consistency_twostage = .evaluate_consistency_twostage,
-      evaluate_subgroup_consistency = .evaluate_subgroup_consistency,
-      run_single_consistency_split = .run_single_consistency_split,
-      get_split_hr_fast = .get_split_hr_fast,
-      wilson_ci = .wilson_ci,
-      early_stop_decision = .early_stop_decision,
-      FS_labels = .FS_labels
-    )
+    # Process in batches
+    n_batches <- ceiling(n_candidates / batch_size_parallel)
 
-    # Use seed for reproducible parallel RNG (TRUE uses current RNG state from set.seed)
-    results_list <- future.apply::future_lapply(
-      seq_len(n_candidates),
-      eval_fun,
-      future.seed = if (!is.null(seed)) seed else TRUE,
-      future.packages = c("survival", "data.table"),
-      future.globals = globals_list
-    )
+    for (batch_num in seq_len(n_batches)) {
+
+      start_idx <- (batch_num - 1L) * batch_size_parallel + 1L
+      end_idx <- min(batch_num * batch_size_parallel, n_candidates)
+      batch_indices <- seq.int(start_idx, end_idx)
+
+      if (details) {
+        cat("Batch", batch_num, "/", n_batches,
+            ": candidates", start_idx, "-", end_idx, "\n")
+      }
+
+      # Parallel evaluation of batch (suppress package version warnings)
+      # Use seed for reproducible parallel RNG
+      batch_results <- suppressWarnings({
+        future.apply::future_lapply(
+          batch_indices,
+          eval_fun,
+          future.seed = if (!is.null(seed)) seed else TRUE
+        )
+      })
+
+      # Store results
+      for (i in seq_along(batch_indices)) {
+        results_list[[batch_indices[i]]] <- batch_results[[i]]
+      }
+
+      n_evaluated <- end_idx
+
+      # Check early stopping (process in order to respect HR sorting)
+      if (!is.null(stop_threshold)) {
+        for (i in seq_along(batch_indices)) {
+          result_i <- batch_results[[i]]
+
+          if (!is.null(result_i)) {
+            pcons_i <- as.numeric(result_i["Pcons"])
+
+            if (!is.na(pcons_i) && pcons_i >= stop_threshold) {
+              early_stop_triggered <- TRUE
+              early_stop_candidate <- batch_indices[i]
+
+              if (details) {
+                cat("\n", paste(rep("=", 50), collapse = ""), "\n", sep = "")
+                cat("EARLY STOP TRIGGERED (batch", batch_num, ")\n")
+                cat("  Candidate:", batch_indices[i], "of", n_candidates, "\n")
+                cat("  Pcons:", round(pcons_i, 4), ">=", stop_threshold, "\n")
+                cat(paste(rep("=", 50), collapse = ""), "\n\n", sep = "")
+              }
+              break
+            }
+          }
+        }
+      }
+
+      if (early_stop_triggered) break
+    }
+
+    if (details) {
+      cat("Evaluated", n_evaluated, "of", n_candidates, "candidates",
+          if (early_stop_triggered) "(early stop)" else "(complete)", "\n")
+    }
   }
 
   # ===========================================================================
-  # SECTION 9: COMPILE RESULTS
+  # SECTION 9: COMBINE AND FILTER RESULTS
   # ===========================================================================
 
-  if (length(results_list) == 0) {
-    if (details) cat("No subgroups met consistency criteria\n")
-    return(list(
-      out_sg = NULL, sg_focus = sg_focus,
-      df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
-      algorithm = ifelse(use_twostage, "twostage", "fixed"),
-      n_candidates_evaluated = n_candidates, n_passed = 0
-    ))
-  }
+  # Filter to non-NULL results
+  results_list_valid <- Filter(Negate(is.null), results_list)
 
-  # Filter out NULL results
-  results_list <- Filter(Negate(is.null), results_list)
-  n_passed <- length(results_list)
-
-  if (n_passed == 0) {
-    if (details) cat("All subgroup evaluations returned NULL\n")
-    return(list(
-      out_sg = NULL, sg_focus = sg_focus,
-      df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
-      algorithm = ifelse(use_twostage, "twostage", "fixed"),
-      n_candidates_evaluated = n_candidates, n_passed = 0
-    ))
-  }
-
-  # Combine results into data.table
-  res <- tryCatch({
-    data.table::as.data.table(do.call(rbind, results_list))
-  }, error = function(e) {
-    stop("Error combining results: ", e$message,
-         "\nThis may indicate inconsistent result structure across subgroups.")
-  })
-
-  any.found <- nrow(res)
+  # Define any.found
+  any.found <- length(results_list_valid)
 
   if (any.found == 0) {
     if (details) cat("No subgroups found meeting consistency threshold\n")
+
     return(list(
-      out_sg = NULL, sg_focus = sg_focus,
-      df_flag = NULL, sg.harm = NULL, sg.harm.id = NULL,
+      out_sg = NULL,
+      sg_focus = sg_focus,
+      df_flag = NULL,
+      sg.harm = NULL,
+      sg.harm.id = NULL,
       algorithm = ifelse(use_twostage, "twostage", "fixed"),
-      n_candidates_evaluated = n_candidates, n_passed = 0
+      n_candidates_evaluated = n_evaluated,
+      n_candidates_total = n_candidates,
+      n_passed = 0L,
+      early_stop_triggered = early_stop_triggered,
+      early_stop_candidate = early_stop_candidate,
+      stop_threshold = stop_threshold,
+      seed = seed
     ))
+  }
+
+  # Convert to data.table
+  res <- data.table::as.data.table(do.call(rbind, results_list_valid))
+
+  if (details) {
+    cat(any.found, "subgroups passed consistency threshold\n")
   }
 
   # Convert columns to numeric
@@ -632,826 +800,32 @@ subgroup.consistency <- function(df,
       NULL
     })
 
-    # Extract results if successful
-    if (is.null(out_sg)) {
-      warning("No valid output for sg_focus='", sg_focus, "'")
-    } else {
-      required_fields <- c("df_flag", "sg.harm_label", "sg.harm.id")
-      missing_fields <- setdiff(required_fields, names(out_sg))
-      if (length(missing_fields) > 0) {
-        stop("sg_consistency_out result missing fields: ",
-             paste(missing_fields, collapse = ", "))
-      }
-
+    if (!is.null(out_sg)) {
       df_flag <- out_sg$df_flag
       sg.harm <- out_sg$sg.harm_label
       sg.harm.id <- out_sg$sg.harm.id
     }
 
-    if (details) cat("SG focus=", sg_focus, "\n")
+    if (details) cat("SG focus =", sg_focus, "\n")
   }
 
   # ===========================================================================
-  # SECTION 11: FINAL TIMING AND OUTPUT
+  # SECTION 11: RETURN OUTPUT
   # ===========================================================================
 
-  if (details) {
-    t.end <- proc.time()[3]
-    t.min <- (t.end - t.start) / 60
-    cat("Subgroup Consistency Minutes=", round(t.min, 3), "\n")
-    cat("Algorithm used:", ifelse(use_twostage, "Two-stage sequential", "Fixed-sample"), "\n")
-    cat("Candidates evaluated:", n_candidates, "\n")
-    cat("Candidates passed:", n_passed, "\n")
-
-    if (any.found > 0) {
-      cat("Subgroup found (FS) with sg_focus='", sg_focus, "'\n", sep = "")
-      if (!is.null(sg.harm)) {
-        cat("Selected subgroup:", paste(sg.harm, collapse = " & "), "\n")
-      }
-    } else {
-      cat("NO subgroup found (FS)\n")
-    }
-  }
-
-  output <- list(
+  return(list(
     out_sg = out_sg,
     sg_focus = sg_focus,
     df_flag = df_flag,
     sg.harm = sg.harm,
     sg.harm.id = sg.harm.id,
     algorithm = ifelse(use_twostage, "twostage", "fixed"),
-    n_candidates_evaluated = n_candidates,
-    n_passed = n_passed,
+    n_candidates_evaluated = n_evaluated,
+    n_candidates_total = n_candidates,
+    n_passed = any.found,
+    early_stop_triggered = early_stop_triggered,
+    early_stop_candidate = early_stop_candidate,
+    stop_threshold = stop_threshold,
     seed = seed
-  )
-
-  return(output)
-}
-
-
-# =============================================================================
-# FIXED-SAMPLE EVALUATION FUNCTION
-# =============================================================================
-
-#' Evaluate Single Subgroup for Consistency (Fixed-Sample)
-#'
-#' Helper function that evaluates a single subgroup (indexed by m) for consistency
-#' across random splits using a fixed number of splits. This function contains
-#' the core logic used in both sequential and parallel execution modes.
-#'
-#' @param m Integer. Index of the subgroup to evaluate (1 to nrow(found.hrs))
-#' @param index.Z Data.table or matrix. Factor indicators for all subgroups
-#' @param names.Z Character vector. Names of factor columns
-#' @param df Data.frame. Original data with Y, Event, Treat, id columns
-#' @param found.hrs Data.table. Subgroup hazard ratio results
-#' @param n.splits Integer. Number of random splits for consistency evaluation
-#' @param hr.consistency Numeric. Minimum HR threshold for consistency
-#' @param pconsistency.threshold Numeric. Minimum proportion of splits meeting consistency
-#' @param pconsistency.digits Integer. Rounding digits for consistency proportion
-#' @param maxk Integer. Maximum number of factors in a subgroup
-#' @param confs_labels Character vector. Labels for confounders
-#' @param details Logical. Print details during execution
-#'
-#' @return Named numeric vector with consistency results, or NULL if criteria not met.
-#'   Vector contains: Pcons, hr, N, E, g, m, K, and factor labels (M.1, M.2, etc.)
-#'
-#' @importFrom data.table data.table
-#' @importFrom survival coxph Surv
-#' @export
-evaluate_subgroup_consistency <- function(m, index.Z, names.Z, df, found.hrs,
-                                          n.splits, hr.consistency,
-                                          pconsistency.threshold, pconsistency.digits,
-                                          maxk, confs_labels, details = FALSE) {
-
-  # Internal helper for getting HR from split
-  get_split_hr <- function(df, cox_initial = NULL) {
-    if (nrow(df) < 2 || sum(df$Event) < 2) {
-      return(NA_real_)
-    }
-
-    fit <- tryCatch(
-      suppressWarnings(
-        survival::coxph(
-          survival::Surv(Y, Event) ~ Treat,
-          data = df,
-          init = cox_initial,
-          robust = FALSE,
-          model = FALSE,
-          x = FALSE,
-          y = FALSE
-        )
-      ),
-      error = function(e) NULL
-    )
-
-    if (is.null(fit)) return(NA_real_)
-    return(exp(fit$coefficients[1]))
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 1: VALIDATE SUBGROUP EXTRACTION
-  # -------------------------------------------------------------------------
-
-  if (m < 1 || m > nrow(index.Z)) {
-    warning("Invalid subgroup index m=", m, ". Skipping.")
-    return(NULL)
-  }
-
-  indexm <- as.numeric(unlist(index.Z[m, ]))
-
-  if (length(indexm) != length(names.Z)) {
-    warning("Subgroup ", m, ": index length mismatch. Skipping.")
-    return(NULL)
-  }
-
-  if (!all(indexm %in% c(0, 1, NA))) {
-    warning("Subgroup ", m, ": invalid index values. Skipping.")
-    return(NULL)
-  }
-
-  this.m <- names.Z[indexm == 1]
-
-  if (length(this.m) == 0) {
-    warning("Subgroup ", m, ": no factors selected. Skipping.")
-    return(NULL)
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 2: VALIDATE LABEL CONVERSION
-  # -------------------------------------------------------------------------
-
-  this.m_label <- tryCatch({
-    unlist(lapply(this.m, FS_labels, confs_labels = confs_labels))
-  }, error = function(e) {
-    warning("Subgroup ", m, ": error in FS_labels: ", e$message, ". Skipping.")
-    return(NULL)
-  })
-
-  if (is.null(this.m_label)) return(NULL)
-
-  if (length(this.m_label) != length(this.m)) {
-    warning("Subgroup ", m, ": label length mismatch. Skipping.")
-    return(NULL)
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 3: CREATE SUBGROUP DEFINITION AND EXTRACT DATA
-  # -------------------------------------------------------------------------
-
-  id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
-
-  df.sub <- tryCatch({
-    subset(df, eval(parse(text = id.m)))
-  }, error = function(e) {
-    warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
-    return(NULL)
-  })
-
-  if (is.null(df.sub)) return(NULL)
-
-  if (nrow(df.sub) == 0) {
-    warning("Subgroup ", m, ": no observations match criteria. Skipping.")
-    return(NULL)
-  }
-
-  df.x <- data.table::data.table(df.sub)
-  N.x <- nrow(df.x)
-
-  # -------------------------------------------------------------------------
-  # SECTION 4: GET INITIAL COX ESTIMATE
-  # -------------------------------------------------------------------------
-
-  cox_init <- log(found.hrs$HR[m])
-  if (is.na(cox_init) || is.infinite(cox_init)) {
-    cox_init <- 0
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 5: PERFORM CONSISTENCY SPLITS
-  # -------------------------------------------------------------------------
-
-  flag.consistency <- sapply(seq_len(n.splits), function(bb) {
-    in.split1 <- tryCatch({
-      sample(c(TRUE, FALSE), N.x, replace = TRUE, prob = c(0.5, 0.5))
-    }, error = function(e) {
-      return(NULL)
-    })
-
-    if (is.null(in.split1)) return(NA_real_)
-
-    df.x$insplit1 <- in.split1
-
-    df.x.split1 <- subset(df.x, insplit1 == 1)
-    df.x.split2 <- subset(df.x, insplit1 == 0)
-
-    if (nrow(df.x.split1) < 5 || nrow(df.x.split2) < 5) {
-      return(NA_real_)
-    }
-
-    if (sum(df.x.split1$Event) < 2 || sum(df.x.split2$Event) < 2) {
-      return(NA_real_)
-    }
-
-    hr.split1 <- get_split_hr(df = df.x.split1, cox_initial = cox_init)
-    hr.split2 <- get_split_hr(df = df.x.split2, cox_initial = cox_init)
-
-    if (!is.na(hr.split1) && !is.na(hr.split2)) {
-      as.numeric(hr.split1 > hr.consistency && hr.split2 > hr.consistency)
-    } else {
-      NA_real_
-    }
-  })
-
-  # -------------------------------------------------------------------------
-  # SECTION 6: CHECK VALIDITY AND CALCULATE CONSISTENCY
-  # -------------------------------------------------------------------------
-
-  n_valid_splits <- sum(!is.na(flag.consistency))
-
-  if (n_valid_splits == 0) {
-    if (details) {
-      cat("Subgroup ", m, ": No valid consistency splits\n")
-    }
-    return(NULL)
-  }
-
-  if (n_valid_splits < 10) {
-    warning("Subgroup ", m, ": only ", n_valid_splits, " valid splits out of ",
-            n.splits, ". Results may be unreliable.")
-  }
-
-  p.consistency <- tryCatch({
-    round(mean(flag.consistency, na.rm = TRUE), pconsistency.digits)
-  }, error = function(e) {
-    return(NA_real_)
-  })
-
-  if (is.na(p.consistency)) {
-    return(NULL)
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 7: CHECK CONSISTENCY THRESHOLD
-  # -------------------------------------------------------------------------
-
-  if (isTRUE(p.consistency < pconsistency.threshold)) {
-    if (details) {
-      cat("*** Not met: Subgroup, % Consistency =",
-          c(this.m_label, p.consistency), "\n")
-    }
-    return(NULL)
-  }
-
-  # -------------------------------------------------------------------------
-  # SECTION 8: FORMAT AND RETURN RESULT
-  # -------------------------------------------------------------------------
-
-  k <- length(this.m)
-  covsm <- rep("M", maxk)
-  mindex <- seq_len(maxk)
-  Mnames <- paste(covsm, mindex, sep = ".")
-
-  mfound <- matrix(rep("", maxk))
-  mfound[seq_len(k)] <- this.m_label
-
-  resultk <- c(
-    p.consistency,
-    found.hrs$HR[m],
-    found.hrs$n[m],
-    found.hrs$E[m],
-    found.hrs$grp[m],
-    m,
-    k,
-    mfound
-  )
-
-  names(resultk) <- c("Pcons", "hr", "N", "E", "g", "m", "K", Mnames)
-
-  if (details) {
-    cat("*** Met: Subgroup, % Consistency =",
-        c(this.m_label, p.consistency), "\n")
-  }
-
-  return(resultk)
-}
-
-
-# =============================================================================
-# TWO-STAGE HELPER FUNCTIONS
-# =============================================================================
-# These should be placed in subgroup_consistency_twostage.R or
-# subgroup_consistency_helpers.R
-
-#' Wilson Score Confidence Interval
-#'
-#' Computes Wilson score confidence interval for a proportion, which has
-#' better coverage properties than the normal approximation for small samples
-#' and proportions near 0 or 1.
-#'
-#' @param x Integer. Number of successes.
-#' @param n Integer. Number of trials.
-#' @param conf.level Numeric. Confidence level (default 0.95).
-#'
-#' @return Named numeric vector with elements: estimate, lower, upper.
-#'
-#' @keywords internal
-#' @export
-wilson_ci <- function(x, n, conf.level = 0.95) {
-  if (n == 0) {
-    return(c(estimate = NA_real_, lower = 0, upper = 1))
-  }
-
-  z <- qnorm(1 - (1 - conf.level) / 2)
-  p_hat <- x / n
-
-  denominator <- 1 + z^2 / n
-  center <- (p_hat + z^2 / (2 * n)) / denominator
-  margin <- (z / denominator) * sqrt(p_hat * (1 - p_hat) / n + z^2 / (4 * n^2))
-
-  lower <- max(0, center - margin)
-  upper <- min(1, center + margin)
-
-  c(estimate = p_hat, lower = lower, upper = upper)
-}
-
-
-#' Early Stopping Decision
-#'
-#' Evaluates whether enough evidence exists to stop early based on
-#' confidence interval for consistency proportion.
-#'
-#' @param n_success Integer. Number of splits meeting consistency.
-#' @param n_total Integer. Total number of valid splits.
-#' @param threshold Numeric. Target consistency threshold.
-#' @param conf.level Numeric. Confidence level for decision (default 0.95).
-#' @param min_samples Integer. Minimum samples before allowing early stop.
-#'
-#' @return Character. One of "continue", "pass", or "fail".
-#'
-#' @keywords internal
-#' @export
-early_stop_decision <- function(n_success, n_total, threshold,
-                                 conf.level = 0.95, min_samples = 20) {
-  if (n_total < min_samples) {
-    return("continue")
-  }
-
-  ci <- wilson_ci(n_success, n_total, conf.level)
-
-  if (ci["lower"] >= threshold) {
-    return("pass")
-  }
-
-  if (ci["upper"] < threshold) {
-    return("fail")
-  }
-
-  return("continue")
-}
-
-
-#' Run Single Consistency Split
-#'
-#' Performs one random 50/50 split and evaluates whether both halves
-#' meet the HR consistency threshold.
-#'
-#' @param df.x data.table. Subgroup data with columns Y, Event, Treat.
-#' @param N.x Integer. Number of observations in subgroup.
-#' @param hr.consistency Numeric. Minimum HR threshold for consistency.
-#' @param cox_init Numeric. Initial value for Cox model (log HR).
-#'
-#' @return Numeric. 1 if both splits meet threshold, 0 if not, NA if error.
-#'
-#' @keywords internal
-#' @export
-run_single_consistency_split <- function(df.x, N.x, hr.consistency, cox_init = 0) {
-
-  in.split1 <- tryCatch({
-    sample(c(TRUE, FALSE), N.x, replace = TRUE, prob = c(0.5, 0.5))
-  }, error = function(e) {
-    return(NULL)
-  })
-
-  if (is.null(in.split1)) return(NA_real_)
-
-  df.x$insplit1 <- in.split1
-  df.x.split1 <- df.x[insplit1 == TRUE]
-  df.x.split2 <- df.x[insplit1 == FALSE]
-
-  if (nrow(df.x.split1) < 5 || nrow(df.x.split2) < 5) {
-    return(NA_real_)
-  }
-
-  if (sum(df.x.split1$Event) < 2 || sum(df.x.split2$Event) < 2) {
-    return(NA_real_)
-  }
-
-  hr.split1 <- get_split_hr_fast(df.x.split1, cox_init)
-  hr.split2 <- get_split_hr_fast(df.x.split2, cox_init)
-
-  if (!is.na(hr.split1) && !is.na(hr.split2)) {
-    as.numeric(hr.split1 > hr.consistency && hr.split2 > hr.consistency)
-  } else {
-    NA_real_
-  }
-}
-
-
-#' Fast Cox Model HR Estimation
-#'
-#' Fits a minimal Cox model to estimate hazard ratio with reduced overhead.
-#'
-#' @param df data.frame or data.table with Y, Event, Treat columns.
-#' @param cox_init Numeric. Initial value for coefficient (default 0).
-#'
-#' @return Numeric. Estimated hazard ratio, or NA if model fails.
-#'
-#' @importFrom survival coxph Surv
-#' @keywords internal
-#' @export
-get_split_hr_fast <- function(df, cox_init = 0) {
-  if (nrow(df) < 2 || sum(df$Event) < 2) {
-    return(NA_real_)
-  }
-
-  fit <- tryCatch(
-    suppressWarnings(
-      survival::coxph(
-        survival::Surv(Y, Event) ~ Treat,
-        data = df,
-        init = cox_init,
-        robust = FALSE,
-        model = FALSE,
-        x = FALSE,
-        y = FALSE
-      )
-    ),
-    error = function(e) NULL
-  )
-
-  if (is.null(fit)) return(NA_real_)
-  return(exp(fit$coefficients[1]))
-}
-
-
-#' Two-Stage Sequential Consistency Evaluation
-#'
-#' Evaluates a single subgroup for consistency using a two-stage approach
-#' with sequential early stopping.
-#'
-#' @param m Integer. Index of subgroup to evaluate.
-#' @param index.Z data.table or matrix. Factor indicators for all subgroups.
-#' @param names.Z Character vector. Names of factor columns.
-#' @param df data.frame. Original data with Y, Event, Treat, id columns.
-#' @param found.hrs data.table. Subgroup hazard ratio results.
-#' @param hr.consistency Numeric. Minimum HR threshold for consistency.
-#' @param pconsistency.threshold Numeric. Final consistency threshold.
-#' @param pconsistency.digits Integer. Rounding digits for output.
-#' @param maxk Integer. Maximum number of factors in a subgroup.
-#' @param confs_labels Character vector. Labels for confounders.
-#' @param details Logical. Print progress details.
-#' @param n.splits.screen Integer. Number of splits for Stage 1.
-#' @param screen.threshold Numeric. Screening threshold for Stage 1.
-#' @param n.splits.max Integer. Maximum total splits.
-#' @param batch.size Integer. Splits per batch in Stage 2.
-#' @param conf.level Numeric. Confidence level for early stopping.
-#' @param min.valid.screen Integer. Minimum valid splits in Stage 1.
-#'
-#' @return Named numeric vector with consistency results, or NULL if not met.
-#'
-#' @importFrom data.table data.table
-#' @importFrom survival coxph Surv
-#' @export
-evaluate_consistency_twostage <- function(
-    m,
-    index.Z,
-    names.Z,
-    df,
-    found.hrs,
-    hr.consistency,
-    pconsistency.threshold,
-    pconsistency.digits = 2,
-    maxk,
-    confs_labels,
-    details = FALSE,
-    n.splits.screen = 30,
-    screen.threshold = NULL,
-    n.splits.max = 400,
-    batch.size = 20,
-    conf.level = 0.95,
-    min.valid.screen = 10
-) {
-
-  # ===========================================================================
-  # EMBEDDED HELPER FUNCTIONS (for parallel execution compatibility)
-  # These are defined locally to ensure availability in callr workers
-  # ===========================================================================
-
-  # Wilson score confidence interval
-  .wilson_ci <- function(x, n, conf.level = 0.95) {
-    if (n == 0) {
-      return(c(estimate = NA_real_, lower = NA_real_, upper = NA_real_))
-    }
-    z <- qnorm(1 - (1 - conf.level) / 2)
-    p_hat <- x / n
-    denom <- 1 + z^2 / n
-    center <- (p_hat + z^2 / (2 * n)) / denom
-    margin <- (z / denom) * sqrt(p_hat * (1 - p_hat) / n + z^2 / (4 * n^2))
-    c(estimate = p_hat, lower = max(0, center - margin), upper = min(1, center + margin))
-  }
-
-  # Early stopping decision
-  .early_stop_decision <- function(n_success, n_total, threshold, conf.level = 0.95, min_samples = 20) {
-    if (n_total < min_samples) return("continue")
-    ci <- .wilson_ci(n_success, n_total, conf.level)
-    if (is.na(ci["lower"]) || is.na(ci["upper"])) return("continue")
-    if (ci["lower"] >= threshold) return("pass")
-    if (ci["upper"] < threshold) return("fail")
-    return("continue")
-  }
-
-  # Fast HR calculation from split
-  .get_split_hr_fast <- function(df_split, cox_initial = NULL) {
-    if (nrow(df_split) < 2 || sum(df_split$Event) < 2) return(NA_real_)
-    fit <- tryCatch(
-      suppressWarnings(
-        survival::coxph(
-          survival::Surv(Y, Event) ~ Treat,
-          data = df_split,
-          init = cox_initial,
-          robust = FALSE,
-          model = FALSE,
-          x = FALSE,
-          y = FALSE
-        )
-      ),
-      error = function(e) NULL
-    )
-    if (is.null(fit)) return(NA_real_)
-    return(exp(fit$coefficients[1]))
-  }
-
-  # Run single consistency split
-  .run_single_consistency_split <- function(df.x, N.x, hr.cons, cox_init) {
-    in.split1 <- tryCatch({
-      sample(c(TRUE, FALSE), N.x, replace = TRUE, prob = c(0.5, 0.5))
-    }, error = function(e) NULL)
-    if (is.null(in.split1)) return(NA_real_)
-
-    df.x$insplit1 <- in.split1
-    df.x.split1 <- df.x[df.x$insplit1 == TRUE, ]
-    df.x.split2 <- df.x[df.x$insplit1 == FALSE, ]
-
-    if (nrow(df.x.split1) < 5 || nrow(df.x.split2) < 5) return(NA_real_)
-    if (sum(df.x.split1$Event) < 2 || sum(df.x.split2$Event) < 2) return(NA_real_)
-
-    hr.split1 <- .get_split_hr_fast(df_split = df.x.split1, cox_initial = cox_init)
-    hr.split2 <- .get_split_hr_fast(df_split = df.x.split2, cox_initial = cox_init)
-
-    if (!is.na(hr.split1) && !is.na(hr.split2)) {
-      as.numeric(hr.split1 > hr.cons && hr.split2 > hr.cons)
-    } else {
-      NA_real_
-    }
-  }
-
-  # FS_labels helper (embedded version)
-  # Converts q-indexed codes to human-readable labels
-  # Pattern: q<index>.<action> where action 0 = NOT, action 1 = IN
-  .FS_labels <- function(Qsg, confs_labels) {
-    pattern <- "^q(\\d+)\\.(\\d)$"
-    matches <- regmatches(Qsg, regexec(pattern, Qsg))[[1]]
-    if (length(matches) < 3) return(Qsg)
-    idx <- as.integer(matches[2])
-    action <- matches[3]
-    if (idx < 1 || idx > length(confs_labels)) return(Qsg)
-    base_label <- confs_labels[idx]
-    # Match original FS_labels behavior: wrap with {..} or !{..}
-    if (action == "0") {
-      paste0("!{", base_label, "}")
-    } else {
-      paste0("{", base_label, "}")
-    }
-  }
-
-  # ---------------------------------------------------------------------------
-  # Parameter initialization
-  # ---------------------------------------------------------------------------
-
-  if (is.null(screen.threshold)) {
-    se_estimate <- sqrt(pconsistency.threshold * (1 - pconsistency.threshold) / n.splits.screen)
-    screen.threshold <- max(0.5, pconsistency.threshold - 2.5 * se_estimate)
-  }
-
-  # ---------------------------------------------------------------------------
-  # Validate and extract subgroup
-  # ---------------------------------------------------------------------------
-
-  if (m < 1 || m > nrow(index.Z)) {
-    warning("Invalid subgroup index m=", m, ". Skipping.")
-    return(NULL)
-  }
-
-  indexm <- as.numeric(unlist(index.Z[m, ]))
-
-  if (length(indexm) != length(names.Z)) {
-    warning("Subgroup ", m, ": index length mismatch. Skipping.")
-    return(NULL)
-  }
-
-  if (!all(indexm %in% c(0, 1, NA))) {
-    warning("Subgroup ", m, ": invalid index values. Skipping.")
-    return(NULL)
-  }
-
-  this.m <- names.Z[indexm == 1]
-
-  if (length(this.m) == 0) {
-    warning("Subgroup ", m, ": no factors selected. Skipping.")
-    return(NULL)
-  }
-
-  # ---------------------------------------------------------------------------
-  # Convert labels
-  # ---------------------------------------------------------------------------
-
-  this.m_label <- tryCatch({
-    unlist(lapply(this.m, .FS_labels, confs_labels = confs_labels))
-  }, error = function(e) {
-    warning("Subgroup ", m, ": error in FS_labels: ", e$message, ". Skipping.")
-    return(NULL)
-  })
-
-  if (is.null(this.m_label) || length(this.m_label) != length(this.m)) {
-    warning("Subgroup ", m, ": label conversion failed. Skipping.")
-    return(NULL)
-  }
-
-  # ---------------------------------------------------------------------------
-  # Extract subgroup data
-  # ---------------------------------------------------------------------------
-
-  id.m <- paste(paste(this.m, collapse = "==1 & "), "==1")
-
-  df.sub <- tryCatch({
-    subset(df, eval(parse(text = id.m)))
-  }, error = function(e) {
-    warning("Subgroup ", m, ": error extracting data: ", e$message, ". Skipping.")
-    return(NULL)
-  })
-
-  if (is.null(df.sub) || nrow(df.sub) == 0) {
-    warning("Subgroup ", m, ": no observations match criteria. Skipping.")
-    return(NULL)
-  }
-
-  df.x <- data.table::data.table(df.sub)
-  N.x <- nrow(df.x)
-
-  cox_init <- log(found.hrs$HR[m])
-  if (is.na(cox_init) || is.infinite(cox_init)) {
-    cox_init <- 0
-  }
-
-  # ---------------------------------------------------------------------------
-  # Stage 1: Quick screening
-  # ---------------------------------------------------------------------------
-
-  if (details) {
-    cat("Subgroup ", m, ": Stage 1 (", n.splits.screen, " splits)\n", sep = "")
-  }
-
-  stage1_flags <- numeric(n.splits.screen)
-  for (i in seq_len(n.splits.screen)) {
-    stage1_flags[i] <- .run_single_consistency_split(df.x, N.x, hr.consistency, cox_init)
-  }
-
-  n_valid_stage1 <- sum(!is.na(stage1_flags))
-  n_success_stage1 <- sum(stage1_flags == 1, na.rm = TRUE)
-
-  # Screen out clearly non-viable candidates
-  if (n_valid_stage1 >= min.valid.screen) {
-    p_screen <- n_success_stage1 / n_valid_stage1
-
-    if (p_screen < screen.threshold) {
-      if (details) {
-        cat("Subgroup ", m, ": SCREENED OUT (Pcons=", round(p_screen, 3),
-            " < ", round(screen.threshold, 3), ")\n", sep = "")
-      }
-      return(NULL)
-    }
-  }
-
-  # ---------------------------------------------------------------------------
-  # Stage 2: Sequential evaluation with early stopping
-  # ---------------------------------------------------------------------------
-
-  if (details) {
-    cat("Subgroup ", m, ": Stage 2 sequential\n", sep = "")
-  }
-
-  all_flags <- stage1_flags
-  n_total_valid <- n_valid_stage1
-  n_total_success <- n_success_stage1
-
-  n_remaining <- n.splits.max - n.splits.screen
-  n_batches <- ceiling(n_remaining / batch.size)
-
-  final_decision <- "continue"
-
-  for (batch_num in seq_len(n_batches)) {
-
-    # Check for early stopping
-    decision <- .early_stop_decision(
-      n_success = n_total_success,
-      n_total = n_total_valid,
-      threshold = pconsistency.threshold,
-      conf.level = conf.level,
-      min_samples = max(20, min.valid.screen)
-    )
-
-    if (decision != "continue") {
-      final_decision <- decision
-      if (details) {
-        cat("Subgroup ", m, ": EARLY ", toupper(decision),
-            " at n=", n_total_valid, "\n", sep = "")
-      }
-      break
-    }
-
-    # Run next batch
-    batch_flags <- numeric(batch.size)
-    for (i in seq_len(batch.size)) {
-      batch_flags[i] <- .run_single_consistency_split(df.x, N.x, hr.consistency, cox_init)
-    }
-
-    n_batch_valid <- sum(!is.na(batch_flags))
-    n_batch_success <- sum(batch_flags == 1, na.rm = TRUE)
-
-    n_total_valid <- n_total_valid + n_batch_valid
-    n_total_success <- n_total_success + n_batch_success
-  }
-
-  # ---------------------------------------------------------------------------
-  # Final evaluation
-  # ---------------------------------------------------------------------------
-
-  if (final_decision == "continue") {
-    final_decision <- .early_stop_decision(
-      n_success = n_total_success,
-      n_total = n_total_valid,
-      threshold = pconsistency.threshold,
-      conf.level = conf.level,
-      min_samples = 20
-    )
-  }
-
-  p.consistency <- tryCatch({
-    round(n_total_success / n_total_valid, pconsistency.digits)
-  }, error = function(e) {
-    return(NA_real_)
-  })
-
-  if (is.na(p.consistency)) {
-    return(NULL)
-  }
-
-  if (final_decision == "fail" || p.consistency < pconsistency.threshold) {
-    if (details) {
-      cat("Subgroup ", m, ": FAILED (Pcons=", p.consistency, ")\n", sep = "")
-    }
-    return(NULL)
-  }
-
-  # ---------------------------------------------------------------------------
-  # Format and return result
-  # ---------------------------------------------------------------------------
-
-  k <- length(this.m)
-  covsm <- rep("M", maxk)
-  mindex <- seq_len(maxk)
-  Mnames <- paste(covsm, mindex, sep = ".")
-
-  mfound <- matrix(rep("", maxk))
-  mfound[seq_len(k)] <- this.m_label
-
-  resultk <- c(
-    p.consistency,
-    found.hrs$HR[m],
-    found.hrs$n[m],
-    found.hrs$E[m],
-    found.hrs$grp[m],
-    m,
-    k,
-    mfound
-  )
-
-  names(resultk) <- c("Pcons", "hr", "N", "E", "g", "m", "K", Mnames)
-
-  if (details) {
-    cat("Subgroup ", m, ": PASSED (Pcons=", p.consistency,
-        ", n_splits=", n_total_valid, ")\n", sep = "")
-  }
-
-  return(resultk)
+  ))
 }

@@ -42,6 +42,7 @@ forestsearch(
   fs.splits = 1000,
   m1.threshold = Inf,
   pconsistency.threshold = 0.9,
+  stop_threshold = 0.95,
   showten_subgroups = FALSE,
   d0.min = 12,
   d1.min = 12,

@@ -240,6 +240,7 @@ forestsearch <- function(df.analysis,
                          fs.splits = 1000,
                          m1.threshold = Inf,
                          pconsistency.threshold = 0.90,
+                         stop_threshold = 0.95,
                          showten_subgroups = FALSE,
                          d0.min = 12,
                          d1.min = 12,
@@ -587,7 +588,7 @@ forestsearch <- function(df.analysis,
     t.min_all <- (t.end_all - t.start_all) / 60
 
     if (details) {
-      cat("Minutes forestsearch overall =", round(t.min_all, 2), "\n")
+      cat("Seconds and minutes forestsearch overall =", round(c(t.min_all*60,t.min_all), 4), "\n")
       if (!is.null(grp.consistency$algorithm)) {
         cat("Consistency algorithm used:", grp.consistency$algorithm, "\n")
       }

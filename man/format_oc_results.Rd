@@ -46,7 +46,7 @@ Creates a formatted gt table from simulation operating characteristics results.
 The function summarizes simulation results across multiple metrics:
 \itemize{
 \item \strong{Detection}: Proportion of simulations finding a subgroup (any.H)
-\item \strong{Classification}: Sensitivity, specificity, PPV, NPV
+\item \strong{Classification}: Sen, spec, PPV, NPV
 \item \strong{HR Estimates}: Mean hazard ratios in H and Hc subgroups
 \item \strong{Subgroup Size}: Average, min, max sizes
 }
