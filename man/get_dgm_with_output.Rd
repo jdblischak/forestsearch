@@ -49,6 +49,7 @@ List with components:
 \describe{
 \item{dgm}{The gbsg_dgm object}
 \item{out_file}{Character path to output file (NULL if out_dir is NULL)}
+\item{k_inter}{The k_inter value used (either calibrated or default)}
 }
 }
 \description{

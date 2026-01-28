@@ -1,0 +1,909 @@
+---
+title: "Simulation Studies for Evaluating ForestSearch Performance"
+subtitle: "Operating Characteristics and Power Analysis"
+author: "ForestSearch Package"
+date: today
+format:
+  html:
+    self-contained: true
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-summary: "Show code"
+    number-sections: true
+    theme: cosmo
+    highlight-style: github
+execute:
+  warning: false
+  message: false
+  eval: true
+vignette: >
+  %\VignetteIndexEntry{Simulation Studies for Evaluating ForestSearch Performance}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 9,
+  fig.height = 6
+)
+```
+
+# Introduction
+
+This vignette demonstrates how to conduct simulation studies to evaluate the
+performance of ForestSearch for identifying subgroups with differential treatment
+effects. The simulation framework allows you to:
+ 
+- Generate synthetic clinical trial data with known treatment effect heterogeneity
+- Evaluate subgroup identification rates (power)
+- Assess classification accuracy (sensitivity, specificity, PPV, NPV)
+- Compare different analysis methods (ForestSearch, GRF)
+- Estimate Type I error under null hypothesis
+
+## Simulation Framework Overview
+ 
+The simulation workflow consists of four main steps:
+
+```{mermaid}
+flowchart LR
+    A[Create DGM] --> B[Simulate Trials]
+    B --> C[Run Analyses]
+    C --> D[Summarize Results]
+```
+
+1. **Create DGM**: Define a data generating mechanism with specified treatment effects
+2. **Simulate Trials**: Generate multiple simulated datasets
+3. **Run Analyses**: Apply ForestSearch (and optionally GRF) to each dataset
+4. **Summarize Results**: Aggregate operating characteristics across simulations
+
+## Key Updates in This Version
+
+The simulation framework has been aligned with `generate_aft_dgm_flex()` methodology:
+
+| Feature | Description |
+|---------|-------------|
+| **Individual Potential Outcomes** | `theta_0`, `theta_1`, `loghr_po` columns |
+| **Average Hazard Ratios (AHR)** | Alternative to Cox-based HR estimation |
+| **Stacked PO for Cox HR** | Same epsilon for causal inference |
+| **`use_twostage` Parameter** | Faster exploratory analysis option |
+| **Backward Compatible** | Works with old and new DGM formats |
+
+# Setup
+
+```{r load-packages}
+# Core packages
+library(forestsearch)
+library(weightedsurv)
+
+library(data.table)
+library(survival)
+library(ggplot2)
+library(gt)
+
+# Parallel processing
+library(foreach)
+library(doFuture)
+library(future)
+
+# Source simulation functions (if not yet in package)
+# source("sim_aft_gbsg_refactored.R")
+# source("oc_analyses_gbsg.R")
+```
+
+# Creating a Data Generating Mechanism
+
+The simulation framework uses the German Breast Cancer Study Group (GBSG) dataset
+as a template for realistic covariate distributions and censoring patterns.
+
+## Understanding the DGM
+
+The `create_gbsg_dgm()` function creates a data generating mechanism (DGM) based
+on an Accelerated Failure Time (AFT) model with Weibull distribution. Key features:
+
+- **Covariates**: Age, estrogen receptor, menopausal status, progesterone receptor, nodes
+- **Treatment effect heterogeneity**: Specified via interaction terms
+- **Subgroup definition**: H = {low estrogen receptor AND premenopausal}
+- **Censoring**: Weibull or uniform censoring model
+
+### New Output Structure (Aligned with generate_aft_dgm_flex)
+ 
+The DGM now includes:
+
+```
+dgm$hazard_ratios <- list(
+  overall        = hr_causal,      # Cox-based overall HR
+  AHR            = AHR,            # Average HR from loghr_po
+
+AHR_harm       = AHR_H_true,     # AHR in harm subgroup
+  AHR_no_harm    = AHR_Hc_true,    # AHR in complement
+  harm_subgroup  = hr_H_true,      # Cox-based HR in H
+  no_harm_subgroup = hr_Hc_true    # Cox-based HR in Hc
+)
+```
+
+The super-population data (`dgm$df_super_rand`) now contains:
+
+| Column | Description |
+|--------|-------------|
+| `theta_0` | Log-hazard contribution under control |
+| `theta_1` | Log-hazard contribution under treatment |
+| `loghr_po` | Individual causal log hazard ratio (theta_1 - theta_0) |
+
+## Alternative Hypothesis (Heterogeneous Treatment Effect)
+
+Under the alternative hypothesis, we create a DGM where the treatment effect
+varies across patient subgroups:
+
+```{r create-dgm-alt}
+# Create DGM with heterogeneous treatment effect
+# HR in harm subgroup (H) will be > 1 (treatment harmful)
+# HR in complement (H^c) will be < 1 (treatment beneficial)
+
+dgm_alt <- create_gbsg_dgm(
+  model = "alt",
+  k_treat = 1.0,
+  k_inter = 2.0,      # Interaction effect multiplier
+  k_z3 = 1.0,
+  z1_quantile = 0.25, # ER threshold at 25th percentile
+  n_super = 5000,
+  cens_type = "weibull",
+  seed = 8316951,
+  verbose = TRUE
+)
+
+# Examine the DGM (print method now shows both HR and AHR metrics)
+print(dgm_alt)
+```
+
+### Accessing Hazard Ratios (New Aligned Format)
+
+```{r access-hrs}
+# Traditional access (backward compatible)
+cat("Cox-based HRs:\n")
+cat("  HR(H):", round(dgm_alt$hr_H_true, 4), "\n")
+cat("  HR(Hc):", round(dgm_alt$hr_Hc_true, 4), "\n")
+cat("  HR(overall):", round(dgm_alt$hr_causal, 4), "\n")
+
+# New AHR metrics (aligned with generate_aft_dgm_flex)
+cat("\nAverage Hazard Ratios (from loghr_po):\n")
+cat("  AHR(H):", round(dgm_alt$AHR_H_true, 4), "\n")
+cat("  AHR(Hc):", round(dgm_alt$AHR_Hc_true, 4), "\n")
+cat("  AHR(overall):", round(dgm_alt$AHR, 4), "\n")
+
+# Using hazard_ratios list (unified access)
+cat("\nVia hazard_ratios list:\n")
+cat("  harm_subgroup:", round(dgm_alt$hazard_ratios$harm_subgroup, 4), "\n")
+cat("  AHR_harm:", round(dgm_alt$hazard_ratios$AHR_harm, 4), "\n")
+```
+
+### Examining Individual-Level Treatment Effects
+
+```{r individual-effects}
+# The super-population now includes individual log hazard ratios
+df_super <- dgm_alt$df_super_rand
+
+cat("Individual-level potential outcomes:\n")
+cat("  theta_0 (control log-hazard) range:", 
+    round(range(df_super$theta_0), 3), "\n")
+cat("  theta_1 (treatment log-hazard) range:", 
+    round(range(df_super$theta_1), 3), "\n")
+cat("  loghr_po (individual log-HR) range:", 
+    round(range(df_super$loghr_po), 3), "\n")
+
+# Verify AHR calculation
+ahr_manual <- exp(mean(df_super$loghr_po))
+cat("\nAHR verification:\n")
+cat("  exp(mean(loghr_po)) =", round(ahr_manual, 4), "\n")
+cat("  dgm$AHR =", round(dgm_alt$AHR, 4), "\n")
+
+# Distribution of individual treatment effects
+cat("\nIndividual HR distribution:\n")
+individual_hr <- exp(df_super$loghr_po)
+cat("  Mean:", round(mean(individual_hr), 4), "\n")
+cat("  Median:", round(median(individual_hr), 4), "\n")
+cat("  SD:", round(sd(individual_hr), 4), "\n")
+```
+
+## Calibrating for a Target Hazard Ratio
+
+Often, you want to specify the exact hazard ratio in the harm subgroup. Use
+`calibrate_k_inter()` to find the interaction parameter that achieves this.
+
+### Calibrate to Cox-based HR (Default)
+
+```{r calibrate-k-inter-cox}
+# Find k_inter for Cox-based HR = 2.0 in harm subgroup
+k_inter_cox <- calibrate_k_inter(
+  target_hr_harm = 2.0,
+  model = "alt",
+  k_treat = 0.986,
+  cens_type = "weibull",
+  use_ahr = FALSE,  # Default: calibrate to Cox-based HR
+  verbose = TRUE
+)
+
+# Create DGM with calibrated k_inter
+dgm_calibrated_cox <- create_gbsg_dgm(
+  model = "alt",
+  k_treat = 0.986,
+  k_inter = k_inter_cox,
+  verbose = TRUE
+)
+
+cat("\nVerification (Cox-based):\n")
+cat("Achieved HR(H):", round(dgm_calibrated_cox$hr_H_true, 3), "\n")
+cat("HR(H^c):", round(dgm_calibrated_cox$hr_Hc_true, 3), "\n")
+cat("Overall HR:", round(dgm_calibrated_cox$hr_causal, 3), "\n")
+```
+
+### Calibrate to AHR (New Option)
+
+```{r calibrate-k-inter-ahr}
+# Alternatively, calibrate to Average Hazard Ratio
+k_inter_ahr <- calibrate_k_inter(
+  target_hr_harm = 2.0,
+  model = "alt",
+  k_treat = 0.986,
+  cens_type = "weibull",
+  use_ahr = TRUE,  # NEW: calibrate to AHR instead
+  verbose = TRUE
+)
+
+# Create DGM with AHR-calibrated k_inter
+dgm_calibrated_ahr <- create_gbsg_dgm(
+  model = "alt",
+  k_treat = 0.986,
+  k_inter = k_inter_ahr,
+  verbose = TRUE
+)
+
+cat("\nVerification (AHR-based):\n")
+cat("Achieved AHR(H):", round(dgm_calibrated_ahr$AHR_H_true, 3), "\n")
+cat("AHR(H^c):", round(dgm_calibrated_ahr$AHR_Hc_true, 3), "\n")
+cat("Overall AHR:", round(dgm_calibrated_ahr$AHR, 3), "\n")
+```
+
+### Compare Cox HR vs AHR Calibration
+
+```{r compare-calibration}
+# Compare the two calibration approaches
+cat("Comparison of calibration methods:\n")
+cat(sprintf("%-20s %-12s %-12s\n", "Metric", "Cox-calib", "AHR-calib"))
+cat(sprintf("%-20s %-12.4f %-12.4f\n", "k_inter", k_inter_cox, k_inter_ahr))
+cat(sprintf("%-20s %-12.4f %-12.4f\n", "HR(H)", 
+            dgm_calibrated_cox$hr_H_true, dgm_calibrated_ahr$hr_H_true))
+cat(sprintf("%-20s %-12.4f %-12.4f\n", "AHR(H)", 
+            dgm_calibrated_cox$AHR_H_true, dgm_calibrated_ahr$AHR_H_true))
+```
+
+## Validating k_inter Effect on Heterogeneity
+
+Use `validate_k_inter_effect()` to verify the interaction parameter properly
+modulates treatment effect heterogeneity:
+
+```{r validate-k-inter}
+# Test k_inter effect on HR heterogeneity
+# k_inter = 0 should give ratio ≈ 1 (no heterogeneity)
+validation_results <- validate_k_inter_effect(
+  k_inter_values = c(-2, -1, 0, 1, 2, 3),
+  verbose = TRUE
+)
+```
+
+## Null Hypothesis (Uniform Treatment Effect)
+
+For Type I error evaluation, create a DGM with uniform treatment effect:
+
+```{r create-dgm-null}
+# Create null DGM (no treatment effect heterogeneity)
+dgm_null <- create_gbsg_dgm(
+  model = "null",
+  k_treat = 0.986,
+  verbose = TRUE
+)
+
+cat("\nNull hypothesis HRs:\n")
+cat("Overall HR:", round(dgm_null$hr_causal, 3), "\n")
+cat("HR(H^c):", round(dgm_null$hr_Hc_true, 3), "\n")
+cat("AHR:", round(dgm_null$AHR, 3), "\n")
+```
+
+# Simulating Trial Data
+
+## Single Trial Simulation
+
+Use `simulate_from_gbsg_dgm()` to generate a single simulated trial:
+
+```{r simulate-single}
+# Use the Cox-calibrated DGM for simulations
+dgm_calibrated <- dgm_calibrated_cox
+
+# Simulate a single trial
+sim_data <- simulate_from_gbsg_dgm(
+  dgm = dgm_calibrated,
+  n = 700,
+  rand_ratio = 1,        # 1:1 randomization
+  sim_id = 1,
+  max_follow = 84,       # 84 months administrative censoring
+  muC_adj = log(1.5)     # Censoring adjustment
+)
+
+# Examine the data
+cat("Simulated trial:\n")
+cat("  N =", nrow(sim_data), "\n")
+cat("  Events =", sum(sim_data$event.sim), 
+    "(", round(100 * mean(sim_data$event.sim), 1), "%)\n")
+cat("  Harm subgroup size =", sum(sim_data$flag.harm),
+    "(", round(100 * mean(sim_data$flag.harm), 1), "%)\n")
+
+# Quick survival analysis
+fit_itt <- coxph(Surv(y.sim, event.sim) ~ treat, data = sim_data)
+cat("  Estimated ITT HR =", round(exp(coef(fit_itt)), 3), "\n")
+```
+
+### Examining Individual-Level Effects in Simulated Data
+
+```{r sim-individual-effects}
+# The simulated data now includes loghr_po
+if ("loghr_po" %in% names(sim_data)) {
+  cat("\nIndividual treatment effects in simulated trial:\n")
+  
+  # Compute AHR in simulated data by subgroup
+  ahr_H_sim <- exp(mean(sim_data$loghr_po[sim_data$flag.harm == 1]))
+  ahr_Hc_sim <- exp(mean(sim_data$loghr_po[sim_data$flag.harm == 0]))
+  ahr_overall_sim <- exp(mean(sim_data$loghr_po))
+  
+  cat("  AHR(H) in sim:", round(ahr_H_sim, 3), "\n")
+  cat("  AHR(Hc) in sim:", round(ahr_Hc_sim, 3), "\n")
+  cat("  AHR(overall) in sim:", round(ahr_overall_sim, 3), "\n")
+} else {
+  cat("\nNote: loghr_po not available in simulated data\n")
+}
+```
+
+## Examining Covariate Structure
+
+```{r km-plot, fig.width = 7, fig.height = 5}
+dfcount <- df_counting(
+  df = sim_data,
+  by.risk = 6,
+  tte.name = "y.sim", 
+  event.name = "event.sim", 
+  treat.name = "treat"
+)
+plot_weighted_km(dfcount, conf.int = TRUE, show.logrank = TRUE, 
+                 ymax = 1.05, xmed.fraction = 0.775, ymed.offset = 0.125)
+```
+
+```{r summary-table}
+create_summary_table(
+  data = sim_data, 
+  treat_var = "treat", 
+  table_title = "Characteristics by Treatment Arm",
+  vars_continuous = c("z1", "z2", "size", "z3", "z4", "z5"),
+  vars_categorical = c("flag.harm", "grade3"),
+  font_size = 12
+)
+```
+
+# Running Simulation Studies
+
+## Setting Up Parallel Processing
+
+For efficient simulation studies, use parallel processing:
+
+```{r setup-parallel}
+# Configure parallel backend
+n_workers <- min(parallel::detectCores() - 1, 120)
+
+plan(multisession, workers = n_workers)
+registerDoFuture()
+
+cat("Using", n_workers, "parallel workers\n")
+```
+
+## Define Simulation Parameters
+
+```{r define-params}
+# Simulation settings
+sim_config_alt <- list(
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
+  n_sample = 700,         # Sample size per trial
+  max_follow = 84,        # Maximum follow-up (months)
+  seed_base = 8316951,
+  muC_adj = log(1.5)
+)
+
+sim_config_null <- list(
+  n_sims = 2000,          # More simulations for Type I error estimation
+  n_sample = 700,         # Sample size per trial
+  max_follow = 84,        # Maximum follow-up (months)
+  seed_base = 8316951,
+  muC_adj = log(1.5)
+)
+
+# ForestSearch parameters (now includes use_twostage)
+fs_params <- list(
+  outcome.name = "y.sim",
+  event.name = "event.sim",
+  treat.name = "treat",
+  id.name = "id",
+  use_lasso = FALSE,
+  use_grf = TRUE,
+  hr.threshold = 1.25,
+  hr.consistency = 1.0,
+  pconsistency.threshold = 0.90,
+  fs.splits = 400,
+  n.min = 60,
+  d0.min = 12,
+  d1.min = 12,
+  maxk = 2,
+  max.minutes = 5,
+  by.risk = 12,
+  vi.grf.min = -0.2,
+  # NEW: Two-stage algorithm option
+  use_twostage = FALSE,      # Set TRUE for faster exploratory analysis
+  twostage_args = list()     # Optional tuning parameters
+)
+
+# Confounders (use v1-v7 factor names, matching DGM analysis_vars)
+confounders_base <- c("v1", "v2", "v3", "v4", "v5", "v6", "v7")
+```
+
+### Two-Stage Algorithm Option
+
+The `use_twostage` parameter enables a faster two-stage search algorithm:
+
+```{r twostage-params}
+# Fast configuration with two-stage algorithm
+fs_params_fast <- modifyList(fs_params, list(
+  use_twostage = TRUE,
+  twostage_args = list(
+    n.splits.screen = 30,    # Stage 1 screening splits
+    batch.size = 20,         # Stage 2 batch size
+    conf.level = 0.95        # Early stopping confidence
+  )
+))
+
+cat("Standard search: use_twostage =", fs_params$use_twostage, "\n")
+cat("Fast search: use_twostage =", fs_params_fast$use_twostage, "\n")
+```
+
+## Running Alternative Hypothesis Simulations
+
+```{r run-alt-sims, cache=TRUE}
+cat("Running", sim_config_alt$n_sims, "simulations under H1...\n")
+
+start_time <- Sys.time()
+
+results_alt <- foreach(
+  sim = 1:sim_config_alt$n_sims,
+  .combine = rbind,
+  .errorhandling = "remove",
+  .options.future = list(
+    packages = c("forestsearch", "survival", "data.table"),
+    seed = TRUE
+  )
+) %dofuture% {
+  
+  run_simulation_analysis(
+    sim_id = sim,
+    dgm = dgm_calibrated,
+    n_sample = sim_config_alt$n_sample,
+    max_follow = sim_config_alt$max_follow,
+    muC_adj = sim_config_alt$muC_adj,
+    confounders_base = confounders_base,
+    n_add_noise = 0L,
+    run_fs = TRUE,
+    run_fs_grf = TRUE,
+    run_grf = FALSE,
+    fs_params = fs_params,
+    verbose = FALSE,
+    verbose_n = 3  # Only print first 3 simulations
+  )
+}
+
+runtime_alt <- difftime(Sys.time(), start_time, units = "mins")
+cat("Completed in", round(runtime_alt, 1), "minutes\n")
+cat("Results:", nrow(results_alt), "rows\n")
+```
+
+## Running Null Hypothesis Simulations
+
+```{r run-null-sims, cache=TRUE}
+cat("Running", sim_config_null$n_sims, "simulations under H0...\n")
+
+start_time <- Sys.time()
+
+results_null <- foreach(
+  sim = 1:sim_config_null$n_sims,
+  .combine = rbind,
+  .errorhandling = "remove",
+  .options.future = list(
+    packages = c("forestsearch", "survival", "data.table"),
+    seed = TRUE
+  )
+) %dofuture% {
+  
+  run_simulation_analysis(
+    sim_id = sim,
+    dgm = dgm_null,
+    n_sample = sim_config_null$n_sample,
+    max_follow = sim_config_null$max_follow,
+    muC_adj = sim_config_null$muC_adj,
+    confounders_base = confounders_base,
+    n_add_noise = 0L,
+    run_fs = TRUE,
+    run_fs_grf = TRUE,
+    run_grf = FALSE,
+    fs_params = fs_params,
+    verbose = FALSE
+  )
+}
+
+runtime_null <- difftime(Sys.time(), start_time, units = "mins")
+cat("Completed in", round(runtime_null, 1), "minutes\n")
+```
+
+# Summarizing Results
+
+## Operating Characteristics Summary
+
+```{r summarize-alt}
+# Summarize alternative hypothesis results
+summary_alt <- summarize_simulation_results(results_alt)
+print(summary_alt)
+```
+
+```{r summarize-null}
+# Summarize null hypothesis results
+summary_null <- summarize_simulation_results(results_null)
+print(summary_null)
+```
+
+## AHR Metrics in Results (New)
+
+The aligned analysis functions now compute AHR estimates in addition to Cox-based HRs:
+
+```{r ahr-metrics}
+# Check for AHR columns in results
+ahr_cols <- grep("ahr", names(results_alt), value = TRUE)
+cat("AHR columns in results:", paste(ahr_cols, collapse = ", "), "\n\n")
+
+if (length(ahr_cols) > 0) {
+  # Summarize AHR estimates
+  results_found <- results_alt[results_alt$any.H == 1, ]
+  
+  if (nrow(results_found) > 0 && "ahr.H.hat" %in% names(results_found)) {
+    cat("AHR estimates (when subgroup found):\n")
+    cat("  Mean AHR(H) estimated:", round(mean(results_found$ahr.H.hat, na.rm = TRUE), 3), "\n")
+    cat("  Mean AHR(Hc) estimated:", round(mean(results_found$ahr.Hc.hat, na.rm = TRUE), 3), "\n")
+    cat("  True AHR(H):", round(dgm_calibrated$AHR_H_true, 3), "\n")
+    cat("  True AHR(Hc):", round(dgm_calibrated$AHR_Hc_true, 3), "\n")
+  }
+}
+```
+
+## Formatted Tables
+
+```{r format-tables}
+# Format operating characteristics for H1
+format_oc_results(
+  results = results_alt,
+  title = "Operating Characteristics (Alternative Hypothesis)",
+  subtitle = sprintf("n = %d, %d simulations, HR(H) = %.2f",
+                     sim_config_alt$n_sample,
+                     sim_config_alt$n_sims,
+                     dgm_calibrated$hr_H_true),
+  use_gt = TRUE
+)
+```
+
+```{r format-null-tables}
+# Format operating characteristics for H0
+format_oc_results(
+  results = results_null,
+  title = "Type I Error (Null Hypothesis)",
+  subtitle = sprintf("n = %d, %d simulations, HR(overall) = %.2f",
+                     sim_config_null$n_sample,
+                     sim_config_null$n_sims,
+                     dgm_null$hr_causal),
+  use_gt = TRUE
+)
+```
+
+## Key Metrics
+
+```{r key-metrics}
+# Extract key metrics
+cat("=== KEY OPERATING CHARACTERISTICS ===\n\n")
+
+cat("Alternative Hypothesis (H1):\n")
+for (analysis in unique(results_alt$analysis)) {
+  res <- results_alt[results_alt$analysis == analysis, ]
+  cat(sprintf("  %s: Power = %.3f, Sens = %.3f, Spec = %.3f, PPV = %.3f\n",
+              analysis,
+              mean(res$any.H),
+              mean(res$sensitivity, na.rm = TRUE),
+              mean(res$specificity, na.rm = TRUE),
+              mean(res$ppv, na.rm = TRUE)))
+}
+
+cat("\nNull Hypothesis (H0):\n")
+for (analysis in unique(results_null$analysis)) {
+  res <- results_null[results_null$analysis == analysis, ]
+  cat(sprintf("  %s: Type I Error = %.4f\n",
+              analysis,
+              mean(res$any.H)))
+}
+```
+
+# Advanced Topics
+
+## Comparing Standard vs Two-Stage Algorithm
+
+```{r twostage-comparison, eval=FALSE}
+# Run simulations with two-stage algorithm for comparison
+results_twostage <- foreach(
+  sim = 1:100,
+  .combine = rbind,
+  .options.future = list(
+    packages = c("forestsearch", "survival", "data.table"),
+    seed = TRUE
+  )
+) %dofuture% {
+  
+  run_simulation_analysis(
+    sim_id = sim,
+    dgm = dgm_calibrated,
+    n_sample = sim_config_alt$n_sample,
+    confounders_base = confounders_base,
+    run_fs = TRUE,
+    run_fs_grf = FALSE,
+    run_grf = FALSE,
+    fs_params = fs_params_fast,  # use_twostage = TRUE
+    verbose = FALSE
+  )
+}
+
+# Compare detection rates
+cat("Standard algorithm power:", round(mean(results_alt$any.H[results_alt$analysis == "FS"]), 3), "\n")
+cat("Two-stage algorithm power:", round(mean(results_twostage$any.H), 3), "\n")
+```
+
+## Adding Noise Variables
+
+Test ForestSearch robustness by including irrelevant noise variables:
+
+```{r noise-vars, eval=FALSE}
+# Run simulations with noise variables
+results_noise <- foreach(
+  sim = 1:sim_config_alt$n_sims,
+  .combine = rbind,
+  .errorhandling = "remove",
+  .options.future = list(
+    packages = c("forestsearch", "survival", "data.table"),
+    seed = TRUE
+  )
+) %dofuture% {
+  
+  run_simulation_analysis(
+    sim_id = sim,
+    dgm = dgm_calibrated,
+    n_sample = sim_config_alt$n_sample,
+    confounders_base = confounders_base,
+    n_add_noise = 10,  # Add 10 noise variables
+    run_fs = TRUE,
+    fs_params = fs_params,
+    verbose = FALSE
+  )
+}
+
+# Compare detection rates
+cat("Without noise:", round(mean(results_alt$any.H), 3), "\n")
+cat("With 10 noise vars:", round(mean(results_noise$any.H), 3), "\n")
+```
+
+## Sensitivity Analysis: Varying Parameters
+
+```{r sensitivity-analysis, eval=FALSE}
+# Test different HR thresholds
+thresholds <- c(1.10, 1.25, 1.50)
+results_by_thresh <- list()
+
+for (thresh in thresholds) {
+  results_by_thresh[[as.character(thresh)]] <- foreach(
+    sim = 1:100,
+    .combine = rbind,
+    .options.future = list(
+      packages = c("forestsearch", "survival", "data.table"),
+      seed = TRUE
+    )
+  ) %dofuture% {
+    
+    run_simulation_analysis(
+      sim_id = sim,
+      dgm = dgm_calibrated,
+      n_sample = sim_config_alt$n_sample,
+      confounders_base = confounders_base,
+      run_fs = TRUE,
+      fs_params = modifyList(fs_params, list(hr.threshold = thresh)),
+      verbose = FALSE
+    )
+  }
+  results_by_thresh[[as.character(thresh)]]$threshold <- thresh
+}
+
+# Combine and summarize
+combined <- rbindlist(results_by_thresh)
+combined[, .(power = mean(any.H), ppv = mean(ppv, na.rm = TRUE)), 
+         by = .(threshold, analysis)]
+```
+
+# Saving Results
+
+```{r save-results, eval = FALSE}
+# Save simulation results for later use
+save_simulation_results(
+  results = results_alt,
+  dgm = dgm_calibrated,
+  summary_table = summary_alt,
+  runtime_hours = as.numeric(runtime_alt) / 60,
+  output_file = "forestsearch_simulation_alt.Rdata",
+  # Include AHR metrics in saved output
+  ahr_metrics = list(
+    AHR_H_true = dgm_calibrated$AHR_H_true,
+    AHR_Hc_true = dgm_calibrated$AHR_Hc_true,
+    AHR = dgm_calibrated$AHR
+  )
+)
+
+save_simulation_results(
+  results = results_null,
+  dgm = dgm_null,
+  summary_table = summary_null,
+  runtime_hours = as.numeric(runtime_null) / 60,
+  output_file = "forestsearch_simulation_null.Rdata"
+)
+```
+
+# Complete Example Script
+
+Here's a minimal self-contained script for running a simulation study:
+ 
+```{r complete-example, eval=FALSE}
+# ===========================================================================
+# Complete ForestSearch Simulation Study - Minimal Example (Aligned)
+# ===========================================================================
+
+library(forestsearch)
+library(data.table)
+library(survival)
+library(foreach)
+library(doFuture)
+
+# --- Configuration ---
+N_SIMS <- 500
+N_SAMPLE <- 500
+TARGET_HR_HARM <- 1.5
+
+# --- Setup parallel processing ---
+plan(multisession, workers = 4)
+registerDoFuture()
+
+# --- Create DGM ---
+# Option 1: Calibrate to Cox-based HR
+k_inter <- calibrate_k_inter(target_hr_harm = TARGET_HR_HARM, 
+                             use_ahr = FALSE, verbose = TRUE)
+
+# Option 2: Calibrate to AHR instead
+# k_inter <- calibrate_k_inter(target_hr_harm = TARGET_HR_HARM, 
+#                              use_ahr = TRUE, verbose = TRUE)
+
+dgm <- create_gbsg_dgm(model = "alt", k_inter = k_inter, verbose = TRUE)
+
+# Verify hazard ratios (new aligned output)
+cat("\nDGM Summary:\n")
+cat("  Cox HR(H):", round(dgm$hr_H_true, 3), "\n")
+cat("  AHR(H):", round(dgm$AHR_H_true, 3), "\n")
+cat("  Cox HR(Hc):", round(dgm$hr_Hc_true, 3), "\n")
+cat("  AHR(Hc):", round(dgm$AHR_Hc_true, 3), "\n")
+
+# --- Run simulations ---
+confounders <- c("v1", "v2", "v3", "v4", "v5", "v6", "v7")
+
+results <- foreach(
+  sim = 1:N_SIMS, 
+  .combine = rbind,
+  .options.future = list(
+    packages = c("forestsearch", "survival", "data.table"),
+    seed = TRUE
+  )
+) %dofuture% {
+  run_simulation_analysis(
+    sim_id = sim,
+    dgm = dgm,
+    n_sample = N_SAMPLE,
+    max_follow = 60,
+    confounders_base = confounders,
+    run_fs = TRUE,
+    run_fs_grf = TRUE,
+    run_grf = FALSE,
+    fs_params = list(
+      hr.threshold = 1.25, 
+      fs.splits = 300, 
+      maxk = 2,
+      use_twostage = FALSE  # Set TRUE for faster analysis
+    )
+  )
+}
+
+# --- Summarize ---
+summary_table <- summarize_simulation_results(results)
+print(summary_table)
+
+# --- Display formatted table ---
+format_oc_results(results = results, title = sprintf("Operating Characteristics (n=%d)", N_SAMPLE))
+
+# --- Report AHR metrics (new) ---
+results_found <- results[results$any.H == 1, ]
+if (nrow(results_found) > 0 && "ahr.H.hat" %in% names(results_found)) {
+  cat("\nAHR Estimates:\n")
+  cat("  True AHR(H):", round(dgm$AHR_H_true, 3), "\n")
+  cat("  Mean estimated AHR(H):", round(mean(results_found$ahr.H.hat, na.rm = TRUE), 3), "\n")
+}
+```
+
+# Summary
+
+This vignette demonstrated the complete workflow for evaluating ForestSearch
+performance through simulation:
+
+| Step | Function | Purpose |
+|------|----------|---------|
+| 1. Create DGM | `create_gbsg_dgm()` | Define data generating mechanism |
+| 2. Calibrate | `calibrate_k_inter()` | Achieve target subgroup HR (Cox or AHR) |
+| 3. Validate | `validate_k_inter_effect()` | Verify heterogeneity control |
+| 4. Simulate | `simulate_from_gbsg_dgm()` | Generate trial data |
+| 5. Analyze | `run_simulation_analysis()` | Run ForestSearch/GRF |
+| 6. Summarize | `summarize_simulation_results()` | Aggregate metrics |
+| 7. Display | `format_oc_results()` | Create gt tables |
+
+**Key metrics to report:**
+
+- **Power** (H1) / **Type I Error** (H0): Subgroup detection rate
+- **Sensitivity**: P(identified | true harm subgroup)
+- **Specificity**: P(not identified | true complement)
+- **PPV**: P(true harm | identified)
+- **NPV**: P(true complement | not identified)
+
+**New aligned features:**
+
+- **AHR metrics**: Alternative to Cox-based HR (from `loghr_po`)
+- **`use_ahr` calibration**: Calibrate to AHR instead of Cox HR
+- **`use_twostage`**: Faster two-stage search algorithm option
+- **Individual effects**: Access `theta_0`, `theta_1`, `loghr_po` per subject
+
+# Session Info
+
+```{r session-info, eval=TRUE}
+sessionInfo()
+```
+
+# References
+
+1. León LF, Marceau-West CT, He W, et al. (2024). "Identifying Patient Subgroups 
+   with Differential Treatment Effects: A Forest Search Approach." 
+   *Statistics in Medicine*.
+
+2. Athey S, Imbens GW. (2016). "Recursive partitioning for heterogeneous causal 
+   effects." *PNAS*, 113(27):7353-7360.
+
+3. Wager S, Athey S. (2018). "Estimation and inference of heterogeneous treatment 
+   effects using random forests." *JASA*, 113(523):1228-1242.

@@ -28,6 +28,7 @@ effect. Default: 1}
 
 \item{k_inter}{Numeric. Interaction effect multiplier for the
 treatment-subgroup interaction (z1 * z3). Only used when model = "alt".
+Higher values create more heterogeneity between HR(H) and HR(Hc).
 Default: 1}
 
 \item{k_z3}{Numeric. Effect multiplier for the z3 (menopausal status)
@@ -54,10 +55,14 @@ Default: 8316951}
 A list of class "gbsg_dgm" containing:
 \describe{
 \item{df_super_rand}{Data frame with randomized super-population including
-potential outcomes}
-\item{hr_H_true}{Empirical hazard ratio in harm subgroup (NA if model = "null")}
-\item{hr_Hc_true}{Empirical hazard ratio in complement subgroup}
-\item{hr_causal}{Overall causal (ITT) hazard ratio}
+potential outcomes (theta_0, theta_1, loghr_po)}
+\item{hr_H_true}{Empirical hazard ratio in harm subgroup (Cox-based)}
+\item{hr_Hc_true}{Empirical hazard ratio in complement subgroup (Cox-based)}
+\item{hr_causal}{Overall causal (ITT) hazard ratio (Cox-based)}
+\item{AHR}{Overall average hazard ratio (from loghr_po)}
+\item{AHR_H_true}{Average hazard ratio in harm subgroup}
+\item{AHR_Hc_true}{Average hazard ratio in complement subgroup}
+\item{hazard_ratios}{List matching generate_aft_dgm_flex output format}
 \item{model_params}{List with AFT model parameters (mu, sigma, gamma, etc.)}
 \item{cens_params}{List with censoring model parameters}
 \item{subgroup_info}{List with subgroup definitions and true factor names}
@@ -71,6 +76,9 @@ the German Breast Cancer Study Group (GBSG) dataset. Supports heterogeneous
 treatment effects via treatment-subgroup interactions.
 }
 \details{
+This version is aligned with \code{generate_aft_dgm_flex()} and
+\code{calculate_hazard_ratios()} methodology, computing individual-level
+potential outcomes and average hazard ratios (AHR).
 \subsection{Subgroup Definition}{
 
 The harm subgroup H is defined as: z1 = 1 AND z3 = 1, where:
@@ -84,6 +92,31 @@ The harm subgroup H is defined as: z1 = 1 AND z3 = 1, where:
 
 The AFT model uses covariates: treat, z1, z2, z3, z4, z5, and (for "alt")
 the interaction zh = treat * z1 * z3.
+}
+
+\subsection{Interaction Effect (k_inter)}{
+
+The k_inter parameter modifies the zh coefficient in the AFT model:
+\preformatted{gamma[zh] <- k_inter * gamma[zh]}
+
+This affects the hazard ratio for the harm subgroup:
+\itemize{
+\item HR(H) = exp(-gamma[treat]/sigma - gamma[zh]/sigma)
+\item HR(Hc) = exp(-gamma[treat]/sigma)
+}
+
+When k_inter = 0, HR(H) = HR(Hc) (no heterogeneity).
+}
+
+\subsection{Alignment with generate_aft_dgm_flex}{
+
+This function now computes:
+\itemize{
+\item theta_0: Log-hazard contribution under control
+\item theta_1: Log-hazard contribution under treatment
+\item loghr_po: Individual causal log hazard ratio (theta_1 - theta_0)
+\item AHR metrics: exp(mean(loghr_po)) for overall and subgroups
+}
 }
 }
 \examples{
@@ -101,6 +134,10 @@ dgm_custom <- create_gbsg_dgm(
   k_inter = 2.0,
   verbose = TRUE
 )
+
+# Access AHR metrics (aligned with generate_aft_dgm_flex)
+dgm_alt$hazard_ratios$AHR_harm
+dgm_alt$hazard_ratios$AHR_no_harm
 }
 
 }

@@ -8,7 +8,7 @@ simulate_from_gbsg_dgm(
   dgm,
   n = NULL,
   rand_ratio = 1,
-  sim_id = 1L,
+  sim_id = 1,
   max_follow = Inf,
   muC_adj = 0,
   min_cens = NULL,
@@ -43,16 +43,16 @@ Required if cens_type = "uniform"}
 If FALSE, samples from existing treatment arms. Default: TRUE}
 }
 \value{
-A data.frame with simulated trial data containing:
+Data frame with simulated trial data including:
 \describe{
-\item{id}{Subject ID}
-\item{y.sim}{Observed time (min of event time and censoring time)}
+\item{id}{Subject identifier}
+\item{y.sim}{Observed follow-up time}
 \item{event.sim}{Event indicator (1 = event, 0 = censored)}
-\item{t.sim}{True (latent) event time}
+\item{t.sim}{True event time (before censoring)}
 \item{treat}{Treatment indicator}
-\item{flag.harm}{True harm subgroup indicator}
-\item{v1-v7}{Analysis covariates}
-\item{z1-z5, grade3, size}{Underlying covariates}
+\item{flag.harm}{Harm subgroup indicator}
+\item{loghr_po}{Individual log hazard ratio (potential outcome)}
+\item{v1-v7}{Analysis factors}
 }
 }
 \description{
@@ -61,22 +61,11 @@ mechanism.
 }
 \examples{
 \dontrun{
-# Create DGM
-dgm <- create_gbsg_dgm(model = "alt")
+dgm <- create_gbsg_dgm(model = "alt", k_inter = 2.0)
+sim_data <- simulate_from_gbsg_dgm(dgm, n = 500, sim_id = 1)
 
-# Simulate a trial
-sim_data <- simulate_from_gbsg_dgm(
-  dgm = dgm,
-  n = 500,
-  sim_id = 1,
-  max_follow = 60
-)
-
-# Check event rate
-mean(sim_data$event.sim)
+# Check AHR in simulated data
+exp(mean(sim_data$loghr_po))
 }
 
-}
-\seealso{
-\code{\link{create_gbsg_dgm}} for creating the DGM
 }

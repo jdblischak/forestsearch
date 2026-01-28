@@ -149,7 +149,6 @@ dgm_calibrated <- create_gbsg_dgm(
 )
 
 cat("\nVerification:\n")
-cat("Target HR(H):", 1.5, "\n")
 cat("Achieved HR(H):", round(dgm_calibrated$hr_H_true, 3), "\n")
 cat("HR(H^c):", round(dgm_calibrated$hr_Hc_true, 3), "\n")
 cat("Overall HR:", round(dgm_calibrated$hr_causal, 3), "\n")
@@ -251,7 +250,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config_alt <- list(
-  n_sims = 2000,          # Number of simulations (use 500-1000 for final)
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,        # Sample size per trial
   max_follow = 84,       # Maximum follow-up (months)
   seed_base = 8316951,
@@ -259,7 +258,7 @@ sim_config_alt <- list(
 )
 
 sim_config_null <- list(
-  n_sims = 10000,          # Number of simulations (use 500-1000 for final)
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,        # Sample size per trial
   max_follow = 84,       # Maximum follow-up (months)
   seed_base = 8316951,
@@ -649,7 +648,7 @@ based on asymptotic normal theory:
 # =============================================================================
 
 # Calculate expected subgroup characteristics
-n_sg_expected <- sim_config$n_sample * mean(dgm_calibrated$df_super_rand$flag.harm)
+n_sg_expected <- sim_config_alt$n_sample * mean(dgm_calibrated$df_super_rand$flag.harm)
 prop_cens <- mean(results_alt$p.cens)  # Censoring proportion
 
 cat("=== Subgroup Characteristics ===\n")
@@ -681,6 +680,7 @@ prob_detect <- compute_detection_probability(
 # Compare theoretical to empirical (alternative)
 cat("\n=== Detection Probability Comparison ===\n")
 cat("Theoretical FS (asymptotic):", round(prob_detect, 3), "\n")
+
 cat("Empirical FS:", round(mean(results_alt[analysis == "FS"]$any.H), 3), "\n")
 cat("Empirical FSlg:", round(mean(results_alt[analysis == "FSlg"]$any.H), 3), "\n")
 if ("GRF" %in% results_alt$analysis) {
@@ -691,10 +691,11 @@ if ("GRF" %in% results_alt$analysis) {
 
 #plim_hr_itt <- c(summary_alt[c("hat(ITT)all"),1])
 
+# Calculate at min SG size
 # Compute detection probability at the true HR
 prob_detect_null <- compute_detection_probability(
  theta = dgm_null$hr_causal,
-  n_sg = round(sim_config$n_sample),
+  n_sg = fs_params$n.min,
   prop_cens = prop_cens,
   hr_threshold = fs_params$hr.threshold,
   hr_consistency = fs_params$hr.consistency,
@@ -704,7 +705,9 @@ prob_detect_null <- compute_detection_probability(
 
 # Compare theoretical to empirical (alternative)
 cat("\n=== Detection Probability Comparison ===\n")
-cat("Theoretical FS (asymptotic):", round(prob_detect_null, 6), "\n")
+cat("Under the null calculate at min SG size:", fs_params$n.min,"\n")
+cat("Theoretical FS at min(SG) (asymptotic):", round(prob_detect_null, 6), "\n")
+
 cat("Empirical FS:", round(mean(results_null[analysis == "FS"]$any.H), 6), "\n")
 cat("Empirical FSlg:", round(mean(results_null[analysis == "FSlg"]$any.H), 6), "\n")
 if ("GRF" %in% results_null$analysis) {

@@ -1,0 +1,717 @@
+---
+title: "ForestSearch Package Architecture"
+subtitle: "Function Relationships and Module Organization"
+author: "ForestSearch Development Team"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    number-sections: true
+    code-fold: true
+    theme: cosmo
+    highlight-style: github
+    embed-resources: true
+---
+
+## Overview
+
+ForestSearch is a comprehensive R package for exploratory subgroup identification in clinical trials with survival endpoints. The package implements advanced methods from León et al. (2024) published in *Statistics in Medicine*, focusing on treatment effect heterogeneity analysis using machine learning approaches including:
+ 
+- **Generalized Random Forests (GRF)** for variable importance
+- **LASSO regularization** for dimension reduction
+- **Exhaustive combinatorial search** for subgroup discovery
+- **Split-sample validation** for consistency assessment
+- **Bootstrap bias correction** using infinitesimal jackknife methods
+
+## Package Architecture Diagram
+
+The following diagram illustrates the relationships between main functions and their helper functions:
+
+```{mermaid}
+%%| fig-width: 12
+%%| fig-height: 14
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#E8F4FD', 'primaryTextColor': '#1a1a1a', 'primaryBorderColor': '#2E86AB', 'lineColor': '#666666', 'secondaryColor': '#FFF3E0', 'tertiaryColor': '#E8F5E9'}}}%%
+
+flowchart TB
+    subgraph Entry["📊 MAIN ENTRY POINT"]
+        FS[("forestsearch()")]
+    end
+
+    subgraph VarSelect["🔬 VARIABLE SELECTION"]
+        direction TB
+        GRF["grf.subg.harm.survival()"]
+        LASSO["lasso_selection()"]
+        
+        subgraph GRF_Helpers["GRF Helpers"]
+            GRF_CFG["create_grf_config()"]
+            GRF_FIT["fit_causal_forest()"]
+            GRF_NODE["compute_node_metrics()"]
+            GRF_BEST["select_best_subgroup()"]
+            GRF_TREE["extract_all_tree_cuts()"]
+        end
+    end
+
+    subgraph DataPrep["📋 DATA PREPARATION"]
+        direction TB
+        FSDATA["get_FSdata()"]
+        
+        subgraph DataHelpers["Data Helpers"]
+            CONFORCE["get_conf_force()"]
+            EVALCUTS["evaluate_cuts_once()"]
+            FSLABELS["FS_labels()"]
+            FILTLASSO["filter_by_lassokeep()"]
+            DUMMY["dummy()"]
+            ISCONT["is.continuous()"]
+        end
+    end
+
+    subgraph Search["🔍 SUBGROUP SEARCH"]
+        direction TB
+        SGSEARCH["subgroup.search()"]
+        
+        subgraph SearchHelpers["Search Helpers"]
+            PREPDATA["prepare_search_data()"]
+            GENCOMBO["generate_combination_indices()"]
+            SEARCHCOMB["search_combinations()"]
+            EVALCOMB["evaluate_combination()"]
+            GETCOVS["get_covs_in()"]
+            GETMEMBER["get_subgroup_membership()"]
+            CALCMAX["calculate_max_combinations()"]
+            FORMATRES["format_search_results()"]
+            COX_EVAL["fit_subgroup_cox()"]
+        end
+    end
+
+    subgraph Consistency["✅ CONSISTENCY EVALUATION"]
+        direction TB
+        SGCONS["subgroup.consistency()"]
+        
+        subgraph ConsHelpers["Consistency Helpers"]
+            direction TB
+            EVALSG["evaluate_subgroup_consistency()"]
+            EVAL2STAGE["evaluate_consistency_twostage()"]
+            SPLITHR["get_split_hr_fast()"]
+            WILSONCI["wilson_ci()"]
+            EARLYSTOP["early_stop_decision()"]
+            SORTSG["sort_subgroups()"]
+            EXTRACTSG["extract_subgroup()"]
+            SGOUT["sg_consistency_out()"]
+            REMDUP["remove_near_duplicate_subgroups()"]
+            IDDUP["identify_near_duplicates()"]
+        end
+    end
+
+    subgraph Bootstrap["🔄 BOOTSTRAP ANALYSIS"]
+        direction TB
+        BOOTMAIN["forestsearch_bootstrap_dofuture()"]
+        
+        subgraph BootHelpers["Bootstrap Helpers"]
+            BOOTRES["bootstrap_results()"]
+            BOOTANALYSIS["run_single_bootstrap()"]
+            BOOTSUM["summarize_bootstrap_results()"]
+            BOOTTIME["create_bootstrap_timing_plots()"]
+            SGSUM["summarize_bootstrap_subgroups()"]
+        end
+    end
+
+    subgraph CrossVal["📈 CROSS-VALIDATION"]
+        direction TB
+        KFOLD["forestsearch_Kfold()"]
+        TENFOLD["forestsearch_tenfold()"]
+        
+        subgraph CVHelpers["CV Helpers"]
+            KFOLDOUT["forestsearch_KfoldOut()"]
+            COVMATCH["find_covariate_any_match()"]
+            RESOLVECV["resolve_cv_parallel_args()"]
+        end
+    end
+
+    subgraph Simulation["🎲 SIMULATION & DGM"]
+        direction TB
+        GENDGM["generate_aft_dgm_flex()"]
+        SIMDGM["simulate_from_dgm()"]
+        MRCTSIM["run_mrct_simulation()"]
+        
+        subgraph SimHelpers["Simulation Helpers"]
+            RUNFS_ANALYSIS["run_forestsearch_analysis()"]
+            RUNSINGLE["run_single_simulation()"]
+            GENBBOOT["generate_bootstrap_synthetic()"]
+        end
+    end
+
+    subgraph Output["📊 OUTPUT & VISUALIZATION"]
+        direction TB
+        PRINTFS["print.forestsearch()"]
+        SUMMARYFS["summary.forestsearch()"]
+        
+        subgraph OutputHelpers["Output Helpers"]
+            SGTABLES["sg_tables()"]
+            FORESTPLOT["plot_subgroup_results_forestplot()"]
+            FILTERARGS["filter_call_args()"]
+            COXSPLINE["cox_cs_fit()"]
+            GETDFPRED["get_dfpred()"]
+        end
+    end
+
+    subgraph Utilities["🔧 UTILITY FUNCTIONS"]
+        COXSUM["cox_summary()"]
+        SETUPPARALLEL["setup_consistency_parallel()"]
+        RESOLVEPARALLEL["resolve_bootstrap_parallel_args()"]
+    end
+
+    %% Main Flow Connections
+    FS --> GRF
+    FS --> LASSO
+    FS --> FSDATA
+    FS --> SGSEARCH
+    FS --> SGCONS
+    
+    %% GRF internal flow
+    GRF --> GRF_CFG
+    GRF --> GRF_FIT
+    GRF_FIT --> GRF_NODE
+    GRF_NODE --> GRF_BEST
+    GRF_BEST --> GRF_TREE
+    
+    %% Data prep flow
+    FSDATA --> LASSO
+    FSDATA --> CONFORCE
+    FSDATA --> EVALCUTS
+    FSDATA --> FSLABELS
+    FSDATA --> FILTLASSO
+    FSDATA --> DUMMY
+    FSDATA --> ISCONT
+    LASSO --> FILTLASSO
+    
+    %% Search flow
+    SGSEARCH --> PREPDATA
+    SGSEARCH --> GENCOMBO
+    SGSEARCH --> SEARCHCOMB
+    SEARCHCOMB --> EVALCOMB
+    SEARCHCOMB --> GETCOVS
+    EVALCOMB --> GETMEMBER
+    EVALCOMB --> COX_EVAL
+    GENCOMBO --> CALCMAX
+    SGSEARCH --> FORMATRES
+    
+    %% Consistency flow
+    SGCONS --> EVALSG
+    SGCONS --> EVAL2STAGE
+    EVALSG --> SPLITHR
+    EVAL2STAGE --> SPLITHR
+    EVAL2STAGE --> WILSONCI
+    EVAL2STAGE --> EARLYSTOP
+    SGCONS --> SORTSG
+    SGCONS --> EXTRACTSG
+    SGCONS --> SGOUT
+    SGCONS --> REMDUP
+    REMDUP --> IDDUP
+    
+    %% Bootstrap flow
+    BOOTMAIN --> FS
+    BOOTMAIN --> BOOTRES
+    BOOTRES --> BOOTANALYSIS
+    BOOTANALYSIS --> FS
+    BOOTMAIN --> BOOTSUM
+    BOOTSUM --> BOOTTIME
+    BOOTMAIN --> SGSUM
+    
+    %% CV flow
+    KFOLD --> FS
+    KFOLD --> KFOLDOUT
+    KFOLD --> COVMATCH
+    KFOLD --> RESOLVECV
+    TENFOLD --> KFOLD
+    
+    %% Simulation flow
+    MRCTSIM --> SIMDGM
+    SIMDGM --> GENDGM
+    MRCTSIM --> RUNFS_ANALYSIS
+    RUNFS_ANALYSIS --> FS
+    MRCTSIM --> RUNSINGLE
+    
+    %% Output flow
+    FS --> PRINTFS
+    FS --> SUMMARYFS
+    SUMMARYFS --> SGTABLES
+    SGTABLES --> FILTERARGS
+    BOOTMAIN --> FORESTPLOT
+    
+    %% Utility connections
+    SGCONS --> SETUPPARALLEL
+    BOOTMAIN --> RESOLVEPARALLEL
+    EVALCOMB --> COXSUM
+    SGOUT --> GETDFPRED
+
+    %% Styling
+    classDef entry fill:#2E86AB,stroke:#1a5276,stroke-width:3px,color:#fff,font-weight:bold
+    classDef main fill:#E8F4FD,stroke:#2E86AB,stroke-width:2px
+    classDef helper fill:#FFF3E0,stroke:#E65100,stroke-width:1px
+    classDef bootstrap fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef cv fill:#FCE4EC,stroke:#C2185B,stroke-width:2px
+    classDef sim fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef output fill:#FFFDE7,stroke:#F9A825,stroke-width:2px
+    classDef utility fill:#ECEFF1,stroke:#546E7A,stroke-width:1px
+    
+    class FS entry
+    class GRF,LASSO,FSDATA,SGSEARCH,SGCONS main
+    class GRF_CFG,GRF_FIT,GRF_NODE,GRF_BEST,GRF_TREE helper
+    class CONFORCE,EVALCUTS,FSLABELS,FILTLASSO,DUMMY,ISCONT helper
+    class PREPDATA,GENCOMBO,SEARCHCOMB,EVALCOMB,GETCOVS,GETMEMBER,CALCMAX,FORMATRES,COX_EVAL helper
+    class EVALSG,EVAL2STAGE,SPLITHR,WILSONCI,EARLYSTOP,SORTSG,EXTRACTSG,SGOUT,REMDUP,IDDUP helper
+    class BOOTMAIN,BOOTRES,BOOTANALYSIS,BOOTSUM,BOOTTIME,SGSUM bootstrap
+    class KFOLD,TENFOLD,KFOLDOUT,COVMATCH,RESOLVECV cv
+    class GENDGM,SIMDGM,MRCTSIM,RUNFS_ANALYSIS,RUNSINGLE,GENBBOOT sim
+    class PRINTFS,SUMMARYFS,SGTABLES,FORESTPLOT,FILTERARGS,COXSPLINE,GETDFPRED output
+    class COXSUM,SETUPPARALLEL,RESOLVEPARALLEL utility
+```
+
+## Simplified Data Flow
+
+```{mermaid}
+%%| fig-width: 10
+%%| fig-height: 6
+flowchart LR
+    subgraph Input["Input"]
+        DATA[("Clinical Trial\nData")]
+        CONF["Candidate\nVariables"]
+    end
+    
+    subgraph Core["Core Pipeline"]
+        direction TB
+        VS["Variable\nSelection"]
+        DP["Data\nPreparation"]
+        SS["Subgroup\nSearch"]
+        CE["Consistency\nEvaluation"]
+    end
+    
+    subgraph Validation["Validation"]
+        BOOT["Bootstrap\nBias Correction"]
+        CV["Cross-\nValidation"]
+    end
+    
+    subgraph Output["Output"]
+        SG[("Identified\nSubgroup")]
+        REC["Treatment\nRecommendations"]
+    end
+    
+    DATA --> VS
+    CONF --> VS
+    VS --> DP
+    DP --> SS
+    SS --> CE
+    CE --> SG
+    SG --> BOOT
+    SG --> CV
+    CE --> REC
+    
+    style DATA fill:#E3F2FD,stroke:#1976D2
+    style SG fill:#E8F5E9,stroke:#388E3C
+    style REC fill:#FFF3E0,stroke:#F57C00
+```
+
+## Module Descriptions
+
+### Main Entry Point
+
+#### `forestsearch()`
+
+**Location:** `R/forest_search_revised.R`
+
+The main orchestrating function that coordinates all analysis steps. This is the primary user-facing function.
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `df.analysis` | Analysis dataset | Required |
+| `confounders.name` | Candidate variables | NULL (auto-detect) |
+| `use_lasso` | Enable LASSO selection | TRUE |
+| `use_grf` | Enable GRF for cuts | TRUE |
+| `hr.threshold` | Minimum HR for candidates | 1.25 |
+| `pconsistency.threshold` | Consistency requirement | 0.90 |
+| `fs.splits` | Number of validation splits | 1000 |
+| `maxk` | Max factors per subgroup | 2 |
+| `use_twostage` | Two-stage algorithm | FALSE |
+
+**Returns:** Object of class `"forestsearch"` containing:
+
+- `grp.consistency` - Consistency evaluation results
+- `find.grps` - Subgroup search results
+- `sg.harm` - Selected subgroup definition
+- `df.est` - Data with treatment recommendations
+
+### Variable Selection Module
+
+#### `grf.subg.harm.survival()`
+
+**Location:** `R/grf_main.R`
+
+Uses Generalized Random Forests (causal survival forest) to identify variables with treatment effect heterogeneity.
+
+```{mermaid}
+%%| fig-width: 8
+%%| fig-height: 4
+flowchart LR
+    A["Input Data"] --> B["Fit Causal\nSurvival Forest"]
+    B --> C["Compute\nVariable Importance"]
+    C --> D["Fit Policy Trees\n(depth 1-3)"]
+    D --> E["Select Best\nSubgroup"]
+    E --> F["Extract\nCut Expressions"]
+    
+    style B fill:#E8F4FD,stroke:#2E86AB
+    style E fill:#E8F5E9,stroke:#388E3C
+```
+
+**Helper Functions:**
+
+| Function | Purpose |
+|----------|---------|
+| `create_grf_config()` | Initialize GRF parameters |
+| `fit_causal_forest()` | Wrapper for `grf::causal_survival_forest()` |
+| `compute_node_metrics()` | Calculate metrics per tree node |
+| `select_best_subgroup()` | Choose optimal subgroup based on criterion |
+| `extract_all_tree_cuts()` | Extract cut expressions from trees |
+
+#### `lasso_selection()`
+
+**Location:** `R/get_FSdata_helpers.R`
+
+Uses Cox-LASSO for dimension reduction.
+
+```r
+# Returns:
+list(
+  selected = character(),   # Variables with non-zero coefficients
+  omitted = character(),    # Variables excluded
+  coefficients = numeric(), # LASSO coefficients
+  lambda_min = numeric(),   # Optimal lambda
+  cvfit = object,          # cv.glmnet result
+  fit = object             # Final glmnet fit
+)
+```
+
+### Data Preparation Module
+
+#### `get_FSdata()`
+
+**Location:** `R/get_FSdata_refactored.R`
+
+Prepares the dataset for ForestSearch by creating binary cut indicators.
+
+**Processing Steps:**
+
+1. Classify variables as continuous/categorical
+2. Apply LASSO selection (if enabled)
+3. Apply GRF cuts (if provided)
+4. Create binary indicator columns
+5. Handle forced cuts and exclusions
+
+**Helper Functions:**
+
+| Function | Purpose |
+|----------|---------|
+| `get_conf_force()` | Generate forced cut expressions |
+| `evaluate_cuts_once()` | Evaluate all cuts and cache results |
+| `FS_labels()` | Convert q-codes to readable labels |
+| `filter_by_lassokeep()` | Filter by LASSO-selected variables |
+| `dummy()` | Create dummy variables |
+| `is.continuous()` | Check if variable is continuous |
+
+### Subgroup Search Module
+
+#### `subgroup.search()`
+
+**Location:** `R/subgroup_search.R`
+  
+Exhaustive search over all factor combinations up to `maxk`.
+
+```{mermaid}
+%%| fig-width: 9
+%%| fig-height: 5
+flowchart TB
+    A["Generate All\nCombinations"] --> B{"For each\ncombination"}
+    B --> C["Check Prevalence\n≥ minp"]
+    C -->|Pass| D["Check Subgroup Size\n≥ n.min"]
+    C -->|Fail| B
+    D -->|Pass| E["Check Events\nd0 ≥ d0.min\nd1 ≥ d1.min"]
+    D -->|Fail| B
+    E -->|Pass| F["Fit Cox Model\nCompute HR"]
+    E -->|Fail| B
+    F --> G{"HR > threshold?"}
+    G -->|Yes| H["Store Candidate"]
+    G -->|No| B
+    H --> B
+    B -->|Done| I["Sort & Return\nCandidates"]
+    
+    style A fill:#E8F4FD,stroke:#2E86AB
+    style F fill:#FFF3E0,stroke:#F57C00
+    style I fill:#E8F5E9,stroke:#388E3C
+```
+
+**Helper Functions:**
+
+| Function | Purpose |
+|----------|---------|
+| `prepare_search_data()` | Clean data, remove missing values |
+| `generate_combination_indices()` | Create all k-combinations |
+| `search_combinations()` | Main loop over combinations |
+| `evaluate_combination()` | Test single combination |
+| `get_covs_in()` | Get factor indicators for combination |
+| `get_subgroup_membership()` | Compute subgroup membership |
+
+### Consistency Evaluation Module
+
+#### `subgroup.consistency()`
+
+**Location:** `R/subgroup_consistency_main.R`
+
+Split-sample validation to ensure reproducibility of identified subgroups.
+
+**Two Algorithms Available:**
+
+::: {.panel-tabset}
+
+## Fixed Algorithm (Default)
+
+- Run exactly `n.splits` random splits
+- Each split: 50/50 random assignment
+- Consistency = proportion where both halves show HR > threshold
+
+## Two-Stage Algorithm
+
+```{mermaid}
+%%| fig-width: 8
+%%| fig-height: 4
+flowchart LR
+    A["Stage 1:\nQuick Screen\n(30 splits)"] --> B{"Pass\nThreshold?"}
+    B -->|No| C["Reject\nCandidate"]
+    B -->|Yes| D["Stage 2:\nBatched Evaluation"]
+    D --> E{"Early Stop\nDecision"}
+    E -->|Pass| F["Accept"]
+    E -->|Fail| C
+    E -->|Continue| D
+    
+    style A fill:#E8F4FD,stroke:#2E86AB
+    style F fill:#E8F5E9,stroke:#388E3C
+    style C fill:#FFEBEE,stroke:#C62828
+```
+
+:::
+
+**Helper Functions:**
+
+| Function | Purpose |
+|----------|---------|
+| `evaluate_subgroup_consistency()` | Evaluate single subgroup (fixed) |
+| `evaluate_consistency_twostage()` | Evaluate with early stopping |
+| `get_split_hr_fast()` | Fast HR calculation for split |
+| `wilson_ci()` | Wilson score confidence interval |
+| `early_stop_decision()` | Determine if can stop early |
+
+### Bootstrap Analysis Module
+
+#### `forestsearch_bootstrap_dofuture()`
+
+**Location:** `R/bootstrap_dofuture_main.R`
+
+Bootstrap inference and bias correction using infinitesimal jackknife methods.
+
+**Bias Correction Methods:**
+
+::: {.callout-note}
+## Method 1: Simple Optimism
+$$H_{adj1} = H_{obs} - (H^*_* - H^*_{obs})$$
+:::
+
+::: {.callout-note}
+## Method 2: Double Bootstrap
+$$H_{adj2} = 2 \times H_{obs} - (H_* + H^*_* - H^*_{obs})$$
+:::
+
+Where:
+
+- $H_{obs}$: Original subgroup HR on original data
+- $H_*$: Original subgroup HR on bootstrap data
+- $H^*_{obs}$: New subgroup (found in bootstrap) HR on original data
+- $H^*_*$: New subgroup (found in bootstrap) HR on bootstrap data
+
+**Helper Functions:**
+
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `bootstrap_results()` | `bootstrap_analysis_dofuture.R` | Coordinate iterations |
+| `run_single_bootstrap()` | `bootstrap_analysis_dofuture.R` | Execute one iteration |
+| `summarize_bootstrap_results()` | `bootstrap_summaries_helpers.R` | Aggregate results |
+| `summarize_bootstrap_subgroups()` | `summarize_bootstrap_subgroups.R` | Subgroup agreement |
+
+### Cross-Validation Module
+
+#### `forestsearch_Kfold()`
+
+**Location:** `R/forestsearch_cross-validation.R`
+
+K-fold cross-validation for subgroup stability assessment.
+
+```{mermaid}
+%%| fig-width: 8
+%%| fig-height: 3
+flowchart LR
+    A["Split Data\ninto K Folds"] --> B["For each fold:\nTrain on K-1\nTest on 1"]
+    B --> C["Run forestsearch()\non training"]
+    C --> D["Evaluate on\ntest fold"]
+    D --> E["Aggregate\nResults"]
+    
+    style C fill:#E8F4FD,stroke:#2E86AB
+    style E fill:#E8F5E9,stroke:#388E3C
+```
+
+### Simulation & DGM Module
+
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `generate_aft_dgm_flex()` | `generate_aft_dgm_flex.R` | Create AFT data generating mechanism |
+| `simulate_from_dgm()` | `simulate_from_dgm.R` | Generate simulated data from DGM |
+| `run_mrct_simulation()` | `mrct_simulation.R` | Multi-regional CT simulation |
+
+### Output & Summary Module
+
+#### S3 Methods
+
+| Function | Purpose |
+|----------|---------|
+| `print.forestsearch()` | Print summary of results |
+| `summary.forestsearch()` | Detailed summary statistics |
+
+#### Visualization Functions
+
+| Function | Location | Purpose |
+|----------|----------|---------|
+| `sg_tables()` | `summary_utility_functions.R` | gt-formatted summary tables |
+| `plot_subgroup_results_forestplot()` | `plot_subgroup_results_forestplot.R` | Forest plots with CV metrics |
+| `cox_cs_fit()` | `cox_spline_fit.R` | Cox model with spline interactions |
+
+## Parallel Processing Infrastructure
+
+ForestSearch supports multiple parallel backends:
+
+| Backend | Use Case | Platform |
+|---------|----------|----------|
+| `"sequential"` | Single-threaded (debugging) | All |
+| `"multisession"` | Cross-platform parallel | All |
+| `"multicore"` | Fork-based parallel | Unix/Mac |
+| `"callr"` | Separate R processes | All |
+
+## Package Dependencies
+
+```{mermaid}
+%%| fig-width: 10
+%%| fig-height: 5
+flowchart TB
+    subgraph Core["Core Statistical"]
+        survival["survival"]
+        grf["grf"]
+        glmnet["glmnet"]
+        policytree["policytree"]
+    end
+    
+    subgraph Data["Data Manipulation"]
+        dt["data.table"]
+        stringr["stringr"]
+    end
+    
+    subgraph Parallel["Parallel Computing"]
+        future["future"]
+        doFuture["doFuture"]
+        foreach["foreach"]
+        callr["callr"]
+    end
+    
+    subgraph Viz["Visualization"]
+        ggplot2["ggplot2"]
+        gt["gt"]
+        forestploter["forestploter"]
+    end
+    
+    FS["forestsearch"] --> Core
+    FS --> Data
+    FS --> Parallel
+    FS --> Viz
+    
+    style FS fill:#2E86AB,stroke:#1a5276,color:#fff,font-weight:bold
+```
+
+## File Organization
+
+```
+R/
+├── forest_search_revised.R          # Main forestsearch() function
+├── get_FSdata_refactored.R          # Data preparation
+├── get_FSdata_helpers.R             # Data prep helpers
+├── subgroup_search.R                # Exhaustive search
+├── subgroup_consistency_main.R      # Consistency evaluation
+├── subgroup_consistency_helpers.R   # Consistency helpers
+├── grf_main.R                       # GRF subgroup identification
+├── grf_helpers.R                    # GRF helper functions
+├── bootstrap_dofuture_main.R        # Bootstrap main function
+├── bootstrap_analysis_dofuture.R    # Bootstrap iteration logic
+├── bootstrap_summaries_helpers.R    # Bootstrap summarization
+├── summarize_bootstrap_subgroups.R  # Bootstrap subgroup summary
+├── forestsearch_cross-validation.R  # K-fold CV
+├── summary_utility_functions.R      # Output utilities
+├── summary_forestsearch.R           # S3 summary method
+├── plot_subgroup_results_forestplot.R # Forest plots
+├── cox_spline_fit.R                 # Spline Cox models
+├── generate_aft_dgm_flex.R          # DGM generation
+├── simulate_from_dgm.R              # Data simulation
+├── mrct_simulation.R                # MRCT simulations
+├── oc_analyses_gbsg.R               # Operating characteristics
+├── truefind_asymptotic.R            # Asymptotic approximations
+└── synthetic_data_perturbation.R    # Synthetic data generation
+```
+
+## Typical Workflow
+
+```{r}
+#| eval: false
+#| code-fold: false
+
+# 1. Run main analysis
+fs_result <- forestsearch(
+
+df.analysis = trial_data,
+confounders.name = c("age", "biomarker", "stage"),
+hr.threshold = 1.25,
+pconsistency.threshold = 0.90,
+use_grf = TRUE,
+use_lasso = TRUE,
+details = TRUE
+)
+
+# 2. Bootstrap bias correction
+fs_boot <- forestsearch_bootstrap_dofuture(
+fs.est = fs_result,
+nb_boots = 1000,
+parallel_args = list(plan = "callr", workers = 6)
+)
+
+# 3. Cross-validation
+fs_cv <- forestsearch_Kfold(
+fs.est = fs_result,
+Kfolds = 10
+)
+
+# 4. Summary and visualization
+print(fs_result)
+sg_tables(fs_result)
+```
+
+## References
+
+- León LF, et al. (2024). Exploratory subgroup identification in the heterogeneous Cox model. *Statistics in Medicine*.
+- Athey S, Imbens G (2016). Recursive partitioning for heterogeneous causal effects. *PNAS*.
+- Wager S, Athey S (2018). Estimation and inference of heterogeneous treatment effects using random forests. *JASA*.
+
+---
+
+*Document generated for ForestSearch R package - CRAN submission preparation*

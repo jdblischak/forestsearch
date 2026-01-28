@@ -10,7 +10,8 @@ calibrate_k_inter(
   k_treat = 1,
   cens_type = "weibull",
   k_inter_range = c(-100, 100),
-  tol = 1e-08,
+  tol = 1e-06,
+  use_ahr = FALSE,
   verbose = FALSE,
   ...
 )
@@ -27,7 +28,10 @@ calibrate_k_inter(
 \item{k_inter_range}{Numeric vector of length 2. Search range for k_inter.
 Default: c(-100, 100)}
 
-\item{tol}{Numeric. Tolerance for root finding. Default: 1e-8}
+\item{tol}{Numeric. Tolerance for root finding. Default: 1e-6}
+
+\item{use_ahr}{Logical. If TRUE, calibrate to AHR instead of Cox-based HR.
+Default: FALSE}
 
 \item{verbose}{Logical. Print diagnostic information. Default: FALSE}
 
@@ -40,6 +44,10 @@ Numeric value of k_inter that achieves the target HR
 Finds the interaction effect multiplier (k_inter) that achieves a target
 hazard ratio in the harm subgroup.
 }
+\details{
+This function uses \code{uniroot} to find the k_inter value such that
+the empirical HR (or AHR) in the harm subgroup equals target_hr_harm.
+}
 \examples{
 \dontrun{
 # Find k_inter for HR = 1.5 in harm subgroup
@@ -47,6 +55,12 @@ k <- calibrate_k_inter(target_hr_harm = 1.5, verbose = TRUE)
 
 # Verify
 dgm <- create_gbsg_dgm(model = "alt", k_inter = k, verbose = TRUE)
+print(dgm$hr_H_true)  # Should be close to 1.5
+
+# Calibrate to AHR instead
+k_ahr <- calibrate_k_inter(target_hr_harm = 1.5, use_ahr = TRUE, verbose = TRUE)
+dgm_ahr <- create_gbsg_dgm(model = "alt", k_inter = k_ahr, verbose = TRUE)
+print(dgm_ahr$AHR_H_true)  # Should be close to 1.5
 }
 
 }
