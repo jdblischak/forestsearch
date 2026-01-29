@@ -14,6 +14,7 @@ plot_subgroup_results_forestplot(
   E.name = "Experimental",
   C.name = "Control",
   est.scale = "hr",
+  xlog = TRUE,
   title_text = NULL,
   arrow_text = c("Favors Experimental", "Favors Control"),
   footnote_text = c("Eg 80\% of training found SG: 70\% of B (+) also B in CV testing"),

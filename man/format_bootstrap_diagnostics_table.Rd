@@ -27,6 +27,5 @@ format_bootstrap_diagnostics_table(
 A gt table object
 }
 \description{
-Creates a publication-ready diagnostics table from bootstrap results,
-showing success rates and quality metrics.
+Creates a publication-ready diagnostics table from bootstrap results.
 }

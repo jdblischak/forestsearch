@@ -220,7 +220,7 @@ forestsearch_Kfold <- function(
   # SECTION 6: RUN CROSS-VALIDATION (PARALLEL)
   # ===========================================================================
 
-  resCV <- foreach::foreach(
+  resCV <- suppressWarnings({foreach::foreach(
     cv_index = seq_len(Kfolds),
     .options.future = list(seed = TRUE),
     .combine = "rbind",
@@ -265,7 +265,7 @@ forestsearch_Kfold <- function(
                   "cvindex", "sg1", "sg2")]
     )
   }
-
+})
   # ===========================================================================
   # SECTION 7: POST-PROCESSING AND VALIDATION
   # ===========================================================================
@@ -509,7 +509,7 @@ forestsearch_tenfold <- function(
   # SECTION 4: RUN SIMULATIONS (PARALLEL ACROSS SIMS)
   # ===========================================================================
 
-  simulation_results <- foreach::foreach(
+  simulation_results <- suppressWarnings({foreach::foreach(
     ksim = seq_len(sims),
     .options.future = list(seed = TRUE),
     .errorhandling = "pass"
@@ -584,6 +584,7 @@ forestsearch_tenfold <- function(
       sim_id = ksim
     )
   }
+})
 
   # ===========================================================================
   # SECTION 5: COMBINE AND SUMMARIZE RESULTS

@@ -13,6 +13,6 @@ calculate_skewness(x)
 Numeric skewness value
 }
 \description{
-Helper function to calculate sample skewness
+Helper function to calculate sample skewness.
 }
 \keyword{internal}

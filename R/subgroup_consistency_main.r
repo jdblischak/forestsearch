@@ -346,14 +346,6 @@ subgroup.consistency <- function(df,
     }
   }
 
-  # Sort based on sg_focus to prioritize candidates
-  # if (sg_focus == "hr") {
-  #   found.hrs <- found.hrs[order(found.hrs$HR, decreasing = TRUE), ]
-  # } else if (sg_focus == "maxSG") {
-  #   found.hrs <- found.hrs[order(found.hrs$n, decreasing = TRUE), ]
-  # } else if (sg_focus == "minSG") {
-  #   found.hrs <- found.hrs[order(found.hrs$n, decreasing = FALSE), ]
-  # }
 
   found.hrs <- sort_subgroups_preview(found.hrs, sg_focus)
 
@@ -384,7 +376,7 @@ subgroup.consistency <- function(df,
   # SECTION 5b: DISPLAY TOP CANDIDATE SUBGROUPS (if showten_subgroups = TRUE)
   # ===========================================================================
 
-  if (showten_subgroups) {
+  if (showten_subgroups && details) {
     n_show <- min(10, n_candidates)
 
     cat("\n")

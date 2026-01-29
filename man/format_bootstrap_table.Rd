@@ -9,6 +9,7 @@ format_bootstrap_table(
   nb_boots,
   est.scale = "hr",
   boot_success_rate = NULL,
+  sg_definition = NULL,
   title = NULL,
   subtitle = NULL
 )
@@ -22,6 +23,9 @@ format_bootstrap_table(
 
 \item{boot_success_rate}{Numeric. Proportion of bootstraps that found subgroups}
 
+\item{sg_definition}{Character. Subgroup definition string to display as footnote
+(e.g., "{age>=50} & {nodes>=3}"). If NULL, no subgroup footnote is added.}
+
 \item{title}{Character. Custom title (optional)}
 
 \item{subtitle}{Character. Custom subtitle (optional)}
@@ -31,5 +35,6 @@ A gt table object
 }
 \description{
 Creates a publication-ready table from ForestSearch bootstrap results,
-with bias-corrected confidence intervals and informative formatting.
+with bias-corrected confidence intervals, informative formatting, and
+optional subgroup definition footnote.
 }

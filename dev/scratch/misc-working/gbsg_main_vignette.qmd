@@ -26,6 +26,11 @@ execute:
 
 
 ```{r Setup, message=FALSE}
+rm(list=ls())
+# Record timing
+# Start timer
+t_start <- proc.time()
+
 # Set options
 knitr::opts_chunk$set(
   echo = TRUE,
@@ -34,7 +39,6 @@ knitr::opts_chunk$set(
   fig.align = 'center',
   fig.retina = 2
 )
-rm(list=ls())
 library(tinytex)
 library(ggplot2)
 library(gt)
@@ -54,7 +58,6 @@ library(weightedsurv)
 
 # Set theme for plots
 theme_set(theme_minimal(base_size = 12))
-
 ```
 
 
@@ -77,8 +80,6 @@ outcome.name <- c("time_months")
 event.name <- c("status")
 id.name <- c("id")
 treat.name <- c("hormon")
-
-
 
 ```
 
@@ -109,7 +110,6 @@ create_summary_table(data = df.analysis, treat_var = treat.name,
 
 ## GRF analysis  
 ```{r GRF, echo=TRUE, eval=TRUE}
-
 ## GRF
 grf_est1 <- grf.subg.harm.survival(data=df.analysis,
 confounders.name = confounders.name,
@@ -117,7 +117,7 @@ outcome.name=outcome.name, event.name=event.name, id.name=id.name, treat.name=tr
 maxdepth = 2, n.min = 60, dmin.grf = 12, frac.tau=0.6, details=TRUE)
 ```
 
-```{r GRFtrees, echo=TRUE, eval=TRUE, fig.width = 7, fig.height = 5}
+```{r, echo=TRUE, fig.width = 7, fig.height = 5}
 # NOTE: In general for GRF trees
 # leaf1 --> recommend control
 # leaf2 --> recommend treatment
@@ -147,27 +147,23 @@ system.time({fs <- forestsearch(df.analysis,  confounders.name = confounders.nam
                                 df.test = NULL,
                                 flag_harm.name = NULL,
                                 hr.threshold = 1.0, hr.consistency = 0.9, 
-                                pconsistency.threshold = 0.90, stop_threshold = 0.975,
+                                pconsistency.threshold = 0.90, stop_threshold = 0.95,
                                 sg_focus = "hr", max_subgroups_search = 10, use_twostage = TRUE,
-                                parallel_args = list(plan="callr", workers = 30, show_message = TRUE),
+                                parallel_args = list(plan="multisession", workers = 13, show_message = TRUE),
                                 showten_subgroups = TRUE, details=TRUE,
                                 conf_force = NULL,
-                                cut_type = "default", use_grf = TRUE, plot.grf = TRUE, use_lasso = FALSE,
-                                maxk = 2, fs.splits = 1000,
+                                cut_type = "default", use_grf = TRUE, plot.grf = FALSE, use_lasso = FALSE,
+                                maxk = 2, fs.splits = 100,
                                 n.min = 60, d0.min = 12, d1.min = 12,
                                 plot.sg = TRUE, by.risk = 6)
 })
 
 plan("sequential")
 
-
 # Results for estimation (training) data, which_df = "est" is default
 res_tabs <- sg_tables(fs, ndecimals = 3, which_df = "est")
-
 res_tabs$sg10_out
-
 res_tabs$tab_estimates
-
 
 ```
 
@@ -177,11 +173,11 @@ res_tabs$tab_estimates
 ```{r, eval = TRUE}
 
 # patchhwork needed for a combined bootstrap plot (otherwise if not available or very few bootstraps do not produce)
-#library(patchwork)
+
+library(patchwork)
 
 # Number of bootstrap samples
-NB <- 10
-
+NB <- 3
 system.time({fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs, 
   nb_boots = NB, 
@@ -196,19 +192,8 @@ plan("sequential")
 
 ### Diagnostics and Summaries
 
-```{r bootstrap-diagnostics, eval = TRUE}
+```{r, eval = TRUE}
 
-#load("~/Documents/GitHub/forestsearch/vignettes/results/sim_gbsg_example_B=1000.RData")
-
-output_dir <- "results/"
-
-load_results <- dir.exists(output_dir)
-if(load_results){
-filename <- file.path(output_dir, 
-                         paste0(fileout_boot,".RData"))
-
-load(file = filename)
-}
 
 summaries <- summarize_bootstrap_results(
       sgharm = fs$sg.harm,
@@ -233,87 +218,46 @@ summaries$subgroup_summary$factor_presence_specific
 
 ```
 
-```{r, fig.width = 10, fig.height = 8}
-
-summaries$plots$combined
-
+```{r, fig.width = 5, fig.height = 8, eval = FALSE}
+summaries$plots$H_distribution
+summaries$plots$Hc_distribution
 ```
 
 
-## Forest Search n-fold cross-validation  
-```{r FSnfold_k2, echo=TRUE, eval = TRUE}
+## Forest Search k-fold cross-validation  
+```{r, echo=TRUE, eval = FALSE}
+# 1 iteration of 2-fold cross-validation (in practice use 10-fold and at least 50 (Ksims) iterations)
+Ksims <- 1
+system.time({fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 2, details = FALSE, 
+                       parallel_args = list(plan = "multisession", workers = 13, show_message = TRUE))})
 
-
-output_dir <- "results/"
-load_results <- dir.exists(output_dir)
-if(load_results){
-filename <- file.path(output_dir, 
-                         paste0(fileout_boot,".RData"))
-
-load(file = filename)
-}
-
-# Kfolds = n (default to n-fold cross-validations)
-
-fs_OOB <- NULL
-
-fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE,
-                             parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
-# Reset workers to single
 plan(sequential)
-
-summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
-
-table(summary_OOB$SGs_found[,1])
-table(summary_OOB$SGs_found[,2])
-
-Ksims <- 200
-
-fs_ten <- forestsearch_tenfold(fs.est = fs, sims = Ksims, Kfolds = 10, details = TRUE, 
-                       parallel_args = list(plan = "callr", workers = 36, show_message = TRUE))
-
-# Reset workers to single
-plan(sequential)
-
 print(fs_ten$find_summary)
 print(fs_ten$sens_summary)
-
 print(head(fs_ten$sens_out))
 print(head(fs_ten$find_out))
-
-
-# Save all results
-
-output_dir <- "results/"
-save_results <- dir.exists(output_dir)
-
-if (save_results) {
-    filename <- file.path(output_dir, 
-                         paste0(fileout_cv, 
-                                ".RData"))
-    save(df.analysis, fs, fs_bc, fs_ten, fs_OOB, file = filename)
-    cat("\nResults saved to:", filename, "\n")
-}
-
-
 ```
 
 
+## Forest Search OOB   
+```{r, echo=TRUE, eval = FALSE}
+# OOB = out-of-bag prediction
+# Kfolds = n (default to n-fold cross-validations)
+# Kfold = 2 for illustration
+
+fs_OOB <- forestsearch_Kfold(fs.est = fs, details = TRUE, Kfolds = 2,
+                             parallel_args = list(plan = "callr", workers = 13, show_message = TRUE))
+# Reset workers to single
+plan(sequential)
+summary_OOB <- forestsearch_KfoldOut(res=fs_OOB, details=TRUE, outall=TRUE)
+table(summary_OOB$SGs_found[,1])
+table(summary_OOB$SGs_found[,2])
+```
 
 
+```{r, fig.width = 9, fig.height = 6}
 
-```{r forestplot_k2, fig.width = 9, fig.height = 6}
-
-output_dir <- "results/"
-load_results <- dir.exists(output_dir)
-if(load_results){
-filename <- file.path(output_dir, 
-                         paste0(fileout_cv,".RData"))
-
-load(file = filename)
-}
-
-#' # Define subgroups to display
+# Define subgroups to display (these could be pre-specified or of post-hoc interest)
 subgroups <- list(
  age_gt65 = list(
  subset_expr = "age > 65",
@@ -337,10 +281,11 @@ pgr_negative = list(
    )
   )
 
+# If fs_OOB and fs_kfold are provided then CV metrics are displayed for both
 
 # Create the forest plot
  result <- plot_subgroup_results_forestplot(
-   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_OOB = fs_OOB, fs_kfold = fs_ten),
+   fs_results = list(fs.est = fs, fs_bc = fs_bc, fs_OOB = NULL, fs_kfold = NULL),
    df_analysis = df.analysis,
    subgroup_list = subgroups,
    outcome.name = "time_months",
@@ -354,5 +299,8 @@ pgr_negative = list(
 # Display the plot
 plot(result$plot)
 
+# Calculate elapsed time
+t_elapsed <- (proc.time() - t_start)["elapsed"]
+cat("Elapsed:", t_elapsed, "seconds\n")
 ```
 

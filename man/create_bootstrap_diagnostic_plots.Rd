@@ -4,7 +4,12 @@
 \alias{create_bootstrap_diagnostic_plots}
 \title{Create Bootstrap Diagnostic Plots}
 \usage{
-create_bootstrap_diagnostic_plots(results, H_estimates, Hc_estimates)
+create_bootstrap_diagnostic_plots(
+  results,
+  H_estimates,
+  Hc_estimates,
+  overall_timing = NULL
+)
 }
 \arguments{
 \item{results}{Data frame with bootstrap results}
@@ -12,11 +17,13 @@ create_bootstrap_diagnostic_plots(results, H_estimates, Hc_estimates)
 \item{H_estimates}{List with H subgroup estimates}
 
 \item{Hc_estimates}{List with Hc subgroup estimates}
+
+\item{overall_timing}{List with overall timing information (optional)}
 }
 \value{
 List of ggplot2 objects
 }
 \description{
-Create Bootstrap Diagnostic Plots
+Generates diagnostic visualization plots for bootstrap analysis.
 }
 \keyword{internal}
