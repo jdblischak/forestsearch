@@ -256,7 +256,7 @@ fs <- forestsearch(
   hr.threshold = 1.25,
   hr.consistency = 1.0,
   pconsistency.threshold = 0.90,
-  stop_threshold = 0.95,
+  stop_threshold = 0.975,
   # Search configuration
   sg_focus = "hr",
   max_subgroups_search = 10,

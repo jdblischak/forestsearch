@@ -9,7 +9,7 @@
 #' @param nb_boots Integer. Total number of bootstrap iterations
 #' @param original_sg Character vector. Original subgroup definition from main
 
-#'   analysis (e.g., c("{age>=50}", "{nodes>=3}") for a 2-factor subgroup)
+#'   analysis (e.g., c("\{age>=50\}", "\{nodes>=3\}") for a 2-factor subgroup)
 #' @param maxk Integer. Maximum number of factors allowed in subgroup definition
 #'
 #' @return List with summary components:

@@ -13,7 +13,7 @@ characteristics including columns like Pcons, hr_sg, N_sg, K_sg, and M.1-M.k}
 \item{nb_boots}{Integer. Total number of bootstrap iterations}
 
 \item{original_sg}{Character vector. Original subgroup definition from main
-analysis (e.g., c("{age>=50}", "{nodes>=3}") for a 2-factor subgroup)}
+analysis (e.g., c("\{age>=50\}", "\{nodes>=3\}") for a 2-factor subgroup)}
 
 \item{maxk}{Integer. Maximum number of factors allowed in subgroup definition}
 }

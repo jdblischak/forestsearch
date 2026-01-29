@@ -60,6 +60,9 @@ rm(list=ls())
 
 .rs.restartR()
 
+#source("apply_cran_fixes.R")
+# removed from root after applied
+
 # clean up old documentation
 unlink("man/*.Rd")
 

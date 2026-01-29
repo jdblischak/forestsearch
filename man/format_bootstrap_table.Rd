@@ -24,7 +24,7 @@ format_bootstrap_table(
 \item{boot_success_rate}{Numeric. Proportion of bootstraps that found subgroups}
 
 \item{sg_definition}{Character. Subgroup definition string to display as footnote
-(e.g., "{age>=50} & {nodes>=3}"). If NULL, no subgroup footnote is added.}
+(e.g., "\{age>=50\} & \{nodes>=3\}"). If NULL, no subgroup footnote is added.}
 
 \item{title}{Character. Custom title (optional)}
 

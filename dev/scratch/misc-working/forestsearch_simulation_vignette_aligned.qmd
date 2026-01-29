@@ -414,7 +414,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config_alt <- list(
-  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
+  n_sims = 5000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -422,7 +422,7 @@ sim_config_alt <- list(
 )
 
 sim_config_null <- list(
-  n_sims = 1000,          # More simulations for Type I error estimation
+  n_sims = 10000,          # More simulations for Type I error estimation
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -572,6 +572,159 @@ print(summary_alt)
 # Summarize null hypothesis results
 summary_null <- summarize_simulation_results(results_null)
 print(summary_null)
+```
+
+# Theoretical Subgroup Detection Rate Approximation
+
+The function `compute_detection_probability()` provides an analytical approximation
+based on asymptotic normal theory:
+
+```{r theoretical-detection-rates}
+
+#| label: theoretical-power
+#| fig-width: 8
+#| fig-height: 6
+
+# =============================================================================
+# Theoretical Detection Probability Analysis
+# =============================================================================
+
+# Calculate expected subgroup characteristics
+n_sg_expected <- sim_config_alt$n_sample * mean(dgm_calibrated$df_super_rand$flag.harm)
+prop_cens <- mean(results_alt$p.cens)  # Censoring proportion
+
+cat("=== Subgroup Characteristics ===\n")
+cat("Expected subgroup size (n_sg):", round(n_sg_expected), "\n")
+cat("Censoring proportion:", round(prop_cens, 3), "\n")
+cat("True HR in H:", round(dgm_calibrated$hr_H_true, 3), "\n")
+cat("HR threshold:", fs_params$hr.threshold, "\n")
+
+# -----------------------------------------------------------------------------
+# Single-Point Detection Probability
+# -----------------------------------------------------------------------------
+
+# True H is dgm_calibrated$hr_H_true
+# However we want at plim of observed estimate
+#plim_hr_hatH <- c(summary_alt[c("hat(hat[H])"),1])
+
+dgm_calibrated$hr_H_true
+
+# Compute detection probability at the true HR
+prob_detect <- compute_detection_probability(
+ theta = dgm_calibrated$hr_H_true,
+  n_sg = round(n_sg_expected),
+  prop_cens = prop_cens,
+  hr_threshold = fs_params$hr.threshold,
+  hr_consistency = fs_params$hr.consistency,
+  method = "cubature"
+)
+
+# Compare theoretical to empirical (alternative)
+cat("\n=== Detection Probability Comparison ===\n")
+cat("Theoretical FS (asymptotic):", round(prob_detect, 3), "\n")
+
+cat("Empirical FS:", round(mean(results_alt[analysis == "FS"]$any.H), 3), "\n")
+cat("Empirical FSlg:", round(mean(results_alt[analysis == "FSlg"]$any.H), 3), "\n")
+if ("GRF" %in% results_alt$analysis) {
+  cat("Empirical GRF:", round(mean(results_alt[analysis == "GRF"]$any.H), 3), "\n")
+}
+
+# Null 
+
+#plim_hr_itt <- c(summary_alt[c("hat(ITT)all"),1])
+
+# Calculate at min SG size
+# Compute detection probability at the true HR
+prob_detect_null <- compute_detection_probability(
+ theta = dgm_null$hr_causal,
+  n_sg = fs_params$n.min,
+  prop_cens = prop_cens,
+  hr_threshold = fs_params$hr.threshold,
+  hr_consistency = fs_params$hr.consistency,
+  method = "cubature"
+)
+
+
+# Compare theoretical to empirical (alternative)
+cat("\n=== Detection Probability Comparison ===\n")
+cat("Under the null calculate at min SG size:", fs_params$n.min,"\n")
+cat("Theoretical FS at min(SG) (asymptotic):", round(prob_detect_null, 6), "\n")
+
+cat("Empirical FS:", round(mean(results_null[analysis == "FS"]$any.H), 6), "\n")
+cat("Empirical FSlg:", round(mean(results_null[analysis == "FSlg"]$any.H), 6), "\n")
+if ("GRF" %in% results_null$analysis) {
+  cat("Empirical GRF:", round(mean(results_null[analysis == "GRF"]$any.H), 6), "\n")
+}
+
+prop_cens <- mean(results_null$p.cens)  # Censoring proportion
+cat("Censoring proportion:", round(prop_cens, 3), "\n")
+
+
+# -----------------------------------------------------------------------------
+# Generate Full Detection Curve
+# -----------------------------------------------------------------------------
+
+# Generate detection probability curve across HR values
+detection_curve <- generate_detection_curve(
+  theta_range = c(0.5, 3.0),
+  n_points = 50,
+  n_sg = round(n_sg_expected),
+  prop_cens = prop_cens,
+  hr_threshold = fs_params$hr.threshold,
+  hr_consistency = fs_params$hr.consistency,
+  include_reference = TRUE,
+  verbose = FALSE
+)
+
+# -----------------------------------------------------------------------------
+# Visualization
+# -----------------------------------------------------------------------------
+
+# Plot detection curve with empirical overlay
+plot_detection_curve(
+  detection_curve,
+  add_reference_lines = TRUE,
+  add_threshold_line = TRUE,
+  title = sprintf(
+    "Detection Probability Curve (n=%d, cens=%.0f%%, threshold=%.2f)",
+    round(n_sg_expected), 100 * prop_cens, fs_params$hr.threshold
+  )
+)
+
+# Add empirical results as points
+empirical_rates <- c(
+  FS = mean(results_alt[analysis == "FS"]$any.H),
+  FSlg = mean(results_alt[analysis == "FSlg"]$any.H)
+)
+if ("GRF" %in% results_alt$analysis) {
+  empirical_rates["GRF"] <- mean(results_alt[analysis == "GRF"]$any.H)
+}
+
+# Mark the true HR and empirical detection rates
+points(
+  x = rep(dgm_calibrated$hr_H_true, length(empirical_rates)),
+  y = empirical_rates,
+  pch = c(16, 17, 18)[1:length(empirical_rates)],
+  col = c("blue", "darkgreen", "purple")[1:length(empirical_rates)],
+  cex = 1.5
+)
+
+# Add vertical line at true HR
+abline(v = dgm_calibrated$hr_H_true, lty = 2, col = "blue", lwd = 1)
+
+# Legend for empirical points
+legend(
+  "topleft",
+  legend = c(
+    sprintf("H true = %.2f", dgm_calibrated$hr_H_true),
+    paste(names(empirical_rates), "=", round(empirical_rates, 3))
+  ),
+  pch = c(NA, 16, 17, 18)[1:(length(empirical_rates) + 1)],
+  lty = c(2, rep(NA, length(empirical_rates))),
+  col = c("blue", "blue", "darkgreen", "purple")[1:(length(empirical_rates) + 1)],
+  cex = 0.8,
+  bty = "n"
+)
 ```
 
 ## AHR Metrics in Results (New)

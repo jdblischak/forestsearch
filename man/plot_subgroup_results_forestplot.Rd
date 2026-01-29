@@ -62,6 +62,10 @@ Each element should be a list with:
 
 \item{est.scale}{Character. Estimate scale: "hr" or "1/hr" (default: "hr").}
 
+\item{xlog}{Logical. If TRUE (default), the x-axis is plotted on a
+logarithmic scale. This is standard for hazard ratio forest plots
+where equal distances represent equal relative effects.}
+
 \item{title_text}{Character. Plot title (default: NULL).}
 
 \item{arrow_text}{Character vector of length 2. Arrow labels for forest plot

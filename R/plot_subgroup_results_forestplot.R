@@ -35,6 +35,9 @@
 #' @param E.name Character. Label for experimental arm (default: "Experimental").
 #' @param C.name Character. Label for control arm (default: "Control").
 #' @param est.scale Character. Estimate scale: "hr" or "1/hr" (default: "hr").
+#' @param xlog Logical. If TRUE (default), the x-axis is plotted on a
+#'   logarithmic scale. This is standard for hazard ratio forest plots
+#'   where equal distances represent equal relative effects.
 #' @param title_text Character. Plot title (default: NULL).
 #' @param arrow_text Character vector of length 2. Arrow labels for forest plot
 #'   (default: c("Favors Experimental", "Favors Control")).

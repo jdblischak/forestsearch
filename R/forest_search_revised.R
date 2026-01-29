@@ -45,10 +45,19 @@
 #' @param hr.consistency Numeric. Minimum HR for consistency validation. Default 1.0.
 #' @param sg_focus Character. Subgroup selection focus. One of "hr", "hrMaxSG", "maxSG",
 #'   "hrMinSG", "minSG". Default "hr".
+#' @param stop_threshold Numeric. Early stopping threshold for consistency
+#'   evaluation. When a candidate subgroup's estimated consistency probability
+#'   exceeds this threshold, evaluation stops early. Default 0.95.
+#'   \strong{Note:} Automatically reset to NULL when \code{sg_focus} is
+#'   "hrMaxSG" or "hrMinSG", as these criteria prioritize hazard ratio in
+#'   selection and require full evaluation of all candidates.
 #' @param fs.splits Integer. Number of splits for consistency evaluation (or maximum
 #'   splits when \code{use_twostage = TRUE}). Default 1000.
 #' @param m1.threshold Numeric. Maximum median survival threshold. Default Inf.
 #' @param pconsistency.threshold Numeric. Minimum consistency proportion. Default 0.90.
+#' @param stop_threshold Numeric. Early stopping threshold for consistency
+#'   evaluation. When a candidate subgroup's estimated consistency probability
+#'   exceeds this threshold, evaluation stops early. Default 0.95.
 #' @param showten_subgroups Logical. Show top 10 subgroups. Default FALSE.
 #' @param d0.min Integer. Minimum control arm events. Default 12.
 #' @param d1.min Integer. Minimum treatment arm events. Default 12.
@@ -288,6 +297,20 @@ forestsearch <- function(df.analysis,
     } else {
       n_workers <- min(n_workers, max_cores)
     }
+  }
+
+  # Reset stop_threshold for HR-prioritized sg_focus options
+  if (!is.null(stop_threshold) && sg_focus %in% c("hrMaxSG", "hrMinSG")) {
+    if (details) {
+      cat(
+        "Note: stop_threshold reset to NULL for sg_focus = '", sg_focus, "'.\n",
+        "Early stopping disabled when HR is prioritized in selection;\n",
+        "Also consider increasing max_subgroups_search if search does not appear exhaustive.\n\n",
+        sep = ""
+      )
+    }
+    stop_threshold <- NULL
+    args_call_all$stop_threshold <- NULL
   }
 
   # Validate two-stage parameters

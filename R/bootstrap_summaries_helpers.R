@@ -9,7 +9,7 @@
 #' @param est.scale Character. "hr" or "1/hr" for effect scale
 #' @param boot_success_rate Numeric. Proportion of bootstraps that found subgroups
 #' @param sg_definition Character. Subgroup definition string to display as footnote
-#'   (e.g., "{age>=50} & {nodes>=3}"). If NULL, no subgroup footnote is added.
+#'   (e.g., "\{age>=50\} & \{nodes>=3\}"). If NULL, no subgroup footnote is added.
 #' @param title Character. Custom title (optional)
 #' @param subtitle Character. Custom subtitle (optional)
 #'

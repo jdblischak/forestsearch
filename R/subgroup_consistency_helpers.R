@@ -295,9 +295,9 @@ sort_subgroups <- function(result_new, sg_focus) {
 sort_subgroups_preview <- function(result_new, sg_focus) {
   if (sg_focus == "hr") data.table::setorder(result_new, -HR, K)
   if (sg_focus == "maxSG") data.table::setorder(result_new, -n, K)
-  if (sg_focus == "hrMaxSG") data.table::setorder(result_new, -n, -HR, K)
+  if (sg_focus == "hrMaxSG") data.table::setorder(result_new, -HR, -n, K)
   if (sg_focus == "minSG") data.table::setorder(result_new, n, K)
-  if (sg_focus == "hrMinSG") data.table::setorder(result_new, n, -HR, K)
+  if (sg_focus == "hrMinSG") data.table::setorder(result_new, -HR, n, K)
   result_new
 }
 

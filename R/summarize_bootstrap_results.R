@@ -5,7 +5,7 @@
 #'
 #' @param sgharm The selected subgroup object from forestsearch results. Can be:
 #'   \itemize{
-#'     \item Character vector of factor definitions (e.g., c("{age>=50}", "{nodes>=3}"))
+#'     \item Character vector of factor definitions (e.g., c("\{age>=50\}", "\{nodes>=3\}"))
 #'     \item List with `sgharm` element containing factor definitions
 #'     \item List with `sg.harm_label` element (human-readable labels)
 #'   }
