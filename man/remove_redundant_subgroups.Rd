@@ -13,5 +13,5 @@ remove_redundant_subgroups(found.hrs)
 Data.table of non-redundant subgroups.
 }
 \description{
-Removes redundant subgroups from the results by checking for ties.
+Removes redundant subgroups by checking for exact ties in key columns.
 }

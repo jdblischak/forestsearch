@@ -204,10 +204,11 @@ bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
 
   # Do not modify seed it needs to align with ystar
   # Setting seed = FALSE to allow for manual control of seeds
-  foreach_results <- foreach::foreach(
+  foreach_results <- suppressWarnings({foreach::foreach(
     boot = seq_len(nb_boots),
     .options.future = list(
       seed = TRUE,
+      conditions = character(0),
       globals = structure(TRUE, add = c(
       # Functions
       get_bootstrap_exports(),
@@ -459,34 +460,6 @@ bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
     tmins_iteration <- (t_iter_end - t_iter_start) / 60
 
     # =================================================================
-    # RETURN: data.table with event counts AND TIMING
-    # =================================================================
-    # dfres <- data.table::data.table(
-    #   boot_id = boot,
-    #   H_biasadj_1 = H_biasadj_1,
-    #   H_biasadj_2 = H_biasadj_2,
-    #   Hc_biasadj_1 = Hc_biasadj_1,
-    #   Hc_biasadj_2 = Hc_biasadj_2,
-    #   max_sg_est = max_sg_est,
-    #   L = L,
-    #   max_count = max_count,
-    #   # Event counts for ORIGINAL subgroup evaluated on BOOTSTRAP sample
-    #   events_H_0 = events_H_0,
-    #   events_H_1 = events_H_1,
-    #   events_Hc_0 = events_Hc_0,
-    #   events_Hc_1 = events_Hc_1,
-    #   # Event counts for NEW subgroup (found in bootstrap) evaluated on ORIGINAL data
-    #   events_Hstar_0 = events_Hstar_0,
-    #   events_Hstar_1 = events_Hstar_1,
-    #   events_Hcstar_0 = events_Hcstar_0,
-    #   events_Hcstar_1 = events_Hcstar_1,
-    #   # TIMING COLUMNS
-    #   tmins_search = tmins_search,           # Time for forestsearch only
-    #   tmins_iteration = tmins_iteration      # Total time for this iteration
-    # )
-
-
-    # =================================================================
     # RETURN: data.table with event counts, TIMING, AND CONSISTENCY RESULTS
     # =================================================================
 
@@ -576,6 +549,7 @@ bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
 
     return(dfres)
   }
+  })
 
   # =========================================================================
   # SECTION: CALCULATE TOTAL BOOTSTRAP TIMING

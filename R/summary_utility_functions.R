@@ -441,6 +441,30 @@ sg_tables <- function(fs,
     )
 
   # =========================================================================
+  # ADD SUBGROUP DEFINITION FOOTNOTE TO tab_estimates
+  # =========================================================================
+
+  sg_definition <- NULL
+  if (!is.null(fs$grp.consistency$out_sg$sg.harm_label)) {
+    sg_definition <- paste(fs$grp.consistency$out_sg$sg.harm_label, collapse = " & ")
+  } else if (!is.null(fs$sg.harm)) {
+    sg_definition <- paste(fs$sg.harm, collapse = " & ")
+  }
+
+  # Add footnote to specific row
+  if (!is.null(sg_definition) && nzchar(sg_definition)) {
+    tab_estimates <- tab_estimates |>
+      gt::tab_footnote(
+        footnote = gt::md(paste0("**Identified subgroup** : ", sg_definition)),
+        locations = gt::cells_body(
+          columns = 1,  # First column (Subgroup name)
+          rows = grepl("Questionable|H$", tab_est[[1]])  # Row with "Questionable" or "H"
+        )
+      )
+  }
+
+
+  # =========================================================================
   # TABLE 2: IDENTIFIED SUBGROUPS (WITH EXPERIMENTAL ARM EVENTS)
   # =========================================================================
 

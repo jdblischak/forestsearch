@@ -13,7 +13,7 @@ bootstrap_ystar <- function(df, nb_boots) {
   # do not modify seed below it need to align with main bootstrap
   # using manual seeding to allow reproducibility when qc-ing
   set.seed(8316951)
-  foreach::foreach(
+suppressWarnings({foreach::foreach(
     boot = seq_len(nb_boots),
     .options.future = list(seed = TRUE),
     .combine = "rbind",
@@ -25,6 +25,7 @@ bootstrap_ystar <- function(df, nb_boots) {
     ystar <- unlist(lapply(df$id, count_boot_id, dfb = df_boot))
     return(ystar)
   }
+})
 }
 
 #' Count ID Occurrences in Bootstrap Sample

@@ -2,24 +2,24 @@
 % Please edit documentation in R/subgroup_consistency_helpers.R
 \name{extract_subgroup}
 \alias{extract_subgroup}
-\title{Extract Subgroup Definition and Treatment Recommendation}
+\title{Extract Subgroup Information}
 \usage{
 extract_subgroup(df, top_result, index.Z, names.Z, confs_labels)
 }
 \arguments{
-\item{df}{The original data.frame.}
+\item{df}{Data.frame. Original analysis data.}
 
-\item{top_result}{The top subgroup result row.}
+\item{top_result}{Data.table row. Top subgroup result.}
 
-\item{index.Z}{Matrix of subgroup indices.}
+\item{index.Z}{Matrix. Factor indicators for all subgroups.}
 
-\item{names.Z}{Names of covariates.}
+\item{names.Z}{Character vector. Factor column names.}
 
-\item{confs_labels}{Label mapping for covariates.}
+\item{confs_labels}{Character vector. Human-readable labels.}
 }
 \value{
-A list with subgroup definition, labels, recommended treatment, and group id.
+List with sg.harm, sg.harm_label, df_flag, sg.harm.id.
 }
 \description{
-Identifies the subgroup definition and recommends treatment for each subject.
+Extracts subgroup definition and membership from results.
 }

@@ -17,26 +17,26 @@ sg_consistency_out(
 )
 }
 \arguments{
-\item{df}{The original data.frame.}
+\item{df}{Data.frame. Original analysis data.}
 
-\item{result_new}{Sorted subgroup results.}
+\item{result_new}{Data.table. Sorted subgroup results.}
 
-\item{sg_focus}{Sorting focus.}
+\item{sg_focus}{Character. Sorting focus criterion.}
 
-\item{index.Z}{Matrix of subgroup indices.}
+\item{index.Z}{Matrix. Subgroup factor indicators.}
 
-\item{names.Z}{Names of covariates.}
+\item{names.Z}{Character vector. Factor column names.}
 
-\item{details}{Logical; print details.}
+\item{details}{Logical. Print details.}
 
-\item{plot.sg}{Logical; plot subgroup curves.}
+\item{plot.sg}{Logical. Plot subgroup curves.}
 
-\item{by.risk}{Risk interval for plotting.}
+\item{by.risk}{Numeric. Risk interval for plotting.}
 
-\item{confs_labels}{Covariate label mapping.}
+\item{confs_labels}{Character vector. Human-readable labels.}
 }
 \value{
-A list with results, subgroup definition, labels, flags, and group id.
+List with results, subgroup definition, labels, flags, and group id.
 }
 \description{
 Returns the top subgroup(s) and recommended treatment flags.

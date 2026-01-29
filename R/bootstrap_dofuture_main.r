@@ -181,37 +181,54 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
   # SECTION 6: SETUP PARALLEL PROCESSING
   # =======================================================================
 
-  # old_plan <- future::plan()
   # on.exit({
-  #   future::plan(old_plan)
-  #   # Optional: Force garbage collection after parallel work
-  #   # Uncomment if experiencing memory issues with many workers:
-  #   # gc()
+  #   # Ensure workers are properly shut down
+  #   if (exists(".Last.future.plan")) {
+  #     future::plan(.Last.future.plan)
+  #   } else {
+  #     future::plan("sequential")  # Safe fallback
+  #   }
+  #
+  #   # Clear large objects from workers
+  #   if (parallel_args$plan %in% c("multisession", "multicore", "callr")) {
+  #     foreach::registerDoSEQ()  # Reset to sequential
+  #   }
+  #
+  #   # Only gc() if truly needed
+  #   if (object.size(Ystar_mat) > 1e9) {  # If >1GB
+  #     gc(verbose = FALSE, reset = TRUE)
+  #   }
   # }, add = TRUE)
   #
+  #
+  # suppressWarnings({
+  #   setup_parallel_SGcons(parallel_args)
+  # })
 
-  # Better resource management
+
+  # Suppress warnings during entire parallel section
+  old_warn <- getOption("warn")
+  options(warn = -1)
+
   on.exit({
-    # Ensure workers are properly shut down
+    options(warn = old_warn)  # Restore first
+
     if (exists(".Last.future.plan")) {
       future::plan(.Last.future.plan)
     } else {
-      future::plan("sequential")  # Safe fallback
+      future::plan("sequential")
     }
-
-    # Clear large objects from workers
     if (parallel_args$plan %in% c("multisession", "multicore", "callr")) {
-      foreach::registerDoSEQ()  # Reset to sequential
+      foreach::registerDoSEQ()
     }
-
-    # Only gc() if truly needed
-    if (object.size(Ystar_mat) > 1e9) {  # If >1GB
+    if (exists("Ystar_mat") && object.size(Ystar_mat) > 1e9) {
       gc(verbose = FALSE, reset = TRUE)
     }
   }, add = TRUE)
 
-
   setup_parallel_SGcons(parallel_args)
+  doFuture::registerDoFuture()
+
 
   # =======================================================================
   # SECTION 7: GENERATE YSTAR MATRIX (BOOTSTRAP INDICATORS)
@@ -276,6 +293,8 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
     H_obs = H_obs,
     Hc_obs = Hc_obs
   )
+
+  options(warn = old_warn)
 
   # =======================================================================
   # SECTION 9: POST-PROCESSING AND CONFIDENCE INTERVALS

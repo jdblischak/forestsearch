@@ -9,10 +9,11 @@ setup_parallel_SGcons(
 )
 }
 \arguments{
-\item{parallel_args}{List with \code{plan} (character), \code{workers} (integer), and \code{show_message} (logical).}
+\item{parallel_args}{List with \code{plan} (character), \code{workers} (integer),
+and \code{show_message} (logical).}
 }
 \value{
-None. Sets up parallel backend.
+None. Sets up parallel backend as side effect.
 }
 \description{
 Sets up parallel processing using the specified approach and number of workers.

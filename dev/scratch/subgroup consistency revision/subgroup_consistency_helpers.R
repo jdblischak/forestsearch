@@ -265,41 +265,32 @@ FS_labels <- function(Qsg, confs_labels) {
 }
 
 
-#' Sort Subgroups by Focus
+# =============================================================================
+# SUBGROUP SORTING AND SELECTION
+# =============================================================================
+
+#' Sort Subgroups by Focus Criterion
 #'
-#' Sorts a data.table of subgroup results according to the specified focus.
+#' Sorts subgroup results based on specified criterion.
 #'
-#' @param result_new A data.table of subgroup results.
-#' @param sg_focus Sorting focus: "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG".
-#' @return A sorted data.table.
+#' @param result_new Data.table of subgroup results with hr, N columns.
+#' @param sg_focus Character. One of "hr", "maxSG", "minSG".
+#'
+#' @return Sorted data.table.
+#'
 #' @importFrom data.table setorder
 #' @export
 sort_subgroups <- function(result_new, sg_focus) {
-  if (sg_focus == "hr") data.table::setorder(result_new, -Pcons, -hr, K)
-  if (sg_focus == "maxSG") data.table::setorder(result_new, -N, -Pcons, K)
-  if (sg_focus == "hrMaxSG") data.table::setorder(result_new, -N, -hr, K)
-  if (sg_focus == "minSG") data.table::setorder(result_new, N, -Pcons, K)
-  if (sg_focus == "hrMinSG") data.table::setorder(result_new, N, -hr, K)
-  result_new
+  if (sg_focus == "hr") {
+    data.table::setorder(result_new, -hr)
+  } else if (sg_focus == "maxSG") {
+    data.table::setorder(result_new, -N, -hr)
+  } else if (sg_focus == "minSG") {
+    data.table::setorder(result_new, N, -hr)
+  }
+  return(result_new)
 }
 
-#' Sort Subgroups by Focus at consistency stage (consistency not available at this point)
-#'
-#' Sorts a data.table of subgroup results according to the specified focus.
-#'
-#' @param result_new A data.table of subgroup results.
-#' @param sg_focus Sorting focus: "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG".
-#' @return A sorted data.table.
-#' @importFrom data.table setorder
-#' @export
-sort_subgroups_preview <- function(result_new, sg_focus) {
-  if (sg_focus == "hr") data.table::setorder(result_new, -HR, K)
-  if (sg_focus == "maxSG") data.table::setorder(result_new, -n, K)
-  if (sg_focus == "hrMaxSG") data.table::setorder(result_new, -n, -HR, K)
-  if (sg_focus == "minSG") data.table::setorder(result_new, n, K)
-  if (sg_focus == "hrMinSG") data.table::setorder(result_new, n, -HR, K)
-  result_new
-}
 
 #' Extract Subgroup Information
 #'
@@ -345,40 +336,6 @@ extract_subgroup <- function(df, top_result, index.Z, names.Z, confs_labels) {
 }
 
 
-#' Plot Subgroup Survival Curves
-#'
-#' Plots weighted Kaplan-Meier survival curves for a specified subgroup and its complement using the \pkg{weightedsurv} package.
-#'
-#' @param df.sub A data frame containing data for the subgroup of interest.
-#' @param df.subC A data frame containing data for the complement subgroup.
-#' @param by.risk Numeric. The risk interval for plotting (passed to \code{weightedsurv::df_counting}).
-#' @param confs_labels Named character vector. Covariate label mapping (not used directly in this function, but may be used for labeling).
-#' @param this.1_label Character. Label for the subgroup being plotted.
-#' @param top_result Data frame row. The top subgroup result row, expected to contain a \code{Pcons} column for consistency criteria.
-#'
-#' @importFrom weightedsurv df_counting plot_weighted_km
-#' @export
-
-plot_subgroup <- function(df.sub, df.subC, by.risk, confs_labels, this.1_label, top_result) {
-  if (requireNamespace("weightedsurv", quietly = TRUE)) {
-    tte.name <- "Y"
-    event.name <- "Event"
-    treat.name <- "Treat"
-    con.lab <- "control"
-    exp.lab <- "treat"
-    dfcount <- weightedsurv::df_counting(df.sub, tte.name = tte.name, event.name = event.name, treat.name = treat.name, arms = c(exp.lab, con.lab), by.risk = by.risk)
-    dfcountC <- weightedsurv::df_counting(df.subC, tte.name = tte.name, event.name = event.name, treat.name = treat.name, arms = c(exp.lab, con.lab), by.risk = by.risk)
-    par(mfrow = c(1, 2))
-    weightedsurv::plot_weighted_km(dfcount, conf.int = TRUE, show.logrank = TRUE, put.legend.lr = "topleft", ymax = 1.05, xmed.fraction = 0.65)
-    weightedsurv::plot_weighted_km(dfcountC, conf.int = TRUE, show.logrank = TRUE, put.legend.lr = "topleft", ymax = 1.05, xmed.fraction = 0.65)
-    cat("*** Subgroup found:", c(this.1_label), "\n")
-    cat("% consistency criteria met=", c(top_result$Pcons), "\n")
-  }  else {
-    message("Package 'weightedsurv' not available: skipping weighted KM plots.")
-  }
-}
-
-
 #' Output Subgroup Consistency Results
 #'
 #' Returns the top subgroup(s) and recommended treatment flags.
@@ -398,34 +355,11 @@ plot_subgroup <- function(df.sub, df.subC, by.risk, confs_labels, this.1_label, 
 #' @importFrom data.table copy
 #' @export
 sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
-                               details = FALSE, plot.sg = FALSE,
-                               by.risk = 12, confs_labels) {
-
+                                details = FALSE, plot.sg = FALSE,
+                                by.risk = 12, confs_labels) {
   result_new <- sort_subgroups(result_new, sg_focus)
   top_result <- result_new[1, ]
   subgroup_info <- extract_subgroup(df, top_result, index.Z, names.Z, confs_labels)
-
-  # === ADD THIS PLOTTING SECTION ===
-  if (details && plot.sg) {
-    # Create subgroup and complement data frames
-    sg.harm <- subgroup_info$sg.harm
-    id.harm <- paste(paste(sg.harm, collapse = "==1 & "), "==1")
-    id.noharm <- paste(paste(sg.harm, collapse = "!=1 | "), "!=1")
-
-    df.sub <- subset(df, eval(parse(text = id.harm)))
-    df.subC <- subset(df, eval(parse(text = id.noharm)))
-
-    # Call plot_subgroup
-    plot_subgroup(
-      df.sub = df.sub,
-      df.subC = df.subC,
-      by.risk = by.risk,
-      confs_labels = confs_labels,
-      this.1_label = subgroup_info$sg.harm_label,
-      top_result = top_result
-    )
-  }
-  # === END PLOTTING SECTION ===
 
   result_out <- data.table::copy(result_new)
 
@@ -437,6 +371,7 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
     sg.harm.id = subgroup_info$sg.harm.id
   )
 }
+
 
 # =============================================================================
 # DUPLICATE REMOVAL

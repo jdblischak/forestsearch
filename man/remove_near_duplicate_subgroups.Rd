@@ -2,7 +2,7 @@
 % Please edit documentation in R/subgroup_consistency_helpers.R
 \name{remove_near_duplicate_subgroups}
 \alias{remove_near_duplicate_subgroups}
-\title{Remove Near-Duplicate Subgroups (Warning-Free Version)}
+\title{Remove Near-Duplicate Subgroups}
 \usage{
 remove_near_duplicate_subgroups(
   hr_subgroups,
@@ -11,15 +11,16 @@ remove_near_duplicate_subgroups(
 )
 }
 \arguments{
-\item{hr_subgroups}{Data.table of subgroup results}
+\item{hr_subgroups}{Data.table of subgroup results.}
 
-\item{tolerance}{Numeric. Tolerance for numeric comparison (default: 0.001)}
+\item{tolerance}{Numeric. Tolerance for numeric comparison (default 0.001).}
 
-\item{details}{Logical. Print details about removed duplicates}
+\item{details}{Logical. Print details about removed duplicates.}
 }
 \value{
-Data.table with near-duplicate rows removed
+Data.table with near-duplicate rows removed.
 }
 \description{
-Simplified version that avoids data.table modification warnings
+Removes subgroups with nearly identical statistics (HR, n, E, etc.)
+to reduce redundancy in candidate list.
 }

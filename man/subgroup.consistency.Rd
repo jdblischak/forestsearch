@@ -114,7 +114,10 @@ parallel execution (via future.seed).}
 \item{workers}{Number of parallel workers}
 \item{batch_size}{Number of candidates to evaluate per batch. Smaller
 values provide finer-grained early stopping but may increase overhead.
-Default: auto (workers when stop_threshold set, workers*2 otherwise)}
+Default: When stop_threshold is set and sg_focus is "hr" or "minSG",
+defaults to 1 (stop immediately when first candidate passes). For other
+sg_focus values with stop_threshold, defaults to min(workers, n_candidates/4).
+When stop_threshold is NULL, defaults to workers*2 for efficiency.}
 \item{show_message}{Print parallel config messages}
 }}
 }

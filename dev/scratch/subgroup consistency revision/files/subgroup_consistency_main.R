@@ -347,16 +347,13 @@ subgroup.consistency <- function(df,
   }
 
   # Sort based on sg_focus to prioritize candidates
-  # if (sg_focus == "hr") {
-  #   found.hrs <- found.hrs[order(found.hrs$HR, decreasing = TRUE), ]
-  # } else if (sg_focus == "maxSG") {
-  #   found.hrs <- found.hrs[order(found.hrs$n, decreasing = TRUE), ]
-  # } else if (sg_focus == "minSG") {
-  #   found.hrs <- found.hrs[order(found.hrs$n, decreasing = FALSE), ]
-  # }
-
-  found.hrs <- sort_subgroups_preview(found.hrs, sg_focus)
-
+  if (sg_focus == "hr") {
+    found.hrs <- found.hrs[order(found.hrs$HR, decreasing = TRUE), ]
+  } else if (sg_focus == "maxSG") {
+    found.hrs <- found.hrs[order(found.hrs$n, decreasing = TRUE), ]
+  } else if (sg_focus == "minSG") {
+    found.hrs <- found.hrs[order(found.hrs$n, decreasing = FALSE), ]
+  }
 
   # Extract index matrix
   index.Z <- found.hrs[, names.Z, with = FALSE]
@@ -403,11 +400,11 @@ subgroup.consistency <- function(df,
       # Pattern: q<index>.<action> where action 0=NOT, 1=IN
       pattern <- "^q(\\d+)\\.(\\d+)$"
       match <- regmatches(q_code, regexec(pattern, q_code))[[1]]
-
+      
       if (length(match) == 3) {
         idx <- as.integer(match[2])
         action <- match[3]
-
+        
         if (idx >= 1 && idx <= length(labels_vec)) {
           base_label <- labels_vec[idx]
           if (action == "0") {
@@ -434,7 +431,7 @@ subgroup.consistency <- function(df,
       # Convert factor codes to labels
       factors_labels <- tryCatch({
         if (!missing(confs_labels) && !is.null(confs_labels) && length(confs_labels) > 0) {
-          sapply(factors_i, convert_q_to_label, labels_vec = confs_labels,
+          sapply(factors_i, convert_q_to_label, labels_vec = confs_labels, 
                  USE.NAMES = FALSE)
         } else {
           factors_i  # No labels available, use raw names
@@ -580,7 +577,7 @@ subgroup.consistency <- function(df,
 
     old_plan <- future::plan()
     on.exit(future::plan(old_plan), add = TRUE)
-
+    
     # Suppress package version warnings during parallel setup
     suppressWarnings({
       setup_parallel_SGcons(parallel_args)
