@@ -2,6 +2,11 @@
 # Development workflow helper script for ForestSearch package
 # Source this file to load helper functions, or run sections interactively
 
+# git rm -r --cached dev/private
+# echo "dev/private/" >> .gitignore
+# git commit -m "Stop tracking dev/private"
+# git push
+
 #
 # Prior devtools-helpers file
 library(usethis)

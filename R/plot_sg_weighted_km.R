@@ -28,9 +28,9 @@
 #'   (auto-calculated as max(outcome)/12)
 #' @param sg0_name Character. Label for H subgroup (treat.recommend == 0).
 #'   Default: \code{NULL} (auto-extracted from forestsearch object as
-#'   "H: {definition}" or "Questionable (H)" if not available)
+#'   "H: \{definition\}" or "Questionable (H)" if not available)
 #' @param sg1_name Character. Label for Hc subgroup (treat.recommend == 1).
-#'   Default: \code{NULL} (auto-generated as "Hc: NOT {definition}" or
+#'   Default: \code{NULL} (auto-generated as "Hc: NOT \{definition\}" or
 #'   "Recommend (Hc)" if not available)
 #' @param conf.int Logical. Show confidence intervals. Default: \code{TRUE}
 #' @param show.logrank Logical. Show log-rank test. Default: \code{TRUE}
@@ -175,16 +175,16 @@ plot_sg_weighted_km <- function(
     if (!is.null(fs_bc$H_estimates)) {
       H_bc_estimates <- fs_bc$H_estimates
       if (verbose) {
-        cat("Extracted H bias-corrected HR:", 
-            sprintf("%.3f (%.3f, %.3f)\n", 
+        cat("Extracted H bias-corrected HR:",
+            sprintf("%.3f (%.3f, %.3f)\n",
                     H_bc_estimates$H2, H_bc_estimates$H2_lower, H_bc_estimates$H2_upper))
       }
     }
     if (!is.null(fs_bc$Hc_estimates)) {
       Hc_bc_estimates <- fs_bc$Hc_estimates
       if (verbose) {
-        cat("Extracted Hc bias-corrected HR:", 
-            sprintf("%.3f (%.3f, %.3f)\n", 
+        cat("Extracted Hc bias-corrected HR:",
+            sprintf("%.3f (%.3f, %.3f)\n",
                     Hc_bc_estimates$H2, Hc_bc_estimates$H2_lower, Hc_bc_estimates$H2_upper))
       }
     }
@@ -547,7 +547,7 @@ print.fs_weighted_km <- function(x, ...) {
                             x$Hc_bc_estimates$H2_upper))
   }
 
-  cat("\nHR display: unadjusted =", isTRUE(x$show.cox), 
+  cat("\nHR display: unadjusted =", isTRUE(x$show.cox),
       ", bias-corrected =", isTRUE(x$show.cox.bc), "\n")
 
   if (!is.null(x$figure_note)) {

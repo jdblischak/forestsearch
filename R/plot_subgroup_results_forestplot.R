@@ -517,7 +517,7 @@ plot_subgroup_results_forestplot <- function(
     # REVISED: Label format changed to "Label: Benefit" instead of "Label (Benefit)"
     # -----------------------------------------------------------------
     benefit_header <- create_header_row(
-      paste0("                   ", benefit_label, ": Benefit"), E.name, C.name)
+      paste0("                   ", benefit_label, ":"), E.name, C.name)
     dt <- rbind(dt, benefit_header)
     row_types <- c(row_types, "posthoc_header")
 
@@ -552,7 +552,7 @@ plot_subgroup_results_forestplot <- function(
     # REVISED: Label format changed to "Label: Questionable" instead of "Label (Questionable)"
     # -----------------------------------------------------------------
     question_header <- create_header_row(
-      paste0(question_label, ": Questionable"), E.name, C.name)
+      paste0(question_label, ":"), E.name, C.name)
     dt <- rbind(dt, question_header)
     row_types <- c(row_types, "posthoc_complement_header")
 
@@ -685,7 +685,7 @@ plot_subgroup_results_forestplot <- function(
         col = 1:3,
         part = "body",
         just = "center",
-        gp = grid::gpar(fontsize = 7, fontface = "italic", col = "gray30")
+        gp = grid::gpar(fontsize = 10, fontface = "italic", col = "gray30")
       )
     }
   }

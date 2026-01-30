@@ -205,8 +205,7 @@ utils::globalVariables(c(
 #' @importFrom stats pchisq qnorm qt pnorm pt
 #' @importFrom stats rexp runif rnorm rbinom rgamma
 #' @importFrom stats na.omit complete.cases aggregate
-#' @importFrom graphics box plot.new plot lines points abline legend par
-#' @importFrom graphics hist barplot mtext axis title rug text
+#' @importFrom graphics hist barplot mtext axis title rug text rect plot.window
 #' @importFrom utils data object.size head tail str
 #' @importFrom utils capture.output write.table read.table
 #' @importFrom utils packageVersion sessionInfo

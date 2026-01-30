@@ -48,10 +48,10 @@ Default: \code{"Treat"}}
 
 \item{sg0_name}{Character. Label for H subgroup (treat.recommend == 0).
 Default: \code{NULL} (auto-extracted from forestsearch object as
-"H: {definition}" or "Questionable (H)" if not available)}
+"H: \{definition\}" or "Questionable (H)" if not available)}
 
 \item{sg1_name}{Character. Label for Hc subgroup (treat.recommend == 1).
-Default: \code{NULL} (auto-generated as "Hc: NOT {definition}" or
+Default: \code{NULL} (auto-generated as "Hc: NOT \{definition\}" or
 "Recommend (Hc)" if not available)}
 
 \item{conf.int}{Logical. Show confidence intervals. Default: \code{TRUE}}

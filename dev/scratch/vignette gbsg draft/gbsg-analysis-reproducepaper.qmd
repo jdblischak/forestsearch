@@ -485,7 +485,7 @@ print(fs_kfold$sens_summary)
 
 N-fold CV (leave-one-out) provides the most rigorous stability assessment:
 
-```{r oob-cv, eval = FALSE}
+```{r oob-cv, eval = TRUE}
 t0 <- proc.time()
 
 fs_OOB <- forestsearch_Kfold(
@@ -493,7 +493,7 @@ fs_OOB <- forestsearch_Kfold(
   details = TRUE,
   Kfolds = nrow(df.analysis),  # N-fold = leave-one-out
   parallel_args = list(
-    plan = "callr",
+    plan = "multisession",
     workers = n_cores,
     show_message = TRUE
   )
@@ -521,8 +521,8 @@ The forest plot summarizes treatment effects across the ITT population,
 reference subgroups, and identified subgroups with cross-validation metrics.
 
 ```{r forest-plot}
-#| fig-width: 10
-#| fig-height: 7
+#| fig-width: 12
+#| fig-height: 8
 #| fig-dpi: 300
 #| 
 # Define reference subgroups for comparison
@@ -555,7 +555,7 @@ result <- plot_subgroup_results_forestplot(
   fs_results = list(
     fs.est = fs,
     fs_bc = fs_bc,
-    fs_OOB = NULL,
+    fs_OOB = fs_OOB,
     fs_kfold = fs_kfold
   ),
   df_analysis = df.analysis,
@@ -571,6 +571,79 @@ result <- plot_subgroup_results_forestplot(
 
 # Display
 plot(result$plot)
+```
+
+
+### KM Difference plots: ITT and subgroups 
+
+The solid black line denotes the ITT Kaplan-Meier treatment difference estimates along with 95%95% CIs (the grey shaded region). K-M differences corresponding to subgroups are displayed.
+
+
+```{r KMdiffs, fig.width = 8, fig.height = 6, fig.align="center"}
+
+# The following is automated in wrapper below
+# df.analysis$age_lt65 <- with(df.analysis, ifelse(age < 65, 1,0))
+# df.analysis$age_ge65 <- with(df.analysis, ifelse(age >= 65, 1,0))
+# df.analysis$Qrecommend <- with(df.analysis,ifelse(er <= 0,1,0))
+# df.analysis$Brecommend <- with(df.analysis,ifelse(er > 0,1,0))
+# age_lt65_col <- c("brown")
+# age_ge65_col <- c("grey")
+# Brecommend_col <- c("red")
+# Qrecommend_col <- c("blue")
+# sg_cols <- c(age_lt65_col, age_ge65_col, Brecommend_col,Qrecommend_col)
+# temp <- plotKM.band_subgroups(df=df.analysis,sg_labels=c("age < 65", "age >= 65", "er <= 0","er > 0"),
+# sg_colors=c(sg_cols),
+# color=c("azure3"),xlabel=c("Months"),ylabel=c("Survival differences"),
+# yseq_length=5,
+# draws.band = 1000,
+# tau_add=60, by.risk=6, risk_cex=0.75, risk_delta=0.035, risk.pad=0.015, ymax.pad=0.11, 
+# tte.name=outcome.name, treat.name=treat.name, event.name=event.name)
+# 
+# legend("topleft",c("ITT","age < 65", "age >= 65","er <= 0", "er > 0"),
+# lwd=2, col=c("black",sg_cols),bty="n",cex=0.75)
+
+
+# # Core display of ITT and identified subgroups
+# plot_km_band_forestsearch(
+#  df = df.analysis,
+#    fs.est = fs,
+#  outcome.name = outcome.name,
+#    event.name = event.name,
+#    treat.name = treat.name
+# )
+
+# Add additional subgroups along with ITT and identified subgroups
+ref_sgs <- list(
+age_young = list(subset_expr = "age < 65", color = "brown"),
+age_old = list(subset_expr = "age >= 65", color = "orange")
+)
+
+plot_km_band_forestsearch(
+ df = df.analysis,
+   fs.est = fs,
+ ref_subgroups = ref_sgs,
+ outcome.name = outcome.name,
+   event.name = event.name,
+   treat.name = treat.name,
+ draws_band = 1000
+)
+ 
+# # Example with more optional subgroups
+# ref_sgs <- list(
+# pgr_positive = list(subset_expr = "pgr > 0", color ="green"),
+# pgr_negative = list(subset_expr = "pgr <= 0", color = "purple"),
+# age_young = list(subset_expr = "age < 65", color = "brown"),
+# age_old = list(subset_expr = "age >= 65", color = "orange")
+# )
+# plot_km_band_forestsearch(
+#  df = df.analysis,
+#    fs.est = fs,
+#  ref_subgroups = ref_sgs,
+#  outcome.name = outcome.name,
+#    event.name = event.name,
+#    treat.name = treat.name
+# )
+
 ```
 
 

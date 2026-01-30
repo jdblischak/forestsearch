@@ -16,6 +16,8 @@ Description: Implements advanced statistical methods for exploratory subgroup
     proportional hazards models with comprehensive diagnostic and visualization 
     tools. Methods are described in León et al. (2024) <doi:10.1002/sim.10163>.
 License: MIT + file LICENSE
+Depends: 
+    R (>= 4.1.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3

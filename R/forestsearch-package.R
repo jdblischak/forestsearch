@@ -5,7 +5,8 @@
 ## usethis namespace: end
 NULL
 
-#' @importFrom graphics par
+#' @importFrom graphics par plot plot.new plot.window lines points abline
+#' @importFrom graphics legend axis box text mtext title hist barplot rug rect
 #' @importFrom stats as.formula coef na.exclude na.omit predict setNames
 #' @importFrom utils hasName head tail
 #' @importFrom data.table := .SD .GRP .I .N rbindlist setnames setcolorder is.data.table
