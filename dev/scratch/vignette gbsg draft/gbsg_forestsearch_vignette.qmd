@@ -258,7 +258,7 @@ fs <- forestsearch(
   pconsistency.threshold = 0.90,
   stop_threshold = 0.975,
   # Search configuration
-  sg_focus = "hr",
+  sg_focus = "hrMaxSG",
   max_subgroups_search = 10,
   use_twostage = TRUE,
   # Factor selection
@@ -271,7 +271,7 @@ fs <- forestsearch(
   d0.min = 12,
   d1.min = 12,
   # Consistency evaluation
-  fs.splits = 100,
+  fs.splits = 1000,
   # Parallel processing
   parallel_args = list(
     plan = "multisession",
@@ -341,7 +341,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 3
+NB <- 1000
 
 t0 <- proc.time()
 
@@ -421,10 +421,10 @@ Two approaches are available:
 
 ## K-Fold Cross-Validation
 
-```{r kfold-cv, eval=FALSE}
+```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 10
+Ksims <- 50
 
 t0 <- proc.time()
 
@@ -452,7 +452,7 @@ print(fs_kfold$sens_summary)
 
 N-fold CV (leave-one-out) provides the most rigorous stability assessment:
 
-```{r oob-cv, eval=FALSE}
+```{r oob-cv, eval = TRUE}
 t0 <- proc.time()
 
 fs_OOB <- forestsearch_Kfold(
@@ -518,8 +518,8 @@ result <- plot_subgroup_results_forestplot(
   fs_results = list(
     fs.est = fs,
     fs_bc = fs_bc,
-    fs_OOB = NULL,
-    fs_kfold = NULL
+    fs_OOB = fs_OOB,
+    fs_kfold = fs_kfold
   ),
   df_analysis = df.analysis,
   subgroup_list = subgroups,

@@ -1,0 +1,410 @@
+---
+title: "Organizing Vignettes for pkgdown and CRAN"
+subtitle: "A Reference Guide for R Package Documentation"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: false
+    theme: flatly
+    highlight-style: github
+---
+
+## Overview
+
+When developing an R package, you may want extensive documentation on your pkgdown website while keeping the CRAN submission lightweight with only essential vignettes. This guide covers strategies for managing this separation.
+
+### The Challenge
+
+| Goal | Constraint |
+|------|------------|
+| Rich pkgdown website | Multiple detailed articles |
+| Lean CRAN submission | Single or few vignettes (faster checks, smaller tarball) |
+| Maintainability | Avoid duplication, clear organization |
+
+## Approach 1: `vignettes/articles/` Directory (Recommended)
+pkgdown treats files in `vignettes/articles/` as **articles** (website-only), not vignettes (CRAN-included). This is the cleanest and most maintainable approach.
+
+### Directory Structure
+
+```
+pkg/
+├── vignettes/
+│   ├── PackageName.Rmd        # ← CRAN vignette (main intro)
+│   └── articles/
+│       ├── methodology.qmd     # ← Website only
+│       ├── advanced-usage.qmd  # ← Website only
+│       ├── case-studies.qmd    # ← Website only
+│       └── references.bib
+├── _pkgdown.yml
+├── .Rbuildignore
+└── ...
+```
+
+### `_pkgdown.yml` Configuration
+
+```yaml
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    articles:
+      text: Articles
+      menu:
+        - text: Introduction
+          href: articles/PackageName.html
+        - text: "---"
+        - text: Methodology
+          href: articles/methodology.html
+        - text: Advanced Usage
+          href: articles/advanced-usage.html
+
+articles:
+  - title: Getting Started
+    navbar: ~
+    contents:
+      - PackageName           # From vignettes/
+
+  - title: In-Depth Guides
+    contents:
+      - methodology           # From vignettes/articles/
+      - advanced-usage
+      - case-studies
+```
+
+### `.Rbuildignore` Entry
+
+Add as a safety measure:
+
+```
+^vignettes/articles$
+```
+
+### Advantages
+
+- **Clean separation**: CRAN vs website content clearly distinguished
+- **pkgdown native**: Designed to work this way
+- **No duplication**: Single source of truth
+- **Easy maintenance**: Intuitive directory structure
+
+## Approach 2: `.Rbuildignore` Selected Vignettes
+
+Keep all vignettes in `vignettes/` but exclude some from CRAN using `.Rbuildignore`.
+
+### Directory Structure
+
+```
+pkg/
+├── vignettes/
+│   ├── PackageName.Rmd        # ← CRAN vignette
+│   ├── methodology.qmd        # ← Excluded from CRAN
+│   ├── advanced-usage.qmd     # ← Excluded from CRAN
+│   └── references.bib
+├── .Rbuildignore
+└── ...
+```
+
+### `.Rbuildignore` Entries
+
+```
+^vignettes/methodology\.qmd$
+^vignettes/advanced-usage\.qmd$
+^vignettes/case-studies\.qmd$
+```
+
+### Advantages
+
+- Simple for small numbers of exclusions
+- All vignettes in one place
+
+### Disadvantages
+
+- **Fragile**: Easy to forget new vignettes
+- **Regex complexity**: Escaping special characters
+- **pkgdown issues**: May have trouble finding files in some configurations
+
+## Approach 3: Separate `pkgdown/` Directory
+
+Put website-only content in a dedicated `pkgdown/` folder outside of `vignettes/`.
+
+### Directory Structure
+
+```
+pkg/
+├── vignettes/
+│   └── PackageName.Rmd        # ← CRAN vignette only
+├── pkgdown/
+│   └── articles/
+│       ├── methodology.qmd     # ← Website only
+│       ├── advanced-usage.qmd  # ← Website only
+│       └── references.bib
+├── _pkgdown.yml
+└── ...
+```
+
+### `_pkgdown.yml` Configuration
+
+```yaml
+articles:
+  - title: Getting Started
+    contents:
+      - PackageName
+
+  - title: Extended Documentation
+    contents:
+      - methodology
+      - advanced-usage
+```
+
+### Advantages
+
+- Complete separation of concerns
+- Clear that `pkgdown/` is website-only
+
+### Disadvantages
+- Less conventional structure
+- May require additional pkgdown configuration
+
+## Practical Example: ForestSearch Package
+
+### Recommended Structure
+
+```
+ForestSearch/
+├── vignettes/
+│   ├── ForestSearch.Rmd              # CRAN: Main intro vignette
+│   └── articles/
+│       ├── methodology.qmd           # Website: Full methodology
+│       ├── bootstrap-methodology.qmd # Website: Bootstrap details
+│       ├── two-stage-algorithm.qmd   # Website: Two-stage algorithm
+│       ├── mrct-analysis.qmd         # Website: MRCT applications
+│       ├── simulation-studies.qmd    # Website: Simulation results
+│       └── references.bib
+├── _pkgdown.yml
+├── .Rbuildignore
+├── DESCRIPTION
+└── ...
+```
+
+### Complete `_pkgdown.yml`
+
+```yaml
+url: https://github.com/username/ForestSearch
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Get Started
+      href: articles/ForestSearch.html
+    articles:
+      text: Articles
+      menu:
+        - text: Introduction
+          href: articles/ForestSearch.html
+        - text: "---"
+        - text: Methodology
+        - text: Statistical Methods
+          href: articles/methodology.html
+        - text: Bootstrap Bias Correction
+          href: articles/bootstrap-methodology.html
+        - text: Two-Stage Algorithm
+          href: articles/two-stage-algorithm.html
+        - text: "---"
+        - text: Applications
+        - text: MRCT Analysis
+          href: articles/mrct-analysis.html
+        - text: Simulation Studies
+          href: articles/simulation-studies.html
+
+articles:
+  - title: Getting Started
+    navbar: ~
+    contents:
+      - ForestSearch
+
+  - title: Statistical Methods
+    desc: Technical details on the statistical methodology
+    contents:
+      - methodology
+      - bootstrap-methodology
+      - two-stage-algorithm
+
+  - title: Applications
+    desc: Worked examples and case studies
+    contents:
+      - mrct-analysis
+      - simulation-studies
+
+reference:
+  - title: Core Algorithm
+    contents:
+      - forestsearch
+  - title: Bootstrap Inference
+    contents:
+      - forestsearch_bootstrap_dofuture
+  # ... additional reference sections
+```
+
+### `.Rbuildignore`
+
+```
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^vignettes/articles$
+^\.github$
+```
+
+## Verification Commands
+
+### Check CRAN Package Contents
+
+```r
+# Build the package tarball
+devtools::build()
+
+# List contents of tarball to verify only desired vignettes included
+untar("PackageName_1.0.0.tar.gz", list = TRUE) |> 
+  grep("vignettes", x = _, value = TRUE)
+```
+
+### Expected Output
+
+```
+PackageName/vignettes/ForestSearch.Rmd
+```
+
+**Not included:**
+```
+PackageName/vignettes/articles/methodology.qmd
+PackageName/vignettes/articles/bootstrap-methodology.qmd
+...
+```
+
+### Check pkgdown Renders All Content
+
+```r
+# Build the pkgdown site
+pkgdown::build_site()
+
+# Verify articles directory
+list.files("docs/articles")
+```
+
+### Expected Output
+
+```
+ForestSearch.html
+methodology.html
+bootstrap-methodology.html
+two-stage-algorithm.html
+mrct-analysis.html
+simulation-studies.html
+```
+
+### Run R CMD check
+
+```r
+# Full CRAN check
+devtools::check()
+
+# Check for vignette-specific issues
+devtools::check(vignettes = TRUE)
+```
+
+## Common Issues and Solutions
+
+### Issue: pkgdown Can't Find Articles
+
+**Symptom:** Articles in `vignettes/articles/` not rendering
+
+**Solution:** Ensure `_pkgdown.yml` references articles by filename (without extension):
+
+```yaml
+# Correct
+contents:
+  - methodology
+
+# Incorrect
+contents:
+  - methodology.qmd
+  - vignettes/articles/methodology
+```
+
+### Issue: Quarto Vignettes Not Building
+
+**Symptom:** `.qmd` files not recognized as vignettes
+
+**Solution:** For CRAN vignettes, use `.Rmd` format. Keep `.qmd` for website-only articles:
+
+```
+vignettes/
+├── PackageName.Rmd       # CRAN (use .Rmd)
+└── articles/
+    └── methodology.qmd   # Website-only (can use .qmd)
+```
+
+Or add quarto to DESCRIPTION:
+
+```
+VignetteBuilder: quarto
+```
+
+### Issue: References Not Rendering
+
+**Symptom:** Bibliography not appearing in articles
+
+**Solution:** Ensure `references.bib` is in same directory as `.qmd` files, and YAML header is correct:
+
+```yaml
+---
+title: "Article Title"
+bibliography: references.bib
+---
+```
+
+### Issue: Large Tarball Size
+
+**Symptom:** CRAN submission too large due to vignette assets
+
+**Solution:** 
+
+1. Use `.Rbuildignore` to exclude large files:
+   ```
+   ^vignettes/articles/.*\.png$
+   ^vignettes/articles/.*\.pdf$
+   ```
+
+2. Reference external images via URL in website articles
+
+3. Keep CRAN vignette minimal with essential figures only
+
+## Quick Reference Table
+
+| Approach | CRAN Vignettes | Website Articles | Complexity | Recommended |
+|----------|----------------|------------------|------------|-------------|
+| `vignettes/articles/` | `vignettes/*.Rmd` | `vignettes/articles/*` | Low | ✅ Yes |
+| `.Rbuildignore` | Selected files | All in `vignettes/` | Medium | Sometimes |
+| `pkgdown/articles/` | `vignettes/*` | `pkgdown/articles/*` | Medium | For complex cases |
+
+## Summary
+
+**For most packages, use Approach 1:**
+
+1. Put CRAN vignette(s) in `vignettes/`
+2. Put website-only articles in `vignettes/articles/`
+3. Configure `_pkgdown.yml` to include all content
+4. Add `^vignettes/articles$` to `.Rbuildignore`
+5. Verify with `devtools::build()` and `pkgdown::build_site()`
+
+This provides clean separation, easy maintenance, and works seamlessly with both CRAN and pkgdown workflows.

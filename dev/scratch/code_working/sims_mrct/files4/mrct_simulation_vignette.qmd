@@ -1,0 +1,755 @@
+---
+title: "MRCT Simulation Functions for ForestSearch"
+subtitle: "Multi-Regional Clinical Trial Subgroup Identification Simulations"
+author: "ForestSearch Package"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    code-summary: "Show code"
+    number-sections: true
+    theme: cosmo
+    highlight-style: github
+execute:
+  warning: false
+  message: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+ warning = FALSE,
+  fig.width = 8,
+  fig.height = 6
+)
+```
+
+# Introduction
+
+This vignette demonstrates the MRCT (Multi-Regional Clinical Trial) simulation
+functions in the ForestSearch package. These functions enable simulation studies
+to evaluate subgroup identification methods in trials with heterogeneous 
+treatment effects across regions.
+ 
+The key functions covered are:
+
+- `validate_mrct_data()`: Check dataset requirements
+- `create_dgm_for_mrct()`: Create data generating mechanisms for MRCT scenarios
+- `mrct_region_sims()`: Run parallelized simulation studies
+- `summaryout_mrct()`: Summarize simulation results with gt tables
+- `SGplot_estimates()`: Visualize hazard ratio distributions
+
+# Setup
+
+```{r load-packages}
+library(forestsearch)
+library(data.table)
+library(survival)
+library(ggplot2)
+library(gt)
+```
+
+# Data Requirements
+
+## Required Variables
+
+The MRCT simulation functions require a case dataset (`df.case`) with the 
+following variables:
+
+### Core Variables (Required)
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `tte` | Numeric | Time-to-event outcome |
+| `event` | Binary (0/1) | Event indicator (1 = event, 0 = censored) |
+| `treat` | Binary (0/1) | Treatment indicator (1 = treatment, 0 = control) |
+
+### Continuous Covariates (Required)
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `age` | Numeric | Patient age (years) |
+| `bm` | Numeric | Biomarker value |
+
+### Factor Covariates (Required)
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `male` | Binary (0/1) | Sex indicator (1 = male) |
+| `histology` | Factor/Integer | Tumor histology type |
+| `prior_treat` | Binary (0/1) | Prior treatment indicator |
+| `regA` | Binary (0/1) | Region A indicator (for train/test split) |
+
+## Validation Function
+
+The following helper function validates that `df.case` contains all required
+variables and reports any issues:
+
+```{r validate-function}
+#' Validate Dataset for MRCT Simulations
+#'
+#' Checks that a dataset contains all required variables for MRCT simulation
+#' functions and reports any issues.
+#'
+#' @param df.case Data frame to validate
+#' @param verbose Logical. Print detailed validation results. Default: TRUE
+#'
+#' @return Logical. TRUE if all requirements met, FALSE otherwise (invisibly)
+#' @export
+
+validate_mrct_data <- function(df.case, verbose = TRUE) {
+  
+  # Define required variables by category
+  required <- list(
+    outcome = c("tte", "event"),
+    treatment = "treat",
+    continuous = c("age", "bm"),
+    factor = c("male", "histology", "prior_treat", "regA")
+  )
+  
+  all_required <- unlist(required)
+  
+  # Check for missing variables
+  present <- names(df.case)
+  missing <- setdiff(all_required, present)
+  found <- intersect(all_required, present)
+  
+  # Initialize results
+  is_valid <- TRUE
+  issues <- list()
+  
+  # -------------------------------------------------------------------------
+  # Check presence of variables
+  # -------------------------------------------------------------------------
+  if (length(missing) > 0) {
+    is_valid <- FALSE
+    issues$missing <- missing
+  }
+  
+  # -------------------------------------------------------------------------
+  # Check variable types and values for found variables
+  # -------------------------------------------------------------------------
+  type_issues <- character()
+  value_issues <- character()
+  
+  if ("tte" %in% found) {
+    if (!is.numeric(df.case$tte)) {
+      type_issues <- c(type_issues, "tte should be numeric")
+    } else if (any(df.case$tte < 0, na.rm = TRUE)) {
+      value_issues <- c(value_issues, "tte contains negative values")
+    }
+  }
+  
+  if ("event" %in% found) {
+    if (!all(df.case$event %in% c(0, 1, NA))) {
+      value_issues <- c(value_issues, "event should be binary (0/1)")
+    }
+  }
+  
+  if ("treat" %in% found) {
+    if (!all(df.case$treat %in% c(0, 1, NA))) {
+      value_issues <- c(value_issues, "treat should be binary (0/1)")
+    }
+  }
+  
+  if ("age" %in% found) {
+    if (!is.numeric(df.case$age)) {
+      type_issues <- c(type_issues, "age should be numeric")
+    }
+  }
+  
+  if ("bm" %in% found) {
+    if (!is.numeric(df.case$bm)) {
+      type_issues <- c(type_issues, "bm (biomarker) should be numeric")
+    }
+  }
+  
+  if ("male" %in% found) {
+    if (!all(df.case$male %in% c(0, 1, NA))) {
+      value_issues <- c(value_issues, "male should be binary (0/1)")
+    }
+  }
+  
+  if ("regA" %in% found) {
+    if (!all(df.case$regA %in% c(0, 1, NA))) {
+      value_issues <- c(value_issues, "regA should be binary (0/1)")
+    }
+  }
+  
+  if (length(type_issues) > 0) {
+    is_valid <- FALSE
+    issues$type_issues <- type_issues
+  }
+  
+  if (length(value_issues) > 0) {
+    is_valid <- FALSE
+    issues$value_issues <- value_issues
+  }
+  
+  # -------------------------------------------------------------------------
+  # Report results
+  # -------------------------------------------------------------------------
+  if (verbose) {
+    cat("=== MRCT Data Validation ===\n\n")
+    cat("Dataset:", deparse(substitute(df.case)), "\n")
+    cat("Dimensions:", nrow(df.case), "rows x", ncol(df.case), "columns\n\n")
+    
+    # Report by category
+    for (cat_name in names(required)) {
+      cat_vars <- required[[cat_name]]
+      cat_found <- intersect(cat_vars, found)
+      cat_missing <- setdiff(cat_vars, found)
+      
+      cat(sprintf("%-12s: ", tools::toTitleCase(cat_name)))
+      
+      if (length(cat_missing) == 0) {
+        cat("✓ All present (", paste(cat_found, collapse = ", "), ")\n", sep = "")
+      } else {
+        cat("✗ Missing: ", paste(cat_missing, collapse = ", "), "\n", sep = "")
+      }
+    }
+    
+    cat("\n")
+    
+    # Report issues
+    if (length(type_issues) > 0) {
+      cat("Type issues:\n")
+      for (issue in type_issues) {
+        cat("  ✗", issue, "\n")
+      }
+    }
+    
+    if (length(value_issues) > 0) {
+      cat("Value issues:\n")
+      for (issue in value_issues) {
+        cat("  ✗", issue, "\n")
+      }
+    }
+    
+    # Summary
+    cat("\n")
+    if (is_valid) {
+      cat("✓ Dataset is valid for MRCT simulations\n")
+    } else {
+      cat("✗ Dataset requires fixes before use\n")
+    }
+    
+    # Additional info
+    if (is_valid && "regA" %in% found) {
+      cat("\nRegion distribution:\n")
+      cat("  Region A (test):    ", sum(df.case$regA == 1, na.rm = TRUE), 
+          " (", round(100 * mean(df.case$regA == 1, na.rm = TRUE), 1), "%)\n", sep = "")
+      cat("  Non-Region A (train):", sum(df.case$regA == 0, na.rm = TRUE),
+          " (", round(100 * mean(df.case$regA == 0, na.rm = TRUE), 1), "%)\n", sep = "")
+    }
+  }
+  
+  invisible(is_valid)
+}
+```
+
+
+# Example Data Preparation
+
+## Creating a Synthetic df.case Dataset
+
+If you don't have an existing dataset, here's how to create a synthetic 
+`df.case` with all required variables:
+ 
+```{r create-synthetic-data}
+#' Create Synthetic MRCT Dataset
+#'
+#' Generates a synthetic dataset with all required variables for MRCT simulations.
+#'
+#' @param n Integer. Number of observations. Default: 1000
+#' @param seed Integer. Random seed. Default: 12345
+#' @param region_a_prop Numeric. Proportion in Region A. Default: 0.30
+#'
+#' @return Data frame with required MRCT variables
+
+create_synthetic_mrct_data <- function(n = 1000, seed = 12345, region_a_prop = 0.30) {
+  
+  set.seed(seed)
+  
+  df.case <- data.frame(
+    # Demographics
+    age = round(rnorm(n, mean = 60, sd = 10)),
+    male = rbinom(n, 1, prob = 0.55),
+    
+    # Clinical factors
+    bm = round(rnorm(n, mean = 5, sd = 3), 1),  # Biomarker
+    histology = sample(1:3, n, replace = TRUE, prob = c(0.5, 0.3, 0.2)),
+    prior_treat = rbinom(n, 1, prob = 0.35),
+    
+    # Region indicator
+    regA = rbinom(n, 1, prob = region_a_prop),
+    
+    # Treatment assignment (1:1 randomization)
+    treat = rbinom(n, 1, prob = 0.5)
+  )
+  
+  # Constrain values to realistic ranges
+  df.case$age <- pmax(18, pmin(85, df.case$age))
+  df.case$bm <- pmax(0, df.case$bm)
+  
+  # Generate survival times with treatment effect heterogeneity
+  # Base hazard increases with age and biomarker
+  lambda <- 0.01 * exp(
+    0.02 * (df.case$age - 60) +
+    0.05 * df.case$bm +
+    0.3 * df.case$prior_treat
+  )
+  
+  # Treatment effect: beneficial overall, but harmful for high biomarker
+  # HR = 0.7 overall, but HR > 1 when bm > 5
+  log_hr <- log(0.7) + 0.15 * (df.case$bm - 5) * df.case$treat
+  
+  # Generate Weibull survival times
+  shape <- 1.2
+  scale <- 1 / (lambda * exp(log_hr))
+  t_event <- rweibull(n, shape = shape, scale = scale^(1/shape))
+  
+  # Administrative censoring at 60 months
+  t_censor <- runif(n, 50, 70)
+  
+  df.case$tte <- pmin(t_event, t_censor)
+  df.case$event <- as.integer(t_event <= t_censor)
+  
+  return(df.case)
+}
+
+# Create example dataset
+df.case <- create_synthetic_mrct_data(n = 2000, seed = 42)
+
+# Validate the dataset
+validate_mrct_data(df.case)
+```
+
+## Preparing an Existing Dataset
+
+If you have an existing clinical trial dataset, you may need to rename or 
+create variables to match the expected format:
+
+```{r prepare-existing, eval=FALSE}
+# Example: Preparing an existing dataset
+# Assume 'clinical_data' is your existing dataset
+
+df.case <- clinical_data
+
+# Rename variables if needed
+names(df.case)[names(df.case) == "time_to_event"] <- "tte"
+names(df.case)[names(df.case) == "status"] <- "event"
+names(df.case)[names(df.case) == "treatment"] <- "treat"
+names(df.case)[names(df.case) == "biomarker"] <- "bm"
+names(df.case)[names(df.case) == "sex"] <- "male"
+
+# Create region indicator if needed
+# Example: Asia-Pacific vs Rest of World
+df.case$regA <- as.integer(df.case$region == "Asia-Pacific")
+
+# Ensure binary coding
+df.case$event <- as.integer(df.case$event == 1)
+df.case$treat <- as.integer(df.case$treat == "Treatment")
+
+# Validate
+validate_mrct_data(df.case)
+```
+
+## Examining the Dataset
+
+```{r examine-data}
+# Basic summary
+cat("Dataset dimensions:", nrow(df.case), "x", ncol(df.case), "\n\n")
+
+# Summary statistics
+summary(df.case[, c("tte", "event", "treat", "age", "bm", "regA")])
+```
+
+```{r data-table}
+# Create summary table using gt
+df.case |>
+  as.data.table() |>
+  (\(dt) data.frame(
+    Variable = c("N", "Events", "Median follow-up", "Treatment (%)", 
+                 "Region A (%)", "Mean age", "Mean biomarker"),
+    Value = c(
+      nrow(dt),
+      sum(dt$event),
+      round(median(dt$tte), 1),
+      round(100 * mean(dt$treat), 1),
+      round(100 * mean(dt$regA), 1),
+      round(mean(dt$age), 1),
+      round(mean(dt$bm), 2)
+    )
+  ))() |>
+  gt() |>
+  tab_header(
+    title = "Dataset Overview",
+    subtitle = "Summary of df.case"
+  )
+```
+
+# Creating Data Generating Mechanisms
+
+The `create_dgm_for_mrct()` function creates a data generating mechanism (DGM)
+that can be used to simulate survival data with specified treatment effect
+heterogeneity.
+
+## Alternative Hypothesis (Heterogeneous Effect)
+
+Under the alternative hypothesis, treatment effect varies across biomarker
+levels:
+
+```{r dgm-alt}
+# Create DGM with heterogeneous treatment effect
+dgm_alt <- create_dgm_for_mrct(
+  df_case = df.case,
+  model_type = "alt",
+  log_hrs = log(c(2.0, 1.0, 0.5)),  # HR varies: 2.0 -> 1.0 -> 0.5 across biomarker
+  include_regA = TRUE,
+  verbose = TRUE
+)
+
+# Examine the DGM structure
+cat("\n=== DGM Summary ===\n")
+cat("Model type:", dgm_alt$model_type, "\n")
+cat("Super-population size:", nrow(dgm_alt$df_super), "\n")
+cat("Treatment HR (overall):", round(dgm_alt$hazard_ratios$overall, 3), "\n")
+if (!is.null(dgm_alt$hazard_ratios$harm_subgroup)) {
+  cat("Treatment HR (harm subgroup):", round(dgm_alt$hazard_ratios$harm_subgroup, 3), "\n")
+  cat("Treatment HR (no-harm subgroup):", round(dgm_alt$hazard_ratios$no_harm_subgroup, 3), "\n")
+}
+```
+
+## Null Hypothesis (Uniform Effect)
+
+Under the null hypothesis, treatment effect is uniform across all patients:
+
+```{r dgm-null}
+# Create DGM with uniform treatment effect
+dgm_null <- create_dgm_for_mrct(
+  df_case = df.case,
+  model_type = "null",
+  verbose = TRUE
+)
+
+cat("\n=== Null DGM Summary ===\n")
+cat("Treatment HR (overall):", round(dgm_null$hazard_ratios$overall, 3), "\n")
+```
+
+## Adding Confounder Effects
+
+You can add prognostic confounder effects to the DGM:
+
+```{r dgm-confounder, eval=FALSE}
+# DGM with prior treatment as prognostic confounder
+dgm_conf <- create_dgm_for_mrct(
+  df_case = df.case,
+  model_type = "alt",
+  confounder_var = "prior_treat",
+  confounder_effect = log(1.5),  # 50% higher hazard for prior treatment
+  verbose = TRUE
+)
+```
+
+
+# Running Simulations
+
+The `mrct_region_sims()` function runs parallelized simulations to evaluate
+ForestSearch subgroup identification performance.
+
+## Basic Simulation
+
+```{r run-sims-basic, eval=FALSE}
+# Run simulations (small example for demonstration)
+results_alt <- mrct_region_sims(
+  dgm = dgm_alt,
+  n_sims = 100,
+  n_sample = 800,
+  region_var = "z_regA",
+  sg_focus = "minSG",
+  maxk = 1,
+  hr.threshold = 0.90,
+  hr.consistency = 0.80,
+  pconsistency.threshold = 0.90,
+  confounders.name = c("z_age", "z_bm", "z_male", "z_histology", 
+                       "z_prior_treat"),
+  parallel_args = list(
+    plan = "multisession",
+    workers = 4,
+    show_message = TRUE
+  ),
+  details = TRUE,
+  seed = 12345
+)
+```
+
+```{r run-sims-demo, echo=FALSE, eval=TRUE}
+# Create mock results for demonstration
+set.seed(42)
+n_sims <- 100
+
+results_alt <- data.table::data.table(
+  sim = 1:n_sims,
+  n_itt = rep(800, n_sims),
+  hr_itt = rnorm(n_sims, 0.72, 0.08),
+  hr_ittX = rnorm(n_sims, 0.73, 0.09),
+  n_train = rep(560, n_sims),
+  hr_train = rnorm(n_sims, 0.70, 0.10),
+  n_test = rep(240, n_sims),
+  hr_test = rnorm(n_sims, 0.78, 0.12),
+  any_found = rbinom(n_sims, 1, 0.65),
+  sg_found = sample(c("z_bm <= 5", "z_age <= 65", "none"), n_sims, 
+                    replace = TRUE, prob = c(0.45, 0.20, 0.35)),
+  n_sg = sample(80:150, n_sims, replace = TRUE),
+  hr_sg = rnorm(n_sims, 0.65, 0.15),
+  POhr_sg = rnorm(n_sims, 0.60, 0.12),
+  prev_sg = runif(n_sims, 0.30, 0.60)
+)
+
+results_alt[any_found == 0, sg_found := "none"]
+results_alt[, hr_sg_null := ifelse(any_found == 1, hr_sg, NA)]
+
+cat("Simulations completed (demonstration data)\n")
+cat("Subgroup identification rate:", round(100 * mean(results_alt$any_found), 1), "%\n")
+```
+
+## Configuring Parallel Execution
+
+The `parallel_args` parameter controls parallel execution:
+
+```{r parallel-options, eval=FALSE}
+# Option 1: Multisession (works on all platforms)
+parallel_args <- list(
+  plan = "multisession",
+  workers = parallel::detectCores() - 1,
+  show_message = TRUE
+)
+
+# Option 2: Multicore (Unix/Mac only, more efficient)
+parallel_args <- list(
+  plan = "multicore",
+  workers = 8,
+  show_message = TRUE
+)
+
+# Option 3: Sequential (for debugging)
+parallel_args <- list(
+  plan = "sequential",
+  show_message = TRUE
+)
+
+# Option 4: Callr (isolated R processes)
+parallel_args <- list(
+  plan = "callr",
+  workers = 4,
+  show_message = TRUE
+)
+```
+
+## Key Parameters
+
+| Parameter | Description | Typical Values |
+|-----------|-------------|----------------|
+| `n_sims` | Number of simulations | 100-1000 |
+| `n_sample` | Sample size per simulation | 500-2000 |
+| `region_var` | Variable for train/test split | "z_regA" |
+| `sg_focus` | Subgroup selection criterion | "minSG", "hr", "maxSG" |
+| `maxk` | Max factors in subgroup | 1 or 2 |
+| `hr.threshold` | HR threshold for identification | 0.85-0.95 |
+| `pconsistency.threshold` | Consistency probability threshold | 0.85-0.95 |
+
+
+# Summarizing Results
+
+## Summary Tables with gt
+
+The `summaryout_mrct()` function creates formatted summary tables:
+
+```{r summary-tables}
+# Generate summary tables
+summary_results <- summaryout_mrct(
+  pop_summary = NULL,
+  mrct_sims = results_alt,
+  sg_type = 1,
+  tab_caption = "MRCT Simulation Results: Alternative Hypothesis",
+  digits = 3,
+  showtable = TRUE
+)
+```
+
+## Accessing Summary Components
+
+```{r summary-components}
+# Access processed data with derived variables
+cat("Derived variables added:\n")
+new_vars <- setdiff(names(summary_results$data), names(results_alt))
+print(new_vars)
+
+# Check classification results
+cat("\nRegion A classification:\n")
+print(table(summary_results$data$regAflag))
+```
+
+# Visualizing Results
+
+## Hazard Ratio Distributions
+
+The `SGplot_estimates()` function creates violin/boxplots of HR distributions:
+
+```{r plot-estimates, fig.height=6, fig.width=9}
+# Create HR distribution plot
+plot_results <- SGplot_estimates(
+  df = results_alt,
+  label_training = "Training (Non-Region A)",
+  label_testing = "Testing (Region A)",
+  label_itt = "ITT (Stratified)",
+  label_sg = "Subgroup (when found)"
+)
+
+# Display the plot
+print(plot_results$plot_estimates)
+```
+
+## Custom Visualizations
+
+```{r custom-plots, fig.height=5, fig.width=8}
+# Subgroup identification by simulation
+ggplot(results_alt, aes(x = sim, y = hr_test, color = factor(any_found))) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray50") +
+  geom_hline(yintercept = 0.9, linetype = "dotted", color = "red") +
+  scale_color_manual(
+    values = c("0" = "gray50", "1" = "steelblue"),
+    labels = c("0" = "No subgroup found", "1" = "Subgroup found"),
+    name = "Identification"
+  ) +
+  labs(
+    x = "Simulation",
+    y = "Region A Hazard Ratio",
+    title = "Subgroup Identification Across Simulations",
+    subtitle = "Dashed line: HR=1; Dotted line: HR=0.9 threshold"
+  ) +
+  theme_minimal()
+```
+
+```{r biomarker-plot, fig.height=5, fig.width=7}
+# Distribution of identified subgroups
+results_alt[any_found == 1, ] |>
+  ggplot(aes(x = sg_found, fill = sg_found)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(
+    x = "Identified Subgroup",
+    y = "Count",
+    title = "Distribution of Identified Subgroups",
+    subtitle = sprintf("Total found: %d / %d simulations", 
+                       sum(results_alt$any_found), nrow(results_alt))
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
+# Complete Workflow Example
+
+Here's a complete workflow from data preparation to results:
+
+```{r complete-workflow, eval=FALSE}
+# =============================================================================
+# Step 1: Prepare and validate data
+# =============================================================================
+df.case <- read.csv("path/to/your/data.csv")
+
+# Ensure required variable names and coding
+names(df.case)[names(df.case) == "time"] <- "tte"
+names(df.case)[names(df.case) == "status"] <- "event"
+df.case$regA <- as.integer(df.case$region == "Asia")
+
+# Validate
+stopifnot(validate_mrct_data(df.case))
+
+# =============================================================================
+# Step 2: Create DGMs for both hypotheses
+# =============================================================================
+dgm_alt <- create_dgm_for_mrct(
+  df_case = df.case,
+  model_type = "alt",
+  log_hrs = log(c(2.5, 1.0, 0.5)),  # Strong HTE
+  verbose = TRUE
+)
+
+dgm_null <- create_dgm_for_mrct(
+  df_case = df.case,
+  model_type = "null",
+  verbose = TRUE
+)
+
+# =============================================================================
+# Step 3: Run simulations under alternative hypothesis
+# =============================================================================
+results_alt <- mrct_region_sims(
+  dgm = dgm_alt,
+  n_sims = 500,
+  n_sample = 1000,
+  region_var = "z_regA",
+  sg_focus = "minSG",
+  maxk = 1,
+  hr.threshold = 0.90,
+  pconsistency.threshold = 0.90,
+  parallel_args = list(plan = "multisession", workers = 8),
+  seed = 2024
+)
+
+# =============================================================================
+# Step 4: Run simulations under null hypothesis (Type I error)
+# =============================================================================
+results_null <- mrct_region_sims(
+  dgm = dgm_null,
+  n_sims = 500,
+  n_sample = 1000,
+  region_var = "z_regA",
+  sg_focus = "minSG",
+  maxk = 1,
+  hr.threshold = 0.90,
+  pconsistency.threshold = 0.90,
+  parallel_args = list(plan = "multisession", workers = 8),
+  seed = 2024
+)
+
+# =============================================================================
+# Step 5: Summarize and compare results
+# =============================================================================
+cat("=== Alternative Hypothesis Results ===\n")
+summary_alt <- summaryout_mrct(mrct_sims = results_alt, 
+                                tab_caption = "Alternative Hypothesis")
+
+cat("\n=== Null Hypothesis Results (Type I Error) ===\n")
+summary_null <- summaryout_mrct(mrct_sims = results_null,
+                                 tab_caption = "Null Hypothesis")
+
+# Key metrics
+cat("\n=== Summary ===\n")
+cat("Power (H1):", round(100 * mean(results_alt$any_found), 1), "%\n")
+cat("Type I Error (H0):", round(100 * mean(results_null$any_found), 1), "%\n")
+
+# =============================================================================
+# Step 6: Visualize results
+# =============================================================================
+plot_alt <- SGplot_estimates(results_alt)
+print(plot_alt$plot_estimates)
+
+# Save results
+saveRDS(results_alt, "results_alternative.rds")
+saveRDS(results_null, "results_null.rds")
+```
+
+
+# Session Info
+
+```{r session-info}
+sessionInfo()
+```

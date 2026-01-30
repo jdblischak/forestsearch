@@ -1,0 +1,234 @@
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#E8F4FD', 'primaryTextColor': '#1a1a1a', 'primaryBorderColor': '#2E86AB', 'lineColor': '#666666', 'secondaryColor': '#FFF3E0', 'tertiaryColor': '#E8F5E9'}}}%%
+
+flowchart TB
+    subgraph Entry["📊 MAIN ENTRY POINT"]
+        FS[("forestsearch()")]
+    end
+
+    subgraph VarSelect["🔬 VARIABLE SELECTION"]
+        direction TB
+        GRF["grf.subg.harm.survival()"]
+        LASSO["lasso_selection()"]
+        
+        subgraph GRF_Helpers["GRF Helpers"]
+            GRF_CFG["create_grf_config()"]
+            GRF_FIT["fit_causal_forest()"]
+            GRF_NODE["compute_node_metrics()"]
+            GRF_BEST["select_best_subgroup()"]
+            GRF_TREE["extract_all_tree_cuts()"]
+        end
+    end
+
+    subgraph DataPrep["📋 DATA PREPARATION"]
+        direction TB
+        FSDATA["get_FSdata()"]
+        
+        subgraph DataHelpers["Data Helpers"]
+            CONFORCE["get_conf_force()"]
+            EVALCUTS["evaluate_cuts_once()"]
+            FSLABELS["FS_labels()"]
+            FILTLASSO["filter_by_lassokeep()"]
+            DUMMY["dummy()"]
+            ISCONT["is.continuous()"]
+        end
+    end
+
+    subgraph Search["🔍 SUBGROUP SEARCH"]
+        direction TB
+        SGSEARCH["subgroup.search()"]
+        
+        subgraph SearchHelpers["Search Helpers"]
+            PREPDATA["prepare_search_data()"]
+            GENCOMBO["generate_combination_indices()"]
+            SEARCHCOMB["search_combinations()"]
+            EVALCOMB["evaluate_combination()"]
+            GETCOVS["get_covs_in()"]
+            GETMEMBER["get_subgroup_membership()"]
+            CALCMAX["calculate_max_combinations()"]
+            FORMATRES["format_search_results()"]
+            COX_EVAL["fit_subgroup_cox()"]
+        end
+    end
+
+    subgraph Consistency["✅ CONSISTENCY EVALUATION"]
+        direction TB
+        SGCONS["subgroup.consistency()"]
+        
+        subgraph ConsHelpers["Consistency Helpers"]
+            direction TB
+            EVALSG["evaluate_subgroup_consistency()"]
+            EVAL2STAGE["evaluate_consistency_twostage()"]
+            SPLITHR["get_split_hr_fast()"]
+            WILSONCI["wilson_ci()"]
+            EARLYSTOP["early_stop_decision()"]
+            SORTSG["sort_subgroups()"]
+            EXTRACTSG["extract_subgroup()"]
+            SGOUT["sg_consistency_out()"]
+            REMDUP["remove_near_duplicate_subgroups()"]
+            IDDUP["identify_near_duplicates()"]
+        end
+    end
+
+    subgraph Bootstrap["🔄 BOOTSTRAP ANALYSIS"]
+        direction TB
+        BOOTMAIN["forestsearch_bootstrap_dofuture()"]
+        
+        subgraph BootHelpers["Bootstrap Helpers"]
+            BOOTRES["bootstrap_results()"]
+            BOOTANALYSIS["run_single_bootstrap()"]
+            BOOTSUM["summarize_bootstrap_results()"]
+            BOOTTIME["create_bootstrap_timing_plots()"]
+            SGSUM["summarize_bootstrap_subgroups()"]
+        end
+    end
+
+    subgraph CrossVal["📈 CROSS-VALIDATION"]
+        direction TB
+        KFOLD["forestsearch_Kfold()"]
+        TENFOLD["forestsearch_tenfold()"]
+        
+        subgraph CVHelpers["CV Helpers"]
+            KFOLDOUT["forestsearch_KfoldOut()"]
+            COVMATCH["find_covariate_any_match()"]
+            RESOLVECV["resolve_cv_parallel_args()"]
+        end
+    end
+
+    subgraph Simulation["🎲 SIMULATION & DGM"]
+        direction TB
+        GENDGM["generate_aft_dgm_flex()"]
+        SIMDGM["simulate_from_dgm()"]
+        MRCTSIM["run_mrct_simulation()"]
+        
+        subgraph SimHelpers["Simulation Helpers"]
+            RUNFS_ANALYSIS["run_forestsearch_analysis()"]
+            RUNSINGLE["run_single_simulation()"]
+            GENBBOOT["generate_bootstrap_synthetic()"]
+        end
+    end
+
+    subgraph Output["📊 OUTPUT & VISUALIZATION"]
+        direction TB
+        PRINTFS["print.forestsearch()"]
+        SUMMARYFS["summary.forestsearch()"]
+        
+        subgraph OutputHelpers["Output Helpers"]
+            SGTABLES["sg_tables()"]
+            FORESTPLOT["plot_subgroup_results_forestplot()"]
+            FILTERARGS["filter_call_args()"]
+            COXSPLINE["cox_cs_fit()"]
+            GETDFPRED["get_dfpred()"]
+        end
+    end
+
+    subgraph Utilities["🔧 UTILITY FUNCTIONS"]
+        COXSUM["cox_summary()"]
+        SETUPPARALLEL["setup_consistency_parallel()"]
+        RESOLVEPARALLEL["resolve_bootstrap_parallel_args()"]
+    end
+
+    %% Main Flow Connections
+    FS --> GRF
+    FS --> LASSO
+    FS --> FSDATA
+    FS --> SGSEARCH
+    FS --> SGCONS
+    
+    %% GRF internal flow
+    GRF --> GRF_CFG
+    GRF --> GRF_FIT
+    GRF_FIT --> GRF_NODE
+    GRF_NODE --> GRF_BEST
+    GRF_BEST --> GRF_TREE
+    
+    %% Data prep flow
+    FSDATA --> LASSO
+    FSDATA --> CONFORCE
+    FSDATA --> EVALCUTS
+    FSDATA --> FSLABELS
+    FSDATA --> FILTLASSO
+    FSDATA --> DUMMY
+    FSDATA --> ISCONT
+    LASSO --> FILTLASSO
+    
+    %% Search flow
+    SGSEARCH --> PREPDATA
+    SGSEARCH --> GENCOMBO
+    SGSEARCH --> SEARCHCOMB
+    SEARCHCOMB --> EVALCOMB
+    SEARCHCOMB --> GETCOVS
+    EVALCOMB --> GETMEMBER
+    EVALCOMB --> COX_EVAL
+    GENCOMBO --> CALCMAX
+    SGSEARCH --> FORMATRES
+    
+    %% Consistency flow
+    SGCONS --> EVALSG
+    SGCONS --> EVAL2STAGE
+    EVALSG --> SPLITHR
+    EVAL2STAGE --> SPLITHR
+    EVAL2STAGE --> WILSONCI
+    EVAL2STAGE --> EARLYSTOP
+    SGCONS --> SORTSG
+    SGCONS --> EXTRACTSG
+    SGCONS --> SGOUT
+    SGCONS --> REMDUP
+    REMDUP --> IDDUP
+    
+    %% Bootstrap flow
+    BOOTMAIN --> FS
+    BOOTMAIN --> BOOTRES
+    BOOTRES --> BOOTANALYSIS
+    BOOTANALYSIS --> FS
+    BOOTMAIN --> BOOTSUM
+    BOOTSUM --> BOOTTIME
+    BOOTMAIN --> SGSUM
+    
+    %% CV flow
+    KFOLD --> FS
+    KFOLD --> KFOLDOUT
+    KFOLD --> COVMATCH
+    KFOLD --> RESOLVECV
+    TENFOLD --> KFOLD
+    
+    %% Simulation flow
+    MRCTSIM --> SIMDGM
+    SIMDGM --> GENDGM
+    MRCTSIM --> RUNFS_ANALYSIS
+    RUNFS_ANALYSIS --> FS
+    MRCTSIM --> RUNSINGLE
+    
+    %% Output flow
+    FS --> PRINTFS
+    FS --> SUMMARYFS
+    SUMMARYFS --> SGTABLES
+    SGTABLES --> FILTERARGS
+    BOOTMAIN --> FORESTPLOT
+    
+    %% Utility connections
+    SGCONS --> SETUPPARALLEL
+    BOOTMAIN --> RESOLVEPARALLEL
+    EVALCOMB --> COXSUM
+    SGOUT --> GETDFPRED
+
+    %% Styling
+    classDef entry fill:#2E86AB,stroke:#1a5276,stroke-width:3px,color:#fff,font-weight:bold
+    classDef main fill:#E8F4FD,stroke:#2E86AB,stroke-width:2px
+    classDef helper fill:#FFF3E0,stroke:#E65100,stroke-width:1px
+    classDef bootstrap fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef cv fill:#FCE4EC,stroke:#C2185B,stroke-width:2px
+    classDef sim fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef output fill:#FFFDE7,stroke:#F9A825,stroke-width:2px
+    classDef utility fill:#ECEFF1,stroke:#546E7A,stroke-width:1px
+    
+    class FS entry
+    class GRF,LASSO,FSDATA,SGSEARCH,SGCONS main
+    class GRF_CFG,GRF_FIT,GRF_NODE,GRF_BEST,GRF_TREE helper
+    class CONFORCE,EVALCUTS,FSLABELS,FILTLASSO,DUMMY,ISCONT helper
+    class PREPDATA,GENCOMBO,SEARCHCOMB,EVALCOMB,GETCOVS,GETMEMBER,CALCMAX,FORMATRES,COX_EVAL helper
+    class EVALSG,EVAL2STAGE,SPLITHR,WILSONCI,EARLYSTOP,SORTSG,EXTRACTSG,SGOUT,REMDUP,IDDUP helper
+    class BOOTMAIN,BOOTRES,BOOTANALYSIS,BOOTSUM,BOOTTIME,SGSUM bootstrap
+    class KFOLD,TENFOLD,KFOLDOUT,COVMATCH,RESOLVECV cv
+    class GENDGM,SIMDGM,MRCTSIM,RUNFS_ANALYSIS,RUNSINGLE,GENBBOOT sim
+    class PRINTFS,SUMMARYFS,SGTABLES,FORESTPLOT,FILTERARGS,COXSPLINE,GETDFPRED output
+    class COXSUM,SETUPPARALLEL,RESOLVEPARALLEL utility

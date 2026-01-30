@@ -1,0 +1,432 @@
+---
+title: "Managing Slow-Running pkgdown Articles"
+subtitle: "Strategies for Long-Running Code in Website Vignettes"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    theme: flatly
+---
+
+## Overview
+
+Articles in `vignettes/articles/` are **not subject to CRAN time limits** because they are excluded from the package tarball. They are only built when you run `pkgdown::build_site()`.
+This gives you flexibility to include computationally intensive examples, simulations, and real-world analyses.
+
+### Comparison of Vignette Types
+
+| Aspect | CRAN Vignettes | pkgdown Articles |
+|--------|----------------|------------------|
+| Location | `vignettes/*.Rmd` | `vignettes/articles/*` |
+| Time limit | ~5-10 minutes | **None** |
+| Built by | `R CMD build`, `R CMD check` | `pkgdown::build_site()` |
+| Included in tarball | Yes | No |
+| Installed with package | Yes | No |
+
+## Strategy 1: Let pkgdown Build Fresh
+
+The simplest approach—just write normal vignettes and let pkgdown execute everything.
+
+### When to Use
+
+- Code runs in < 15 minutes
+- Results may change with package updates
+- You rebuild the site infrequently
+
+### Example
+
+````markdown
+---
+title: "Bootstrap Methodology"
+---
+
+```{r}
+#| label: setup
+library(ForestSearch)
+library(survival)
+data(gbsg, package = "survival")
+```
+
+```{r}
+#| label: run-bootstrap
+#| cache: true
+
+# Takes ~10 minutes - acceptable for pkgdown
+fs_result <- forestsearch(
+ df.analysis = gbsg,
+ outcome.name = "rfstime",
+ event.name = "status",
+ treat.name = "horTh"
+)
+
+fs_boot <- forestsearch_bootstrap_dofuture(
+ fs.est = fs_result,
+ nb_boots = 500
+)
+```
+````
+
+### Tip: Use knitr Caching
+
+Add `cache: true` to slow chunks to avoid re-running on subsequent builds:
+
+```{r}
+#| label: slow-computation
+#| cache: true
+
+results <- expensive_function()
+```
+
+## Strategy 2: Quarto Freeze (Recommended)
+
+Quarto's `freeze` feature saves execution results and only re-runs when source changes.
+
+### Setup
+
+In your article's YAML header:
+
+```yaml
+---
+title: "Simulation Studies"
+execute:
+ freeze: auto
+---
+```
+
+### Freeze Options
+
+| Option | Behavior |
+|--------|----------|
+| `freeze: false` | Always execute (default) |
+| `freeze: auto` | Re-execute only if source changes |
+| `freeze: true` | Never re-execute |
+
+### Project-Wide Setting
+
+In `_quarto.yml` (if using Quarto project):
+
+```yaml
+execute:
+ freeze: auto
+```
+
+### How It Works
+
+1. First build: Code executes, results saved to `_freeze/` directory
+2. Subsequent builds: Results loaded from `_freeze/` unless source changed
+3. Commit `_freeze/` to git to preserve results across machines
+
+### Directory Structure
+
+```
+vignettes/
+├── articles/
+│   ├── simulation-studies.qmd
+│   └── _freeze/
+│       └── simulation-studies/
+│           └── execute-results/
+│               └── html.json
+```
+
+## Strategy 3: Pre-compute and Load
+
+Run expensive computations separately, save results, load in vignette.
+
+### Workflow
+
+**Step 1:** Create a script to generate results
+
+```r
+# scripts/run_simulations.R
+library(ForestSearch)
+
+results <- run_simulation_study(n_sims = 1000)
+
+saveRDS(results, "vignettes/articles/data/simulation_results.rds")
+```
+
+**Step 2:** Load in vignette
+
+````markdown
+---
+title: "Simulation Studies"
+---
+
+```{r}
+#| label: load-results
+
+# Pre-computed results (see scripts/run_simulations.R)
+results <- readRDS("data/simulation_results.rds")
+```
+
+```{r}
+#| label: display-results
+
+summary(results)
+plot(results)
+```
+````
+
+### Directory Structure
+
+```
+vignettes/
+├── articles/
+│   ├── simulation-studies.qmd
+│   └── data/
+│       └── simulation_results.rds
+scripts/
+└── run_simulations.R
+```
+
+### Advantages
+
+- Complete control over when computations run
+- Can run on HPC cluster, save results
+- Fastest site builds
+- Reproducible (commit data files)
+
+### Disadvantages
+
+- Manual step to regenerate results
+- Risk of code/data mismatch
+
+## Strategy 4: Show Code Without Execution
+
+Display code for documentation purposes without running it.
+
+### Using `eval: false`
+
+````markdown
+```{r}
+#| label: example-code
+#| eval: false
+
+# This demonstrates the API but doesn't run
+# (takes 2+ hours with 2000 bootstraps)
+fs_boot <- forestsearch_bootstrap_dofuture(
+ fs.est = fs_result,
+ nb_boots = 2000,
+ parallel_args = list(plan = "multisession", workers = 8)
+)
+```
+
+The pre-computed results are shown below:
+
+![Bootstrap Results](figures/bootstrap_forest_plot.png)
+````
+
+### Hybrid: Run Simple, Show Complex
+
+````markdown
+```{r}
+#| label: quick-demo
+
+# Quick demo with minimal iterations
+fs_boot_demo <- forestsearch_bootstrap_dofuture(
+ fs.est = fs_result,
+ nb_boots = 10  # Just for illustration
+)
+```
+
+For publication-quality results, we recommend 1000+ bootstraps:
+
+```{r}
+#| eval: false
+
+# Full analysis (not run here)
+fs_boot_full <- forestsearch_bootstrap_dofuture(
+ fs.est = fs_result,
+ nb_boots = 2000
+)
+```
+````
+
+## Strategy 5: Conditional Execution
+
+Run different code paths depending on context.
+
+### Environment Variable Approach
+
+````markdown
+```{r}
+#| label: conditional-sim
+
+run_full <- Sys.getenv("PKGDOWN_FULL_BUILD", "false") == "true"
+
+if (run_full) {
+ # Full simulation (CI/scheduled builds)
+ results <- run_simulation(n_sims = 1000)
+ saveRDS(results, "cached_results.rds")
+} else {
+ # Load cached (local development)
+ results <- readRDS("cached_results.rds")
+}
+```
+````
+
+### Build Script
+
+```bash
+# Full build (e.g., in CI)
+PKGDOWN_FULL_BUILD=true Rscript -e "pkgdown::build_site()"
+
+# Quick build (local development)
+Rscript -e "pkgdown::build_site()"
+```
+
+## Recommended Approach by Use Case
+
+| Scenario | Recommended Strategy |
+|----------|---------------------|
+| Code runs < 5 min | Strategy 1: Build fresh |
+| Code runs 5-30 min | Strategy 2: Quarto freeze |
+| Code runs 30+ min | Strategy 3: Pre-compute |
+| Code requires HPC/cluster | Strategy 3: Pre-compute |
+| Demonstrating API only | Strategy 4: `eval: false` |
+| CI/CD pipeline | Strategy 5: Conditional |
+
+## Complete Example: ForestSearch Simulation Article
+
+````markdown
+---
+title: "Simulation Studies"
+subtitle: "Operating Characteristics of ForestSearch"
+execute:
+ freeze: auto
+---
+ 
+```{r}
+#| label: setup
+#| include: false
+
+library(ForestSearch)
+library(ggplot2)
+library(data.table)
+```
+
+## Quick Demonstration
+
+This runs in ~2 minutes for illustration:
+
+```{r}
+#| label: quick-demo
+#| cache: true
+
+# Small-scale simulation
+demo_results <- run_simulation_analysis(
+ sim_id = 1,
+ dgm = create_gbsg_dgm(model = "alt"),
+ n_sample = 300,
+ verbose = FALSE
+)
+
+demo_results
+```
+
+## Full Simulation Results
+
+The full simulation study (1000 iterations) was pre-computed.
+See `scripts/run_full_simulation.R` for reproduction code.
+
+```{r}
+#| label: load-full-results
+
+full_results <- readRDS("data/full_simulation_results.rds")
+```
+
+```{r}
+#| label: results-table
+
+summarize_simulation_results(full_results)
+```
+
+## Reproduction Code
+
+To reproduce the full results:
+ 
+```{r}
+#| label: full-sim-code
+#| eval: false
+
+# WARNING: Takes ~4 hours on 8 cores
+library(ForestSearch)
+library(doFuture)
+
+plan(multisession, workers = 8)
+
+results <- lapply(1:1000, function(i) {
+ run_simulation_analysis(
+   sim_id = i,
+   dgm = create_gbsg_dgm(model = "alt"),
+   n_sample = 500
+ )
+})
+
+full_results <- rbindlist(results)
+saveRDS(full_results, "data/full_simulation_results.rds")
+```
+````
+
+## pkgdown Build Configuration
+
+### Selective Article Building
+
+Build only specific articles during development:
+
+```r
+# Build just one article
+pkgdown::build_article("methodology")
+
+# Build all articles
+pkgdown::build_articles()
+
+# Full site build
+pkgdown::build_site()
+```
+
+### CI/CD Configuration (GitHub Actions)
+
+```yaml
+# .github/workflows/pkgdown.yaml
+name: pkgdown
+
+on:
+ push:
+   branches: [main]
+ schedule:
+   - cron: '0 0 * * 0'  # Weekly full rebuild
+
+jobs:
+ pkgdown:
+   runs-on: ubuntu-latest
+   steps:
+     - uses: actions/checkout@v4
+    
+     - uses: r-lib/actions/setup-r@v2
+    
+     - uses: r-lib/actions/setup-pandoc@v2
+    
+     - name: Install dependencies
+       run: |
+         install.packages(c("pkgdown", "quarto"))
+         # ... other deps
+       shell: Rscript {0}
+      
+     - name: Build site
+       run: pkgdown::build_site()
+       shell: Rscript {0}
+       env:
+         PKGDOWN_FULL_BUILD: ${{ github.event_name == 'schedule' }}
+```
+
+## Summary
+
+1. **pkgdown articles have no time limits** — use this freedom wisely
+2. **Quarto freeze** is the easiest solution for most cases
+3. **Pre-compute** heavy simulations and load results
+4. **Cache** moderately slow chunks with `cache: true`
+5. **Show code without running** for very expensive examples
+6. **Commit cached/frozen results** to ensure reproducibility

@@ -1,0 +1,127 @@
+\begin{table}
+\caption{\label{tab:m4} Average subgroup identification and classification rates across $20,000$ simulations of trials under three data generation scenarios: $M_1 (N=700)$, $M_2 (N=500)$, and $M_3 (N=300)$.}
+\centering
+\fontsize{9}{9}\selectfont
+\begin{tabular}[t]{lcccccccccccc}
+\toprule
+\multicolumn{1}{c}{\textbf{}} & \multicolumn{6}{c}{\textbf{Analysis with No additional noise factors}} & \multicolumn{6}{c}{\textbf{Analysis with additional noise factors}} \\
+\cmidrule(l{3pt}r{3pt}){2-7} \cmidrule(l{3pt}r{3pt}){8-13}
+  & $FS_{l}$ & $FS_{lg}$ & $GRF$ & $GRF_{60}$ & $VT(24)$ & $VT(36)$ & ${FS_{l}}$ & ${FS_{lg}}$ & ${GRF}$ & ${GRF_{60}}$ & ${VT(24)}$ & ${VT(36)}$\\
+ \midrule
+\multicolumn{13}{c}{\text{$M_1$ Null: $N=700$, $\theta^{\dagger}(\hbox{ITT}) = 0.7$}} \\
+\addlinespace[0.4em]
+${any(H)}^{a}$ & 0.02 & 0.03 & $\bf{0.25}$ & 0.05 & 0.03 & 0.04 & 0.02 & $\bf{0.11}$ & $\bf{0.61}$ &$\bf{0.27}$ & 0.04 & 0.06\\
+${sens}(\widehat{H}^{C})$ & 1 & 1 & 0.97 & 0.99 & 1 & 1 & 1 & 0.99 & 0.92 & 0.97 & 1 & 0.99\\
+${ppv}(\widehat{H}^{C})$ & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\
+${avg}\vert \widehat{H} \vert$ & 114 & 99 & 88 & 78 & 78 & 79 & 126 & 91 & 94 & 81 & 79 & 81\\
+\addlinespace[0.4em]
+\multicolumn{13}{c}{\text{$M_1$ Alt: $N=700$, $p_{H}= 13\%$, $\theta^{\dagger}(H)= 2$, $\theta^{\dagger}(H^{c})= 0.65$,
+$\theta^{\dagger}(\hbox{ITT})= 0.71$}} \\
+\addlinespace[0.4em]
+${any(H)}^{b}$ & 0.77 & 0.86 & 0.94 & 0.72 & 0.49 & 0.47 & 0.71 & 0.83 & 0.94 & 0.71 & 0.44 & 0.42\\
+${sens}(\widehat{H})$ & 0.72 & 0.82 & 0.84 & 0.66 & 0.46 & 0.42 & 0.64 & 0.74 & 0.66 & 0.52 & 0.37 & 0.34\\
+${sens}(\widehat{H}^{C})$ & 0.99 & 0.99 & 0.97 & 0.98 & 0.99 & 0.99 & 0.98 & 0.98 & 0.93 & 0.96 & 0.99 & 0.99\\
+${ppv}(\widehat{H})$ & 0.69 & 0.8 & 0.78 & 0.61 & 0.44 & 0.41 & 0.6 & 0.71 & 0.6 & 0.47 & 0.36 & 0.33\\
+${ppv}(\widehat{H}^{C})$ & 0.96 & 0.98 & 0.98 & 0.96 & 0.93 & 0.93 & 0.95 & 0.97 & 0.95 & 0.94 & 0.92 & 0.92\\
+${{avg}\vert \widehat{H} \vert}^{g}$ & 94 & 92 & 102 & 99 & 92 & 93 & 96 & 93 & 106 & 101 & 92 & 93\\
+\midrule
+\multicolumn{13}{c}{\text{$M_2$ Null: $N=500$, $\theta^{\dagger}(\hbox{ITT})=0.69$}} \\
+\addlinespace[0.4em]
+${any(H)}^{c}$ & 0.02 & 0.03 & $\bf{0.23}$ & 0.05 & 0.03 & 0.04 & 0.03 & $\bf{0.14}$ & $\bf{0.6}$ & $\bf{0.32}$ & 0.04 & 0.06\\
+${sens}(\widehat{H}^{C})$ & 1 & 0.99 & 0.96 & 0.99 & 1 & 0.99 & 0.99 & 0.98 & 0.89 & 0.95 & 0.99 & 0.99\\
+${ppv}(\widehat{H}^{C})$ & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\
+${avg}\vert \widehat{H} \vert$ & 114 & 100 & 87 & 76 & 76 & 80 & 117 & 88 & 89 & 80 & 77 & 79\\
+\addlinespace[0.4em]
+\multicolumn{13}{c}{\text{$M_2$ Alt: $N=500$, $p_{H}= 20\%$, $\theta^{\dagger}(H)= 2$, $\theta^{\dagger}(H^{c})= 0.69$,
+$\theta^{\dagger}(\hbox{ITT})= 0.79$}} \\
+\addlinespace[0.4em]
+${any(H)}^{d}$ & 0.92 & 0.96 & 0.98 & 0.83 & 0.66 & 0.64 & 0.89 & 0.96 & 0.99 & 0.86 & 0.56 & 0.53\\
+${sens}(\widehat{H})$ & 0.84 & 0.88 & 0.87 & 0.73 & 0.59 & 0.56 & 0.77 & 0.81 & 0.7 & 0.58 & 0.44 & 0.4\\
+${sens}({\widehat{H}^{C}})$ & 0.98 & 0.98 & 0.94 & 0.94 & 0.98 & 0.98 & 0.97 & 0.96 & 0.88 & 0.89 & 0.97 & 0.97\\
+${ppv}({\widehat{H}})$ & 0.84 & 0.88 & 0.79 & 0.66 & 0.59 & 0.56 & 0.77 & 0.81 & 0.62 & 0.51 & 0.43 & 0.4\\
+${ppv}(\widehat{H}^{C})$ & 0.96 & 0.97 & 0.97 & 0.94 & 0.91 & 0.91 & 0.95 & 0.95 & 0.92 & 0.9 & 0.88 & 0.87\\
+${{avg}\vert \widehat{H} \vert}^{h}$ & 102 & 101 & 116 & 115 & 102 & 103 & 103 & 101 & 118 & 119 & 101 & 102\\
+\midrule
+\multicolumn{13}{c}{\text{$M_3$ Null: $N=300$, $\theta^{\dagger}(\hbox{ITT})=0.55$}} \\
+\addlinespace[0.4em]
+${any(H)}^{e}$ & 0 & 0 & 0.05 & 0.01 & 0.01 & 0.02 & 0 & 0.02 & $\bf{0.13}$ & 0.07 & 0.01 & 0.02\\
+${sens}(\widehat{H}^{C})$ & 1 & 1 & 0.99 & 1 & 1 & 1 & 1 & 1 & 0.97 & 0.98 & 1 & 1\\
+${ppv}(\widehat{H}^{C})$ & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1\\
+${avg}\vert \widehat{H} \vert$ & 76 & 75 & 74 & 70 & 70 & 71 & 76 & 74 & 74 & 71 & 70 & 72\\
+\addlinespace[0.4em]
+\multicolumn{13}{c}{\text{$M_3$ Alt: $N=300$, $p_{H}= 30\%$, $\theta^{\dagger}(H)= 2$, $\theta^{\dagger}(H^{c})= 0.56$,
+$\theta^{\dagger}(\hbox{ITT})= 0.74$}} \\
+\addlinespace[0.4em]
+${any(H)}^{f}$ & 0.89 & 0.92 & 0.97 & 0.82 & 0.61 & 0.63 & 0.88 & 0.93 & 0.96 & 0.87 & 0.51 & 0.53\\
+${sens}(\widehat{H})$ & 0.73 & 0.78 & 0.87 & 0.72 & 0.49 & 0.52 & 0.68 & 0.71 & 0.73 & 0.62 & 0.36 & 0.37\\
+${sens}(\widehat{H}^{C})$ & 0.97 & 0.97 & 0.93 & 0.93 & 0.97 & 0.97 & 0.96 & 0.95 & 0.88 & 0.87 & 0.95 & 0.95\\
+${ppv}(\widehat{H})$ & 0.8 & 0.84 & 0.83 & 0.68 & 0.53 & 0.55 & 0.76 & 0.78 & 0.7 & 0.59 & 0.39 & 0.4\\
+${ppv}(\widehat{H}^{C})$ & 0.9 & 0.92 & 0.95 & 0.9 & 0.83 & 0.85 & 0.88 & 0.89 & 0.89 & 0.85 & 0.79 & 0.8\\
+${{avg}\vert \widehat{H} \vert}^{i}$ & 82 & 83 & 96 & 97 & 82 & 86 & 80 & 81 & 95 & 96 & 83 & 85\\
+\bottomrule
+\multicolumn{13}{l}{\rule{0pt}{1em} Probabilities for FS via approximation (\ref{pHat_approx}): \textsuperscript{a} $0.036$; \textsuperscript{b} $0.9$;
+\textsuperscript{c} $0.033$; \textsuperscript{d} $0.92$; \textsuperscript{e} $0.007$; \textsuperscript{f} $0.91$.}\\
+\multicolumn{13}{l}{\rule{0pt}{1em} Average size of true H: \textsuperscript{g} $89$; \textsuperscript{h} $101$; \textsuperscript{i} $90$.}\\
+\end{tabular}
+\end{table}
+
+
+
+\begin{table}
+\caption{\label{tab:m1B-m3B} Estimation properties for $\fslg$ under models $M_1-M_3$ (corresponding to Table \ref{tab:m4}) across $1,000$ simulations with summaries based on 
+estimable realizations where subgroup estimates $\widehat{H}$ were obtained ($B=300$ bootstraps): Average of the estimates (Avg); Empirical standard errors (SD); Average 
+of estimated SD's ($\widehat{SD}$); min and max; relative biases ($\hat{b}^{oracle}$, $\hat{b}^{\ddagger}$, $b^{\dagger}$); Average CI length (Length); and Average 
+CI coverage ($\hat{C}^{oracle}$, $\hat{C}^{\ddagger}$, $C^{\dagger}$).}
+\centering
+\fontsize{9}{12}\selectfont
+\begin{tabular}[t]{lcccccccccccc}
+\toprule
+  & Avg & SD & $\widehat{SD}$ & min & max & $\hat{b}^{oracle}$ & $\hat{b}^{\ddagger}$ & $b^{\dagger}$ & Length & $\hat{C}^{oracle}$ & $\hat{C}^{\ddagger}$ & $C^{\dagger}$\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_1$ $\widehat{H}$: $839$ estimable realizations, Avg size of $H = 89$, $\theta^{\dagger}(H)= 2$,
+$\theta^{\ddagger}(H) = 2.25$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H)$ & 2.22 & 0.58 & 0.57 & 1.06 & 6.20 & 0.00 & -1.12 & 11.21 & 2.35 & 1.00 & 0.97 & 0.96\\
+\hspace{1em}$\hat\theta(\widehat{H})$ & 2.18 & 0.53 & 0.57 & 1.40 & 6.08 & -0.54 & 14.13 & 9.17 & 2.32 & 0.98 & 0.93 & 0.97\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H})$ & 1.80 & 0.48 & 0.53 & 1.07 & 4.82 & -18.55 & -6.28 & -10.04 & 2.21 & 0.95 & 0.87 & 0.91\\
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_1$ $\widehat{H}^{c}$: Avg size of $H^{c} = 611$, 
+$\theta^{\dagger}(H^{c})= 0.65$, $\theta^{\ddagger}(H^{c}) = 0.6$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H^{c})$ & 0.65 & 0.08 & 0.07 & 0.44 & 0.99 & 0.00 & 8.05 & 0.93 & 0.29 & 1.00 & 0.89 & 0.94\\
+\hspace{1em}$\hat\theta(\widehat{H}^{c})$ & 0.65 & 0.08 & 0.07 & 0.44 & 0.90 & -0.26 & 2.84 & 0.64 & 0.29 & 1.00 & 0.87 & 0.94\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H}^{c})$ & 0.66 & 0.08 & 0.11 & 0.45 & 0.92 & 1.41 & 4.55 & 2.33 & 0.43 & 1.00 & 0.96 & 0.99\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_2$ $\widehat{H}$: $949$ estimable realizations, Avg size of $H = 101$, 
+$\theta^{\dagger}(H)= 2$, $\theta^{\ddagger}(H) = 2.61$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H)$ & 2.34 & 0.60 & 0.57 & 1.10 & 5.75 & 0.00 & -10.27 & 17.17 & 2.33 & 1.00 & 0.93 & 0.92\\
+\hspace{1em}$\hat\theta(\widehat{H})$ & 2.39 & 0.58 & 0.61 & 1.41 & 5.75 & 3.09 & 8.99 & 19.40 & 2.48 & 0.99 & 0.92 & 0.93\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H})$ & 1.96 & 0.52 & 0.59 & 1.11 & 4.95 & -15.95 & -11.09 & -2.05 & 2.45 & 0.99 & 0.85 & 0.97\\
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_2$ $\widehat{H}^{c}$: Avg size of $H^{c} = 399$, 
+$\theta^{\dagger}(H^{c})= 0.69$, $\theta^{\ddagger}(H^{c}) = 0.64$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H^{c})$ & 0.69 & 0.10 & 0.10 & 0.43 & 1.01 & 0.00 & 7.52 & 0.04 & 0.38 & 1.00 & 0.92 & 0.95\\
+\hspace{1em}$\hat\theta(\widehat{H}^{c})$ & 0.69 & 0.10 & 0.10 & 0.43 & 1.05 & 0.47 & -1.82 & 0.50 & 0.38 & 1.00 & 0.83 & 0.94\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H}^{c})$ & 0.71 & 0.11 & 0.14 & 0.44 & 1.12 & 3.49 & 1.12 & 3.56 & 0.56 & 1.00 & 0.94 & 0.98\\
+\midrule
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_3$ $\widehat{H}$: $924$ estimable realizations, Avg size of $H = 90$,
+$\theta^{\dagger}(H)= 2$, $\theta^{\ddagger}(H) = 2.56$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H)$ & 2.29 & 0.61 & 0.60 & 1.00 & 6.97 & 0.00 & -10.64 & 14.34 & 2.47 & 1.00 & 0.94 & 0.95\\
+\hspace{1em}$\hat\theta(\widehat{H})$ & 2.48 & 0.62 & 0.73 & 1.45 & 6.97 & 10.21 & 12.62 & 23.97 & 3.04 & 0.99 & 0.95 & 0.95\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H})$ & 1.95 & 0.52 & 0.69 & 1.11 & 5.83 & -13.66 & -11.58 & -2.39 & 2.96 & 1.00 & 0.89 & 0.97\\
+\addlinespace[0.3em]
+\multicolumn{13}{l}{\text{$M_3$ $\widehat{H}^{c}$: Avg size of $H^{c} = 210$, 
+$\theta^{\dagger}(H^{c})= 0.56$, $\theta^{\ddagger}(H^{c}) = 0.49$}}\\
+\addlinespace[0.3em]
+\hspace{1em}$\hat\theta(H^{c})$ & 0.55 & 0.11 & 0.11 & 0.25 & 1.10 & 0.00 & 11.31 & -1.32 & 0.45 & 1.00 & 0.92 & 0.94\\
+\hspace{1em}$\hat\theta(\widehat{H}^{c})$ & 0.59 & 0.13 & 0.11 & 0.28 & 1.35 & 6.79 & -9.69 & 5.14 & 0.45 & 0.99 & 0.76 & 0.92\\
+\hspace{1em}$\hat\theta^{*}(\widehat{H}^{c})$ & 0.62 & 0.14 & 0.17 & 0.28 & 1.41 & 12.62 & -4.76 & 10.93 & 0.68 & 1.00 & 0.93 & 0.97\\
+\bottomrule
+\end{tabular}
+\end{table}
