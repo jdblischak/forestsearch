@@ -260,7 +260,7 @@ fs <- forestsearch(
   hr.threshold = 1.25,
   hr.consistency = 1.0,
   pconsistency.threshold = 0.90,
-  stop_threshold = 0.975,
+  stop_threshold = 0.95,
   # Search configuration
   sg_focus = "hrMaxSG",
   max_subgroups_search = 10,
@@ -384,7 +384,6 @@ summaries$table
 ## Kaplan-Meier by Identified Subgroups
 
 ```{r fs-results_figure, fig.width=10, fig.height=7}
-#| label: fig-km-curves
 #| fig-cap: "Kaplan-Meier survival curves by identified subgroup"
 
  km_result <- plot_sg_weighted_km(
@@ -457,7 +456,7 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 50
+Ksims <- 100
 
 t0 <- proc.time()
 
@@ -503,14 +502,23 @@ plan("sequential")
 timings$oob <- (proc.time() - t0)["elapsed"]
 
 # Summarize OOB results
-summary_OOB <- forestsearch_KfoldOut(
+
+
+cv_out <- forestsearch_KfoldOut(
   res = fs_OOB,
-  details = TRUE,
+  details = FALSE,
   outall = TRUE
 )
 
-# Subgroup definitions found
-table(summary_OOB$SGs_found[, 1])
+tables <- cv_summary_tables(cv_out)
+
+tables$estimates_table
+
+tables$cv_metrics_table
+
+tables$sg_finding_table
+
+
 ```
 
 # Results Visualization
@@ -521,10 +529,11 @@ The forest plot summarizes treatment effects across the ITT population,
 reference subgroups, and identified subgroups with cross-validation metrics.
 
 ```{r forest-plot}
-#| fig-width: 12
-#| fig-height: 8
-#| fig-dpi: 300
-#| 
+#| fig-width: 18
+#| fig-height: 12
+#| fig-cap: "Subgroup forest plot including identified subgroups"
+
+
 # Define reference subgroups for comparison
 subgroups <- list(
   age_gt65 = list(
@@ -549,6 +558,11 @@ subgroups <- list(
   )
 )
 
+
+my_theme <- create_forest_theme(base_size = 24, 
+footnote_fontsize = 15, cv_fontsize = 15)
+
+
 # Create forest plot
 # Include fs_kfold and fs_OOB if available for CV metrics
 result <- plot_subgroup_results_forestplot(
@@ -566,11 +580,28 @@ result <- plot_subgroup_results_forestplot(
   E.name = "Hormonal",
   C.name = "Chemo",
   ci_column_spaces = 25,
-  xlog = TRUE
+  xlog = TRUE,
+  theme = my_theme
 )
 
 # Display
-plot(result$plot)
+#plot(result$plot)
+
+#render_forestplot(result, width = 6, height = 8)
+
+# Option 2: Custom sizing
+render_forestplot(result)   
+
+# grid::grid.newpage()
+# grid::pushViewport(grid::viewport(width = 0.95, height = 0.95))
+# grid::grid.draw(result$plot)
+# grid::popViewport()
+
+
+# library(gridExtra)
+# grid::grid.newpage()
+# grid.arrange(result$plot, newpage = FALSE)
+
 ```
 
 
@@ -580,28 +611,6 @@ The solid black line denotes the ITT Kaplan-Meier treatment difference estimates
 
 
 ```{r KMdiffs, fig.width = 8, fig.height = 6, fig.align="center"}
-
-# The following is automated in wrapper below
-# df.analysis$age_lt65 <- with(df.analysis, ifelse(age < 65, 1,0))
-# df.analysis$age_ge65 <- with(df.analysis, ifelse(age >= 65, 1,0))
-# df.analysis$Qrecommend <- with(df.analysis,ifelse(er <= 0,1,0))
-# df.analysis$Brecommend <- with(df.analysis,ifelse(er > 0,1,0))
-# age_lt65_col <- c("brown")
-# age_ge65_col <- c("grey")
-# Brecommend_col <- c("red")
-# Qrecommend_col <- c("blue")
-# sg_cols <- c(age_lt65_col, age_ge65_col, Brecommend_col,Qrecommend_col)
-# temp <- plotKM.band_subgroups(df=df.analysis,sg_labels=c("age < 65", "age >= 65", "er <= 0","er > 0"),
-# sg_colors=c(sg_cols),
-# color=c("azure3"),xlabel=c("Months"),ylabel=c("Survival differences"),
-# yseq_length=5,
-# draws.band = 1000,
-# tau_add=60, by.risk=6, risk_cex=0.75, risk_delta=0.035, risk.pad=0.015, ymax.pad=0.11, 
-# tte.name=outcome.name, treat.name=treat.name, event.name=event.name)
-# 
-# legend("topleft",c("ITT","age < 65", "age >= 65","er <= 0", "er > 0"),
-# lwd=2, col=c("black",sg_cols),bty="n",cex=0.75)
-
 
 # # Core display of ITT and identified subgroups
 # plot_km_band_forestsearch(
@@ -628,7 +637,7 @@ plot_km_band_forestsearch(
  draws_band = 1000
 )
  
-# # Example with more optional subgroups
+# # Example with more subgroups
 # ref_sgs <- list(
 # pgr_positive = list(subset_expr = "pgr > 0", color ="green"),
 # pgr_negative = list(subset_expr = "pgr <= 0", color = "purple"),

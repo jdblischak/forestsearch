@@ -25,7 +25,8 @@ plot_subgroup_results_forestplot(
   posthoc_colors = c("powderblue", "beige"),
   reference_colors = c("yellow", "powderblue"),
   ci_column_spaces = 20,
-  conf.level = 0.95
+  conf.level = 0.95,
+  theme = NULL
 )
 }
 \arguments{
@@ -99,6 +100,10 @@ More spaces = wider CI column (default: 20).}
 
 \item{conf.level}{Numeric. Confidence level for intervals (default: 0.95 for 95\% CI).
 Used to calculate the z-multiplier as qnorm(1 - (1 - conf.level)/2).}
+
+\item{theme}{An fs_forest_theme object from \code{create_forest_theme()}.
+Use this to control plot sizing (fonts, row height, CI appearance,
+CV annotation font size). Default: NULL (uses default theme).}
 }
 \value{
 A list containing:
@@ -165,7 +170,7 @@ subgroups <- list(
   )
 )
 
-# Create the forest plot
+# Create the forest plot with default theme
 result <- plot_subgroup_results_forestplot(
   fs_results = list(fs.est = fs.est, fs_bc = fs_bc, fs_kfold = fs_kfold),
   df_analysis = df_itt,
@@ -177,8 +182,25 @@ result <- plot_subgroup_results_forestplot(
   C.name = "CT"
 )
 
+# Create with custom theme for larger plot
+large_theme <- create_forest_theme(
+  base_size = 14,
+  row_padding = c(6, 4),
+  cv_fontsize = 11
+)
+
+result <- plot_subgroup_results_forestplot(
+  fs_results = list(fs.est = fs.est, fs_bc = fs_bc, fs_kfold = fs_kfold),
+  df_analysis = df_itt,
+  subgroup_list = subgroups,
+  outcome.name = "os_time",
+  event.name = "os_event",
+  treat.name = "combo",
+  theme = large_theme
+)
+
 # Display the plot
-plot(result$plot)
+render_forestplot(result)
 }
 
 }
@@ -186,4 +208,6 @@ plot(result$plot)
 \code{\link{forestsearch}} for running the subgroup analysis
 \code{\link{forestsearch_bootstrap_dofuture}} for bootstrap bias correction
 \code{\link{forestsearch_Kfold}} for cross-validation
+\code{\link{create_forest_theme}} for customizing plot appearance
+\code{\link{render_forestplot}} for rendering the plot
 }

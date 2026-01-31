@@ -61,6 +61,9 @@
 #'   More spaces = wider CI column (default: 20).
 #' @param conf.level Numeric. Confidence level for intervals (default: 0.95 for 95% CI).
 #'   Used to calculate the z-multiplier as qnorm(1 - (1 - conf.level)/2).
+#' @param theme An fs_forest_theme object from \code{create_forest_theme()}.
+#'   Use this to control plot sizing (fonts, row height, CI appearance,
+#'   CV annotation font size). Default: NULL (uses default theme).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -113,7 +116,7 @@
 #'   )
 #' )
 #'
-#' # Create the forest plot
+#' # Create the forest plot with default theme
 #' result <- plot_subgroup_results_forestplot(
 #'   fs_results = list(fs.est = fs.est, fs_bc = fs_bc, fs_kfold = fs_kfold),
 #'   df_analysis = df_itt,
@@ -125,14 +128,33 @@
 #'   C.name = "CT"
 #' )
 #'
+#' # Create with custom theme for larger plot
+#' large_theme <- create_forest_theme(
+#'   base_size = 14,
+#'   row_padding = c(6, 4),
+#'   cv_fontsize = 11
+#' )
+#'
+#' result <- plot_subgroup_results_forestplot(
+#'   fs_results = list(fs.est = fs.est, fs_bc = fs_bc, fs_kfold = fs_kfold),
+#'   df_analysis = df_itt,
+#'   subgroup_list = subgroups,
+#'   outcome.name = "os_time",
+#'   event.name = "os_event",
+#'   treat.name = "combo",
+#'   theme = large_theme
+#' )
+#'
 #' # Display the plot
-#' plot(result$plot)
+#' render_forestplot(result)
 #' }
 #'
 #' @seealso
 #' \code{\link{forestsearch}} for running the subgroup analysis
 #' \code{\link{forestsearch_bootstrap_dofuture}} for bootstrap bias correction
 #' \code{\link{forestsearch_Kfold}} for cross-validation
+#' \code{\link{create_forest_theme}} for customizing plot appearance
+#' \code{\link{render_forestplot}} for rendering the plot
 #'
 #' @importFrom survival coxph Surv
 #' @importFrom grid gpar
@@ -159,7 +181,8 @@ plot_subgroup_results_forestplot <- function(
     posthoc_colors = c("powderblue", "beige"),
     reference_colors = c("yellow", "powderblue"),
     ci_column_spaces = 20,
-    conf.level = 0.95
+    conf.level = 0.95,
+    theme = NULL
 ) {
 
   # ==========================================================================
@@ -640,14 +663,77 @@ plot_subgroup_results_forestplot <- function(
   # Create Forest Plot
   # ==========================================================================
 
-  # Apply theme
+  # Extract theme parameters or use defaults
+  if (!is.null(theme) && inherits(theme, "fs_forest_theme")) {
+    # Use custom theme parameters
+    base_size <- theme$base_size
+    row_padding <- theme$row_padding
+    body_fontsize <- theme$body_fontsize
+    header_fontsize <- theme$header_fontsize
+    footnote_fontsize <- theme$footnote_fontsize
+    footnote_col <- theme$footnote_col
+    cv_fontsize <- theme$cv_fontsize
+    cv_col <- theme$cv_col
+    ci_pch <- theme$ci_pch
+    ci_lwd <- theme$ci_lwd
+    ci_Theight <- theme$ci_Theight
+    ci_col <- theme$ci_col
+    refline_lwd <- theme$refline_lwd
+    refline_lty <- theme$refline_lty
+    refline_col <- theme$refline_col
+  } else {
+    # Default values
+    base_size <- 10
+    row_padding <- c(4, 4)
+    body_fontsize <- 10
+    header_fontsize <- 11
+    footnote_fontsize <- 9
+    footnote_col <- "darkcyan"
+    cv_fontsize <- 10
+    cv_col <- "gray30"
+    ci_pch <- 15
+    ci_lwd <- 1.5
+    ci_Theight <- 0.2
+    ci_col <- "black"
+    refline_lwd <- 1
+    refline_lty <- "dashed"
+    refline_col <- "gray30"
+  }
+
+  # Create forestploter theme with row-specific colors
   tm <- forestploter::forest_theme(
+    base_size = base_size,
     core = list(
-      fg_params = list(hjust = 1, x = 0.9),
-      bg_params = list(fill = sg_colors)
+      fg_params = list(
+        hjust = 1,
+        x = 0.9,
+        fontsize = body_fontsize
+      ),
+      bg_params = list(
+        fill = sg_colors
+      ),
+      padding = grid::unit(row_padding, "mm")
     ),
-    colhead = list(fg_params = list(hjust = 0.5, x = 0.5)),
-    footnote_gp = grid::gpar(cex = 0.65, fontface = "italic", col = "darkcyan")
+    colhead = list(
+      fg_params = list(
+        hjust = 0.5,
+        x = 0.5,
+        fontsize = header_fontsize,
+        fontface = "bold"
+      )
+    ),
+    ci_pch = ci_pch,
+    ci_col = ci_col,
+    ci_lwd = ci_lwd,
+    ci_Theight = ci_Theight,
+    refline_lwd = refline_lwd,
+    refline_lty = refline_lty,
+    refline_col = refline_col,
+    footnote_gp = grid::gpar(
+      fontsize = footnote_fontsize,
+      fontface = "italic",
+      col = footnote_col
+    )
   )
 
   # Add spacing column for CI plot (width controlled by ci_column_spaces)
@@ -676,6 +762,7 @@ plot_subgroup_results_forestplot <- function(
   )
 
   # Add CV annotation text using insert_text (spans across first 3 columns)
+  # Uses cv_fontsize from theme for proper sizing
   if (length(cv_row_positions) > 0) {
     for (i in seq_along(cv_texts)) {
       p <- forestploter::insert_text(
@@ -685,7 +772,7 @@ plot_subgroup_results_forestplot <- function(
         col = 1:3,
         part = "body",
         just = "center",
-        gp = grid::gpar(fontsize = 10, fontface = "italic", col = "gray30")
+        gp = grid::gpar(fontsize = cv_fontsize, fontface = "italic", col = cv_col)
       )
     }
   }
@@ -725,7 +812,8 @@ print.fs_forestplot <- function(x, ...) {
       cat("  -", x$cv_metrics[[i]], "\n")
     }
   }
-  cat("\nUse plot() to display the forest plot.\n")
+  cat("\nTo display: render_forestplot(x) or plot(x)\n")
+  cat("To save:    save_forestplot(x, 'plot.pdf', width = 14, height = 12)\n")
   invisible(x)
 }
 
@@ -736,7 +824,8 @@ print.fs_forestplot <- function(x, ...) {
 #' @param ... Additional arguments passed to grid plotting
 #' @export
 plot.fs_forestplot <- function(x, ...) {
-  print(x$plot)
+  grid::grid.newpage()
+  grid::grid.draw(x$plot)
   invisible(x)
 }
 
