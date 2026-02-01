@@ -1,11 +1,13 @@
+# =============================================================================
+# SUBGROUP SEARCH FUNCTIONS
+# =============================================================================
 # minp = Minimum prevalence rate
-# Only combinations where all factors have prevalance at least minp are evaluated
+# Only combinations where all factors have prevalence at least minp are evaluated
 # Minimum difference in subgroup sample size
 # Max subgroup size is n: After first factor x1 is added, the sample size for
-# the subgroup is then n(x1), say.   If combining with next factor x2
+# the subgroup is then n(x1), say. If combining with next factor x2
 # does not reduce the sample size by rmin, then consider this combination "redundant"
 # Adding d.min to require min(Events) per treatment arm (d0.min for control, d1.min for treatment)
-# covs.in[isin,]<-unlist(lapply(covs.in[isin,],function(x){ifelse(x==1,0,1)})) # slower
 
 
 #' Get all combinations of subgroup factors up to maxk
@@ -36,21 +38,6 @@ get_combinations_info <- function(L, maxk) {
   )
 }
 
-
-#' Get subgroup membership vector (old, legacy version)
-#'
-#' Returns a vector indicating subgroup membership (1 if all selected factors are present, 0 otherwise).
-#'
-#' @param zz Matrix or data frame of subgroup factor indicators.
-#' @param covs.in Numeric vector indicating which factors are selected (1 = included).
-#' @return Numeric vector of subgroup membership (1/0).
-#' @export
-
-get_subgroup_membership_old <- function(zz, covs.in) {
-  x <- zz[, which(covs.in == 1), drop = FALSE]
-  if (ncol(x) == 0) return(rep(1, nrow(zz)))
-  apply(x, 1, function(row) all(row == 1))
-}
 
 #' Get subgroup membership vector
 #'
@@ -142,7 +129,6 @@ extract_idx_flagredundancy <- function(x, rmin) {
 }
 
 
-
 #' Subgroup Search for Treatment Effect Heterogeneity (Improved)
 #'
 #' Searches for subgroups with treatment effect heterogeneity using combinations
@@ -164,7 +150,28 @@ extract_idx_flagredundancy <- function(x, rmin) {
 #' @param details Logical. Print details during execution.
 #' @param maxk Integer. Maximum number of factors in a subgroup.
 #'
-#' @return List with found subgroups, maximum HR, search time, and configuration info.
+#' @return List with found subgroups, maximum HR, search time, configuration info,
+#'   and filtering statistics:
+#'   \describe{
+#'     \item{out.found}{List containing hr.subgroups data.table of candidates}
+#'     \item{max_sg_est}{Maximum HR estimate found}
+#'     \item{time_search}{Search time in minutes}
+#'     \item{L}{Number of single factors}
+#'     \item{max_count}{Total combinations evaluated}
+#'     \item{prop_max_count}{Proportion of max combinations (always 1)}
+#'     \item{filter_counts}{List with counts at each filtering stage:
+#'       \itemize{
+#'         \item n_evaluated: Total combinations evaluated
+#'         \item n_passed_variance: Passed variance check
+#'         \item n_passed_prevalence: Passed prevalence threshold
+#'         \item n_passed_redundancy: Passed redundancy check
+#'         \item n_passed_events: Passed event count criteria (d0.min, d1.min)
+#'         \item n_passed_sample_size: Passed sample size criteria (n.min)
+#'         \item n_passed_cox: Cox model fit successfully
+#'         \item n_passed_hr: Passed HR threshold (final candidates)
+#'       }
+#'     }
+#'   }
 #'
 #' @importFrom data.table data.table setorder
 #' @importFrom survival coxph Surv survfit
@@ -208,7 +215,7 @@ subgroup.search <- function(Y, Event, Treat, ID = NULL, Z,
 
   t.start <- proc.time()[3]
 
-  results_list <- search_combinations(
+  search_result <- search_combinations(
     yy = yy, dd = dd, tt = tt, zz = zz,
     combo_info = combo_info,
     n.min = n.min, d0.min = d0.min, d1.min = d1.min,
@@ -216,6 +223,9 @@ subgroup.search <- function(Y, Event, Treat, ID = NULL, Z,
     max.minutes = max.minutes, t.start = t.start,
     maxk = maxk, L = L
   )
+
+  results_list <- search_result$results
+  filter_counts <- search_result$filter_counts
 
   # =========================================================================
   # SECTION 4: COMPILE AND FORMAT RESULTS
@@ -227,17 +237,32 @@ subgroup.search <- function(Y, Event, Treat, ID = NULL, Z,
 
   if (details) {
     cat("Events criteria: control >=", d0.min, ", treatment >=", d1.min, "\n")
+    cat("Sample size criteria: n >=", n.min, "\n")
     cat("Subgroup search completed in", round(t.min, 2), "minutes\n")
+
+    # Print filter counts
+    cat("\n--- Filtering Summary ---\n")
+    cat("  Combinations evaluated:", filter_counts$n_evaluated, "\n")
+    cat("  Passed variance check:", filter_counts$n_passed_variance, "\n")
+    cat("  Passed prevalence (>=", minp, "):", filter_counts$n_passed_prevalence, "\n")
+    cat("  Passed redundancy check:", filter_counts$n_passed_redundancy, "\n")
+    cat("  Passed event counts (d0>=", d0.min, ", d1>=", d1.min, "):",
+        filter_counts$n_passed_events, "\n")
+    cat("  Passed sample size (n>=", n.min, "):", filter_counts$n_passed_sample_size, "\n")
+    cat("  Cox model fit successfully:", filter_counts$n_passed_cox, "\n")
+    cat("  Passed HR threshold (>=", hr.threshold, "):", filter_counts$n_passed_hr, "\n")
+    cat("-------------------------\n\n")
   }
 
   # Format results
   output <- format_search_results(
     results_list = results_list,
-    Z = Z,
+    Z = zz,
     details = details,
     t.sofar = t.sofar,
     L = L,
-    max_count = combo_info$max_count
+    max_count = combo_info$max_count,
+    filter_counts = filter_counts
   )
 
   return(output)
@@ -315,7 +340,8 @@ calculate_max_combinations <- function(L, maxk) {
 
 #' Search Through All Combinations
 #'
-#' Main search loop evaluating each factor combination
+#' Main search loop evaluating each factor combination. Returns both results
+#' and counts at each filtering stage.
 #'
 #' @keywords internal
 search_combinations <- function(yy, dd, tt, zz, combo_info,
@@ -326,6 +352,19 @@ search_combinations <- function(yy, dd, tt, zz, combo_info,
   tot_counts <- combo_info$max_count
   results_list <- vector("list", tot_counts)
   n_results <- 0
+
+
+  # Initialize filter counters
+  filter_counts <- list(
+    n_evaluated = 0L,
+    n_passed_variance = 0L,
+    n_passed_prevalence = 0L,
+    n_passed_redundancy = 0L,
+    n_passed_events = 0L,
+    n_passed_sample_size = 0L,
+    n_passed_cox = 0L,
+    n_passed_hr = 0L
+  )
 
   for (kk in seq_len(tot_counts)) {
 
@@ -343,8 +382,10 @@ search_combinations <- function(yy, dd, tt, zz, combo_info,
     # Skip if too many factors
     if (sum(covs.in) > maxk) next
 
-    # Evaluate this combination
-    result <- evaluate_combination(
+    filter_counts$n_evaluated <- filter_counts$n_evaluated + 1L
+
+    # Evaluate this combination with status tracking
+    eval_result <- evaluate_combination_with_status(
       covs.in = covs.in,
       yy = yy, dd = dd, tt = tt, zz = zz,
       n.min = n.min, d0.min = d0.min, d1.min = d1.min,
@@ -352,15 +393,29 @@ search_combinations <- function(yy, dd, tt, zz, combo_info,
       kk = kk
     )
 
+    # Update filter counts based on status
+    status <- eval_result$status
+
+    if (status >= 1) filter_counts$n_passed_variance <- filter_counts$n_passed_variance + 1L
+    if (status >= 2) filter_counts$n_passed_prevalence <- filter_counts$n_passed_prevalence + 1L
+    if (status >= 3) filter_counts$n_passed_redundancy <- filter_counts$n_passed_redundancy + 1L
+    if (status >= 4) filter_counts$n_passed_events <- filter_counts$n_passed_events + 1L
+    if (status >= 5) filter_counts$n_passed_sample_size <- filter_counts$n_passed_sample_size + 1L
+    if (status >= 6) filter_counts$n_passed_cox <- filter_counts$n_passed_cox + 1L
+    if (status >= 7) filter_counts$n_passed_hr <- filter_counts$n_passed_hr + 1L
+
     # Store if valid result found
-    if (!is.null(result)) {
+    if (!is.null(eval_result$result)) {
       n_results <- n_results + 1
-      results_list[[n_results]] <- result
+      results_list[[n_results]] <- eval_result$result
     }
   }
 
-  # Return only non-NULL results
-  Filter(Negate(is.null), results_list[1:n_results])
+  # Return results and filter counts
+  list(
+    results = Filter(Negate(is.null), results_list[seq_len(max(1, n_results))]),
+    filter_counts = filter_counts
+  )
 }
 
 
@@ -374,7 +429,7 @@ is_time_exceeded <- function(t.start, max.minutes) {
 }
 
 
-#' Evaluate a Single Factor Combination
+#' Evaluate a Single Factor Combination (Original - for backward compatibility)
 #'
 #' Tests whether a specific combination meets all criteria
 #'
@@ -383,35 +438,101 @@ evaluate_combination <- function(covs.in, yy, dd, tt, zz,
                                  n.min, d0.min, d1.min, hr.threshold,
                                  minp, rmin, kk) {
 
+  result <- evaluate_combination_with_status(
+    covs.in = covs.in, yy = yy, dd = dd, tt = tt, zz = zz,
+    n.min = n.min, d0.min = d0.min, d1.min = d1.min,
+    hr.threshold = hr.threshold, minp = minp, rmin = rmin, kk = kk
+  )
+
+  return(result$result)
+}
+
+
+#' Evaluate a Single Factor Combination with Status Tracking
+#'
+#' Tests whether a specific combination meets all criteria and returns
+#' a status code indicating how far the evaluation progressed.
+#'
+#' @param covs.in Numeric vector. Factor selection indicators.
+#' @param yy Numeric vector. Outcome values.
+#' @param dd Numeric vector. Event indicators.
+#' @param tt Numeric vector. Treatment indicators.
+#' @param zz Matrix. Factor indicators.
+#' @param n.min Integer. Minimum sample size.
+#' @param d0.min Integer. Minimum control events.
+#' @param d1.min Integer. Minimum treatment events.
+#' @param hr.threshold Numeric. HR threshold.
+#' @param minp Numeric. Minimum prevalence.
+#' @param rmin Integer. Minimum size reduction.
+#' @param kk Integer. Combination index.
+#'
+#' @return List with:
+#'   \describe{
+#'     \item{status}{Integer status code:
+#'       0 = failed variance check,
+#'       1 = passed variance, failed prevalence,
+#'       2 = passed prevalence, failed redundancy,
+#'       3 = passed redundancy, failed events,
+#'       4 = passed events, failed sample size,
+#'       5 = passed sample size, failed Cox fit,
+#'       6 = passed Cox fit, failed HR threshold,
+#'       7 = passed all criteria (success)}
+#'     \item{result}{Result row if successful, NULL otherwise}
+#'   }
+#'
+#' @keywords internal
+evaluate_combination_with_status <- function(covs.in, yy, dd, tt, zz,
+                                             n.min, d0.min, d1.min, hr.threshold,
+                                             minp, rmin, kk) {
+
   # Extract selected factors
   selected_cols <- which(covs.in == 1)
   x <- zz[, selected_cols, drop = FALSE]
 
-  # Quick checks that can fail fast
-  if (!has_positive_variance(x)) return(NULL)
-  if (!meets_prevalence_threshold(x, minp)) return(NULL)
+  # Status 0: Check variance
+  if (!has_positive_variance(x)) {
+    return(list(status = 0L, result = NULL))
+  }
 
-  # Check for redundancy
+ # Status 1: Check prevalence
+  if (!meets_prevalence_threshold(x, minp)) {
+    return(list(status = 1L, result = NULL))
+  }
+
+  # Status 2: Check redundancy
   redundancy_check <- extract_idx_flagredundancy(x, rmin)
-  if (redundancy_check$flag.redundant) return(NULL)
+  if (redundancy_check$flag.redundant) {
+    return(list(status = 2L, result = NULL))
+  }
 
   id.x <- redundancy_check$id.x
 
-  # Check event counts
+  # Status 3: Check event counts
   event_counts <- calculate_event_counts(dd, tt, id.x)
-  if (!meets_event_criteria(event_counts, d0.min, d1.min)) return(NULL)
+  if (!meets_event_criteria(event_counts, d0.min, d1.min)) {
+    return(list(status = 3L, result = NULL))
+  }
 
-  # Check sample size
+  # Status 4: Check sample size
   nx <- sum(id.x)
-  if (nx <= n.min) return(NULL)
+  if (nx <= n.min) {
+    return(list(status = 4L, result = NULL))
+  }
 
-  # Fit Cox model and check HR threshold
+  # Status 5: Fit Cox model
   cox_result <- fit_cox_for_subgroup(yy, dd, tt, id.x)
-  if (is.null(cox_result)) return(NULL)
-  if (cox_result$hr <= hr.threshold) return(NULL)
+  if (is.null(cox_result)) {
+    return(list(status = 5L, result = NULL))
+  }
 
-  # Passed all criteria - return result
-  create_result_row(kk, covs.in, nx, event_counts, cox_result)
+  # Status 6: Check HR threshold
+  if (cox_result$hr <= hr.threshold) {
+    return(list(status = 6L, result = NULL))
+  }
+
+  # Status 7: Passed all criteria - return result
+  result_row <- create_result_row(kk, covs.in, nx, event_counts, cox_result)
+  return(list(status = 7L, result = result_row))
 }
 
 
@@ -464,7 +585,7 @@ fit_cox_for_subgroup <- function(yy, dd, tt, id.x) {
 
   # Fit Cox model
   hr.cox <- try(
-    summary(coxph(Surv(Y, E) ~ Treat, data = df.x, robust = FALSE))$conf.int,
+    summary(survival::coxph(survival::Surv(Y, E) ~ Treat, data = df.x, robust = FALSE))$conf.int,
     silent = TRUE
   )
 
@@ -472,7 +593,7 @@ fit_cox_for_subgroup <- function(yy, dd, tt, id.x) {
 
   # Get median survival times
   meds <- try(
-    summary(survfit(Surv(Y, E) ~ Treat, data = df.x))$table[, "median"],
+    summary(survival::survfit(survival::Surv(Y, E) ~ Treat, data = df.x))$table[, "median"],
     silent = TRUE
   )
 
@@ -510,14 +631,32 @@ create_result_row <- function(kk, covs.in, nx, event_counts, cox_result) {
 
 #' Format Search Results
 #'
+#' @param results_list List of result rows
+#' @param Z Matrix of factor indicators
+#' @param details Logical. Print details
+#' @param t.sofar Numeric. Time elapsed
+#' @param L Integer. Number of factors
+#' @param max_count Integer. Maximum combinations
+#' @param filter_counts List. Counts at each filtering stage (optional)
+#'
 #' @keywords internal
 #' @importFrom data.table data.table setorder
-format_search_results <- function(results_list, Z, details, t.sofar, L, max_count) {
+format_search_results <- function(results_list, Z, details, t.sofar, L, max_count,
+                                  filter_counts = NULL) {
 
   # No results found
   if (length(results_list) == 0) {
     if (details) cat("NO subgroup candidates found\n")
-    return(NULL)
+
+    return(list(
+      out.found = NULL,
+      max_sg_est = NA,
+      time_search = t.sofar,
+      L = L,
+      max_count = max_count,
+      prop_max_count = 1,
+      filter_counts = filter_counts
+    ))
   }
 
   # Combine results into matrix
@@ -543,8 +682,7 @@ format_search_results <- function(results_list, Z, details, t.sofar, L, max_coun
     time_search = t.sofar,
     L = L,
     max_count = max_count,
-    prop_max_count = 1
+    prop_max_count = 1,
+    filter_counts = filter_counts
   )
 }
-
-

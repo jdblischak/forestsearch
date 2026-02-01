@@ -1,50 +1,36 @@
 # =============================================================================
-# cv_summary_tables.R - Publication-Ready Tables for CV Results
-# =============================================================================
-#
-# gt-formatted tables for forestsearch_KfoldOut() output
-#
+# CROSS-VALIDATION SUMMARY TABLE FUNCTIONS
 # =============================================================================
 
-#' Cross-Validation Summary Tables
+
+#' Create Summary Tables from forestsearch_KfoldOut Results
 #'
-#' Creates publication-ready gt tables summarizing ForestSearch cross-validation
-#' results, including ITT estimates, subgroup estimates from full analysis vs
-#' K-fold analysis, and CV agreement metrics.
+#' Formats the detailed output from \code{\link{forestsearch_KfoldOut}(outall=TRUE)}
+#' into publication-ready gt tables. This includes ITT estimates, original subgroup
+#' estimates, and K-fold subgroup estimates.
 #'
-#' @param cv_out List. Output from \code{forestsearch_KfoldOut(outall = TRUE)}.
-#' @param est.scale Character. Estimate scale: "hr" or "1/hr" (default: "hr").
-#' @param sg_definition Character. Subgroup definition text for footnote.
-#'   If NULL, attempts to extract from cv_out.
-#' @param caption Character. Table caption (default: auto-generated).
-#' @param font_size Numeric. Base font size in pixels (default: 12).
-#' @param show_cv_metrics Logical. Include CV agreement metrics table
-#'   (default: TRUE).
-#' @param show_sg_finding Logical. Include subgroup finding summary table
-#'   (default: TRUE).
-#' @param decimals Integer. Number of decimal places for estimates (default: 2).
+#' @param kfold_out List. Result from \code{forestsearch_KfoldOut(res, outall = TRUE)}.
+#'   Must contain \code{itt_tab}, \code{SG_tab_original}, \code{SG_tab_Kfold},
+#'   and optionally \code{tab_all}.
+#' @param title Character. Main title for combined table.
+#'   Default: "Cross-Validation Summary".
+#' @param subtitle Character. Subtitle for table. Default: NULL (auto-generated).
+#' @param show_metrics Logical. Include agreement and finding metrics in output.
+#'   Default: TRUE.
+#' @param digits Integer. Decimal places for numeric formatting. Default: 3.
+#' @param font_size Integer. Font size in pixels. Default: 12.
+#' @param use_gt Logical. Return gt table if TRUE, data.frame if FALSE.
+#'   Default: TRUE.
 #'
-#' @return A list containing gt table objects:
-#'   \describe{
-#'     \item{estimates_table}{Combined ITT/Full-Analysis/K-fold estimates}
-#'     \item{cv_metrics_table}{CV agreement metrics (sensitivity, PPV)}
-#'     \item{sg_finding_table}{Subgroup finding summary across folds}
-#'     \item{tab_all}{The underlying data frame}
+#' @return If \code{use_gt = TRUE}, returns a list with gt table objects:
+#'   \itemize{
+#'     \item \code{combined_table}: Combined ITT and subgroup estimates
+#'     \item \code{itt_table}: ITT estimates only
+#'     \item \code{original_table}: Original full-data subgroup estimates
+#'     \item \code{kfold_table}: K-fold subgroup estimates
+#'     \item \code{metrics_table}: Agreement and finding metrics (if \code{show_metrics = TRUE})
 #'   }
-#'
-#' @details
-#' The estimates table shows:
-#' \itemize{
-#'   \item \strong{Overall (ITT)}: Intent-to-treat population
-#'   \item \strong{Full-Analysis (FA)}: Using full-data subgroup assignment
-#'   \item \strong{K-fold Analysis (KfA)}: Using CV-predicted subgroup assignment
-#' }
-#'
-#' Row naming convention:
-#' \itemize{
-#'   \item FA_0 / KfA_0: Questionable/Harm subgroup (H)
-#'   \item FA_1 / KfA_1: Recommend/Benefit subgroup (Hc)
-#' }
+#'   If \code{use_gt = FALSE}, returns equivalent data.frames.
 #'
 #' @examples
 #' \dontrun{
@@ -52,523 +38,783 @@
 #' cv_results <- forestsearch_Kfold(fs.est = fs_result, Kfolds = 10)
 #'
 #' # Get detailed output
-#' cv_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
+#' kfold_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
 #'
-#' # Create gt tables
-#' tables <- cv_summary_tables(cv_out)
-#'
-#' # View estimates table
-#' tables$estimates_table
-#'
-#' # View CV metrics
-#' tables$cv_metrics_table
+#' # Create summary tables
+#' cv_tables <- cv_summary_tables(kfold_out)
+#' cv_tables$combined_table
+#' cv_tables$metrics_table
 #' }
 #'
-#' @seealso
-#' \code{\link{forestsearch_Kfold}} for running cross-validation
-#' \code{\link{forestsearch_KfoldOut}} for summarizing CV results
-#' \code{\link{sg_tables}} for similar formatting of main ForestSearch results
+#' @seealso \code{\link{cv_metrics_tables}} for formatting \code{forestsearch_tenfold()} results
 #'
-#' @importFrom gt gt tab_header tab_spanner tab_footnote tab_source_note
-#'   tab_options tab_style cells_body cells_column_labels md px fmt_number
-#'   cols_label cols_align cell_fill cell_text cell_borders
+#' @importFrom gt gt tab_header tab_spanner cols_label fmt_number tab_style
+#'   cell_text cells_column_labels tab_footnote cells_body tab_options md px
 #' @export
 cv_summary_tables <- function(
-    cv_out,
-    est.scale = "hr",
-    sg_definition = NULL,
-    caption = NULL,
+    kfold_out,
+    title = "Cross-Validation Summary",
+    subtitle = NULL,
+    show_metrics = TRUE,
+    digits = 3,
     font_size = 12,
-    show_cv_metrics = TRUE,
-    show_sg_finding = TRUE,
-    decimals = 2
+    use_gt = TRUE
 ) {
 
   # ===========================================================================
- # Input Validation
+  # INPUT VALIDATION
   # ===========================================================================
 
-  if (!requireNamespace("gt", quietly = TRUE)) {
-    stop("Package 'gt' required. Install with: install.packages('gt')")
+  if (!is.list(kfold_out)) {
+    stop("kfold_out must be a list from forestsearch_KfoldOut(outall = TRUE)")
   }
 
-  if (is.null(cv_out$tab_all)) {
-    stop("cv_out must be from forestsearch_KfoldOut(outall = TRUE)")
+  # Check for required elements (from outall = TRUE)
+  required <- c("itt_tab", "SG_tab_original")
+  missing <- setdiff(required, names(kfold_out))
+
+  if (length(missing) > 0) {
+    stop("kfold_out missing required elements: ", paste(missing, collapse = ", "),
+         "\nDid you use forestsearch_KfoldOut(res, outall = TRUE)?")
   }
 
   # ===========================================================================
-  # Prepare Data
+  # EXTRACT TABLES
   # ===========================================================================
 
-  tab_all <- cv_out$tab_all
+  itt_tab <- kfold_out$itt_tab
+  SG_tab_original <- kfold_out$SG_tab_original
+  SG_tab_Kfold <- kfold_out$SG_tab_Kfold
+  tab_all <- kfold_out$tab_all
 
-  # Create display-friendly row labels
-  row_labels <- rownames(tab_all)
-  display_labels <- sapply(row_labels, function(x) {
-    switch(x,
-           "Overall" = "Overall (ITT)",
-           "FA_0" = "Full-Analysis: Questionable (H)",
-           "KfA_0" = "K-fold CV: Questionable (H)",
-           "FA_1" = "Full-Analysis: Recommend (Hc)",
-           "KfA_1" = "K-fold CV: Recommend (Hc)",
-           x  # Default: return as-is
-    )
-  })
-
-  # Add Analysis column
-  tab_display <- data.frame(
-    Analysis = display_labels,
-    tab_all,
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
-  rownames(tab_display) <- NULL
-
-  # Determine row types for styling
-  row_types <- sapply(row_labels, function(x) {
-    if (x == "Overall") return("itt")
-    if (grepl("^FA_", x)) return("full_analysis")
-    if (grepl("^KfA_", x)) return("kfold")
-    return("other")
-  })
+  # Extract metrics if available
+  sens_metrics <- kfold_out$sens_metrics_original
+  find_metrics <- kfold_out$find_metrics
 
   # ===========================================================================
-  # Create Estimates Table
+  # CREATE COMBINED TABLE (tab_all)
   # ===========================================================================
 
-  if (is.null(caption)) {
-    caption <- "Cross-Validation Subgroup Estimates"
-  }
-
-  # Build gt table
-  estimates_gt <- gt::gt(tab_display) |>
-    gt::tab_header(
-      title = gt::md(paste0("**", caption, "**")),
-      subtitle = "Comparison of Full-Analysis vs K-fold CV Predictions"
-    ) |>
-    gt::cols_label(
-      Analysis = "Population / Subgroup",
-      Subgroup = "Definition",
-      n = "N",
-      n1 = gt::md("n<sub>E</sub>"),
-      m1 = gt::md("Events<sub>E</sub>"),
-      m0 = gt::md("Events<sub>C</sub>"),
-      RMST = "RMST Diff",
-      `Hazard ratio` = "HR (95% CI)"
-    ) |>
-    gt::cols_align(
-      align = "left",
-      columns = c("Analysis", "Subgroup")
-    ) |>
-    gt::cols_align(
-      align = "center",
-      columns = c("n", "n1", "m1", "m0", "RMST", "Hazard ratio")
+  if (!use_gt) {
+    # Return data.frames
+    result <- list(
+      combined_table = tab_all,
+      itt_table = itt_tab,
+      original_table = SG_tab_original,
+      kfold_table = SG_tab_Kfold
     )
 
-  # Style ITT row
-  itt_rows <- which(row_types == "itt")
-  if (length(itt_rows) > 0) {
-    estimates_gt <- estimates_gt |>
+    if (show_metrics && !is.null(sens_metrics)) {
+      result$metrics <- list(
+        sens_metrics = sens_metrics,
+        find_metrics = find_metrics
+      )
+    }
+
+    return(result)
+  }
+
+  # ===========================================================================
+  # CREATE GT TABLES
+  # ===========================================================================
+
+  result <- list()
+
+  # --- Combined Table ---
+  if (!is.null(tab_all)) {
+    # Auto-generate subtitle if not provided
+    if (is.null(subtitle)) {
+      subtitle <- "ITT and Subgroup Estimates: Full Analysis (FA) vs K-fold (Kf)"
+    }
+
+    combined_gt <- tab_all |>
+      as.data.frame() |>
+      gt::gt(rownames_to_stub = TRUE) |>
+      gt::tab_header(
+        title = gt::md(paste0("**", title, "**")),
+        subtitle = subtitle
+      ) |>
+      gt::tab_stubhead(label = "Analysis") |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size),
+        heading.title.font.size = gt::px(font_size + 2),
+        heading.subtitle.font.size = gt::px(font_size)
+      ) |>
       gt::tab_style(
-        style = list(
-          gt::cell_fill(color = "#fff9c4"),  # Light yellow
-          gt::cell_text(weight = "bold")
-        ),
-        locations = gt::cells_body(rows = itt_rows)
-      )
-  }
-
-  # Style Full-Analysis rows
-  fa_rows <- which(row_types == "full_analysis")
-  if (length(fa_rows) > 0) {
-    estimates_gt <- estimates_gt |>
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_column_labels()
+      ) |>
       gt::tab_style(
-        style = list(
-          gt::cell_fill(color = "#e3f2fd")  # Light blue
-        ),
-        locations = gt::cells_body(rows = fa_rows)
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_stub()
       )
+
+    # Add row group labels
+    combined_gt <- combined_gt |>
+      gt::tab_footnote(
+        footnote = "FA = Full Analysis (original data), Kf = K-fold CV estimate"
+      )
+
+    result$combined_table <- combined_gt
   }
 
-  # Style K-fold rows
-  kf_rows <- which(row_types == "kfold")
-  if (length(kf_rows) > 0) {
-    estimates_gt <- estimates_gt |>
+  # --- ITT Table ---
+  if (!is.null(itt_tab)) {
+    itt_gt <- itt_tab |>
+      as.data.frame() |>
+      gt::gt() |>
+      gt::tab_header(
+        title = gt::md("**Intent-to-Treat Estimates**")
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size)
+      ) |>
       gt::tab_style(
-        style = list(
-          gt::cell_fill(color = "#f3e5f5")  # Light purple
-        ),
-        locations = gt::cells_body(rows = kf_rows)
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_column_labels()
       )
+
+    result$itt_table <- itt_gt
   }
 
-  # Add column header border
-  estimates_gt <- estimates_gt |>
-    gt::tab_style(
-      style = gt::cell_borders(
-        sides = "bottom",
-        color = "black",
-        weight = gt::px(2)
-      ),
-      locations = gt::cells_column_labels()
-    )
-
-  # Font sizes
-  estimates_gt <- estimates_gt |>
-    gt::tab_options(
-      table.font.size = gt::px(font_size),
-      heading.title.font.size = gt::px(font_size + 2),
-      heading.subtitle.font.size = gt::px(font_size),
-      column_labels.font.size = gt::px(font_size),
-      footnotes.font.size = gt::px(font_size - 1),
-      source_notes.font.size = gt::px(font_size - 1)
-    )
-
-  # Add footnotes
-  estimates_gt <- estimates_gt |>
-    gt::tab_footnote(
-      footnote = gt::md("**Full-Analysis**: Subgroup assignment from full-data model"),
-      locations = gt::cells_body(columns = "Analysis", rows = fa_rows[1])
-    ) |>
-    gt::tab_footnote(
-      footnote = gt::md("**K-fold CV**: Subgroup assignment predicted from training folds"),
-      locations = gt::cells_body(columns = "Analysis", rows = kf_rows[1])
-    )
-
-  # Add subgroup definition if available
-  if (!is.null(sg_definition)) {
-    estimates_gt <- estimates_gt |>
-      gt::tab_source_note(
-        source_note = gt::md(paste0("**Identified subgroup (H)**: ", sg_definition))
+  # --- Original Subgroup Table ---
+  if (!is.null(SG_tab_original)) {
+    original_gt <- SG_tab_original |>
+      as.data.frame() |>
+      gt::gt() |>
+      gt::tab_header(
+        title = gt::md("**Subgroup Estimates (Full Analysis)**"),
+        subtitle = "Subgroups identified using all data"
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size)
+      ) |>
+      gt::tab_style(
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_column_labels()
       )
+
+    result$original_table <- original_gt
   }
 
-  # Add legend
-  estimates_gt <- estimates_gt |>
-    gt::tab_source_note(
-      source_note = gt::md(
-        paste0(
-          "n<sub>E</sub> = sample size experimental arm; ",
-          "Events<sub>E</sub>/Events<sub>C</sub> = events in experimental/control; ",
-          "RMST = restricted mean survival time difference"
-        )
+  # --- K-fold Subgroup Table ---
+  if (!is.null(SG_tab_Kfold)) {
+    kfold_gt <- SG_tab_Kfold |>
+      as.data.frame() |>
+      gt::gt() |>
+      gt::tab_header(
+        title = gt::md("**Subgroup Estimates (K-fold CV)**"),
+        subtitle = "Subgroups identified via cross-validation"
+      ) |>
+      gt::tab_options(
+        table.font.size = gt::px(font_size)
+      ) |>
+      gt::tab_style(
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_column_labels()
       )
-    )
 
-  # ===========================================================================
-  # Create CV Metrics Table
-  # ===========================================================================
+    result$kfold_table <- kfold_gt
+  }
 
-  cv_metrics_gt <- NULL
-
-  if (show_cv_metrics && !is.null(cv_out$sens_metrics_original)) {
-    sens <- cv_out$sens_metrics_original
-
-    # Create metrics data frame
+  # --- Metrics Table ---
+  if (show_metrics && !is.null(sens_metrics) && !is.null(find_metrics)) {
     metrics_df <- data.frame(
-      Metric = c("Sensitivity (H)", "Sensitivity (Hc)",
-                 "PPV (H)", "PPV (Hc)"),
-      Description = c(
-        "Proportion of FA H patients also predicted H in CV",
-        "Proportion of FA Hc patients also predicted Hc in CV",
-        "Proportion of CV H predictions that match FA H",
-        "Proportion of CV Hc predictions that match FA Hc"
+      Category = c(
+        rep("Agreement", 4),
+        rep("Finding", 8)
       ),
-      Value = sprintf("%.1f%%", 100 * sens),
+      Metric = c(
+        "Sensitivity (H)", "Sensitivity (Hc)", "PPV (H)", "PPV (Hc)",
+        "Any Found", "Exact Match", "At Least 1", "Cov1 Any",
+        "Cov2 Any", "Cov1 & Cov2", "Cov1 Exact", "Cov2 Exact"
+      ),
+      Value = c(
+        sens_metrics["sens_H"], sens_metrics["sens_Hc"],
+        sens_metrics["ppv_H"], sens_metrics["ppv_Hc"],
+        find_metrics["Any"], find_metrics["Exact"],
+        find_metrics["At least 1"], find_metrics["Cov1"],
+        find_metrics["Cov2"], find_metrics["Cov 1 & 2"],
+        find_metrics["Cov1 exact"], find_metrics["Cov2 exact"]
+      ) * 100,
       stringsAsFactors = FALSE
     )
+    rownames(metrics_df) <- NULL
 
-    cv_metrics_gt <- gt::gt(metrics_df) |>
+    metrics_gt <- metrics_df |>
+      gt::gt(groupname_col = "Category") |>
       gt::tab_header(
-        title = gt::md("**Cross-Validation Agreement Metrics**"),
-        subtitle = "Agreement between Full-Analysis and K-fold CV Predictions"
+        title = gt::md("**Cross-Validation Metrics**"),
+        subtitle = "Agreement and subgroup finding rates (%)"
       ) |>
+      gt::fmt_number(columns = "Value", decimals = 1) |>
       gt::cols_label(
         Metric = "Metric",
-        Description = "Description",
-        Value = "Value"
-      ) |>
-      gt::cols_align(align = "left", columns = c("Metric", "Description")) |>
-      gt::cols_align(align = "center", columns = "Value") |>
-      gt::tab_style(
-        style = gt::cell_text(weight = "bold"),
-        locations = gt::cells_body(columns = "Metric")
-      ) |>
-      gt::tab_style(
-        style = gt::cell_borders(
-          sides = "bottom",
-          color = "black",
-          weight = gt::px(2)
-        ),
-        locations = gt::cells_column_labels()
+        Value = "Value (%)"
       ) |>
       gt::tab_options(
-        table.font.size = gt::px(font_size),
-        heading.title.font.size = gt::px(font_size + 2),
-        heading.subtitle.font.size = gt::px(font_size),
-        column_labels.font.size = gt::px(font_size)
+        table.font.size = gt::px(font_size)
       ) |>
-      gt::tab_footnote(
-        footnote = gt::md("**H** = Harm/Questionable subgroup; **Hc** = Complement/Recommend subgroup"),
-        locations = gt::cells_column_labels(columns = "Metric")
-      ) |>
-      gt::tab_footnote(
-        footnote = gt::md("**Sensitivity** = True positive rate; **PPV** = Positive predictive value"),
-        locations = gt::cells_column_labels(columns = "Value")
-      )
-
-    # Highlight high agreement (>= 70%)
-    high_agree_rows <- which(sens >= 0.70)
-    if (length(high_agree_rows) > 0) {
-      cv_metrics_gt <- cv_metrics_gt |>
-        gt::tab_style(
-          style = gt::cell_fill(color = "#c8e6c9"),  # Light green
-          locations = gt::cells_body(columns = "Value", rows = high_agree_rows)
-        )
-    }
-  }
-
-  # ===========================================================================
-  # Create Subgroup Finding Table
-  # ===========================================================================
-
-  sg_finding_gt <- NULL
-
-  if (show_sg_finding && !is.null(cv_out$find_metrics)) {
-    find <- cv_out$find_metrics
-
-    # Create finding data frame
-    finding_df <- data.frame(
-      Metric = names(find),
-      Description = c(
-        "Any subgroup found in fold",
-        "Exact match (both factors)",
-        "At least 1 factor matches",
-        "Covariate 1 found (any threshold)",
-        "Covariate 2 found (any threshold)",
-        "Both covariates found",
-        "Covariate 1 exact match",
-        "Covariate 2 exact match"
-      )[seq_along(find)],
-      Value = sprintf("%.1f%%", 100 * find),
-      stringsAsFactors = FALSE
-    )
-
-    sg_finding_gt <- gt::gt(finding_df) |>
-      gt::tab_header(
-        title = gt::md("**Subgroup Finding Summary**"),
-        subtitle = "How often the identified subgroup was recovered in CV folds"
-      ) |>
-      gt::cols_label(
-        Metric = "Metric",
-        Description = "Description",
-        Value = "% of Folds"
-      ) |>
-      gt::cols_align(align = "left", columns = c("Metric", "Description")) |>
-      gt::cols_align(align = "center", columns = "Value") |>
       gt::tab_style(
         style = gt::cell_text(weight = "bold"),
-        locations = gt::cells_body(columns = "Metric")
-      ) |>
-      gt::tab_style(
-        style = gt::cell_borders(
-          sides = "bottom",
-          color = "black",
-          weight = gt::px(2)
-        ),
         locations = gt::cells_column_labels()
       ) |>
-      gt::tab_options(
-        table.font.size = gt::px(font_size),
-        heading.title.font.size = gt::px(font_size + 2),
-        heading.subtitle.font.size = gt::px(font_size),
-        column_labels.font.size = gt::px(font_size)
+      gt::tab_style(
+        style = gt::cell_text(weight = "bold"),
+        locations = gt::cells_row_groups()
       )
 
-    # Highlight key metrics
-    any_row <- which(finding_df$Metric == "Any")
-    exact_row <- which(finding_df$Metric == "Exact")
-
-    if (length(any_row) > 0) {
-      sg_finding_gt <- sg_finding_gt |>
-        gt::tab_style(
-          style = gt::cell_fill(color = "#fff9c4"),  # Light yellow
-          locations = gt::cells_body(rows = any_row)
-        )
-    }
-
-    if (length(exact_row) > 0) {
-      sg_finding_gt <- sg_finding_gt |>
-        gt::tab_style(
-          style = gt::cell_fill(color = "#c8e6c9"),  # Light green
-          locations = gt::cells_body(rows = exact_row)
-        )
-    }
+    result$metrics_table <- metrics_gt
   }
-
-  # ===========================================================================
-  # Return Results
-  # ===========================================================================
-
-  result <- list(
-    estimates_table = estimates_gt,
-    cv_metrics_table = cv_metrics_gt,
-    sg_finding_table = sg_finding_gt,
-    tab_all = tab_all
-  )
-
-  class(result) <- c("cv_summary_tables", "list")
 
   return(result)
 }
 
 
-#' Print Method for CV Summary Tables
+# =============================================================================
+# CV METRICS TABLES (for forestsearch_tenfold / forestsearch_Kfold results)
+# =============================================================================
+
+
+#' Create Metrics Tables for Cross-Validation Results
 #'
-#' @param x A cv_summary_tables object
-#' @param which Character. Which table to print: "estimates", "metrics",
-#'   "finding", or "all" (default).
-#' @param ... Additional arguments (ignored)
-#' @export
-print.cv_summary_tables <- function(x, which = "all", ...) {
-
-  if (which == "all" || which == "estimates") {
-    cat("\n=== Estimates Table ===\n")
-    print(x$estimates_table)
-  }
-
-  if ((which == "all" || which == "metrics") && !is.null(x$cv_metrics_table)) {
-    cat("\n=== CV Agreement Metrics ===\n")
-    print(x$cv_metrics_table)
-  }
-
-  if ((which == "all" || which == "finding") && !is.null(x$sg_finding_table)) {
-    cat("\n=== Subgroup Finding Summary ===\n")
-    print(x$sg_finding_table)
-  }
-
-  invisible(x)
-}
-
-
-#' Format CV Metrics as Inline Text
+#' Formats the \code{find_summary} and \code{sens_summary} outputs from
+#' \code{\link{forestsearch_tenfold}} or \code{\link{forestsearch_Kfold}}
+#' into publication-ready gt tables.
 #'
-#' Creates formatted text summarizing CV metrics for use in reports.
+#' @param cv_result List. Result from \code{forestsearch_tenfold()} or
+#'   \code{forestsearch_Kfold()}. Must contain \code{find_summary} and
+#'   \code{sens_summary} elements.
+#' @param sg_definition Character vector. Subgroup factor definitions for
+#'   labeling (optional). If NULL, extracted from \code{cv_result$sg_analysis}.
+#' @param title Character. Main title for combined table. Default: "Cross-Validation Metrics".
+#' @param show_percentages Logical. Display metrics as percentages (0-100) instead
+#'   of proportions (0-1). Default: TRUE.
+#' @param digits Integer. Decimal places for formatting. Default: 1.
+#' @param include_raw Logical. Include raw matrices (\code{sens_out}, \code{find_out})
+#'   in the output for detailed analysis. Default: FALSE.
+#' @param table_style Character. One of "combined", "separate", or "minimal".
+#'   \itemize{
+#'     \item "combined": Single table with both agreement and finding metrics
+#'     \item "separate": Two separate gt tables
+#'     \item "minimal": Compact single-row summary
+#'   }
+#'   Default: "combined".
+#' @param use_gt Logical. Return gt table(s) if TRUE, data.frame(s) if FALSE.
+#'   Default: TRUE.
 #'
-#' @param cv_out List. Output from forestsearch_KfoldOut().
-#' @param est.scale Character. "hr" or "1/hr".
-#'
-#' @return Character string with formatted CV summary.
-#'
-#' @examples
-#' \dontrun{
-#' cv_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
-#' cat(format_cv_metrics_text(cv_out))
-#' }
-#'
-#' @export
-format_cv_metrics_text <- function(cv_out, est.scale = "hr") {
-
-  if (is.null(cv_out$find_metrics) || is.null(cv_out$sens_metrics_original)) {
-    return("CV metrics not available")
-  }
-
-  find <- cv_out$find_metrics
-  sens <- cv_out$sens_metrics_original
-
-  # Format based on est.scale
-  if (est.scale == "hr") {
-    sg_label_H <- "Questionable (H)"
-    sg_label_Hc <- "Recommend (Hc)"
-  } else {
-    sg_label_H <- "Recommend (H)"
-    sg_label_Hc <- "Questionable (Hc)"
-  }
-
-  text <- sprintf(
-    paste0(
-      "Cross-validation found the subgroup in %.0f%% of folds ",
-      "(exact match: %.0f%%). ",
-      "Agreement between full-analysis and CV predictions: ",
-      "%s sensitivity = %.0f%%, %s sensitivity = %.0f%%."
-    ),
-    100 * find["Any"],
-    100 * find["Exact"],
-    sg_label_H, 100 * sens["sens_H"],
-    sg_label_Hc, 100 * sens["sens_Hc"]
-  )
-
-  return(text)
-}
-
-
-#' Create Combined CV Summary (Estimates + Metrics)
-#'
-#' Creates a single gt table combining estimates with CV metrics summary.
-#' Useful for compact reporting.
-#'
-#' @param cv_out List. Output from forestsearch_KfoldOut(outall = TRUE).
-#' @param sg_definition Character. Subgroup definition for footnote.
-#' @param font_size Numeric. Base font size (default: 11).
-#'
-#' @return A gt table object.
+#' @return Depending on \code{table_style}:
+#'   \itemize{
+#'     \item "combined": A single gt table (or data.frame)
+#'     \item "separate": A list with \code{agreement_table} and \code{finding_table}
+#'     \item "minimal": A single-row gt table (or data.frame)
+#'   }
+#'   If \code{include_raw = TRUE}, also includes \code{sens_out} and \code{find_out}
+#'   matrices in the returned list.
 #'
 #' @examples
 #' \dontrun{
-#' cv_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
-#' cv_summary_combined(cv_out, sg_definition = "BM > 1 & Size > 20")
+#' # After running forestsearch_tenfold
+#' tenfold_results <- forestsearch_tenfold(
+#'   fs.est = fs_result,
+#'   sims = 100,
+#'   Kfolds = 10
+#' )
+#'
+#' # Create combined metrics table
+#' cv_tables <- cv_metrics_tables(tenfold_results)
+#' cv_tables
+#'
+#' # Create separate tables
+#' cv_tables <- cv_metrics_tables(tenfold_results, table_style = "separate")
+#' cv_tables$agreement_table
+#' cv_tables$finding_table
+#'
+#' # Minimal one-row summary
+#' cv_metrics_tables(tenfold_results, table_style = "minimal")
 #' }
 #'
-#' @importFrom gt gt tab_header tab_spanner tab_source_note md px
+#' @seealso \code{\link{cv_summary_tables}} for formatting \code{forestsearch_KfoldOut(outall=TRUE)} results
+#'
+#' @importFrom gt gt tab_header tab_spanner cols_label fmt_number tab_style
+#'   cell_text cells_column_labels tab_footnote cells_body tab_options
 #' @export
-cv_summary_combined <- function(
-    cv_out,
+cv_metrics_tables <- function(
+    cv_result,
     sg_definition = NULL,
-    font_size = 11
+    title = "Cross-Validation Metrics",
+    show_percentages = TRUE,
+    digits = 1,
+    include_raw = FALSE,
+    table_style = c("combined", "separate", "minimal"),
+    use_gt = TRUE
 ) {
 
-  if (!requireNamespace("gt", quietly = TRUE)) {
-    stop("Package 'gt' required")
+ # ===========================================================================
+  # INPUT VALIDATION
+  # ===========================================================================
+
+  table_style <- match.arg(table_style)
+
+  if (!is.list(cv_result)) {
+    stop("cv_result must be a list from forestsearch_tenfold() or forestsearch_Kfold()")
   }
 
-  # Get estimates table
-  tables <- cv_summary_tables(
-    cv_out,
-    font_size = font_size,
-    show_cv_metrics = FALSE,
-    show_sg_finding = FALSE
+  # Check for required elements
+  if (is.null(cv_result$sens_summary) || is.null(cv_result$find_summary)) {
+    stop("cv_result must contain 'sens_summary' and 'find_summary' elements")
+  }
+
+  sens_summary <- cv_result$sens_summary
+  find_summary <- cv_result$find_summary
+
+  # Extract metadata
+  sims <- if (!is.null(cv_result$sims)) cv_result$sims else 1
+  Kfolds <- if (!is.null(cv_result$Kfolds)) cv_result$Kfolds else NA
+
+  # Get subgroup definition
+  if (is.null(sg_definition) && !is.null(cv_result$sg_analysis)) {
+    sg_definition <- cv_result$sg_analysis
+  }
+  sg_label <- if (!is.null(sg_definition)) {
+    paste(sg_definition, collapse = " & ")
+  } else {
+    "Identified Subgroup"
+  }
+
+  # ===========================================================================
+  # PREPARE DATA
+  # ===========================================================================
+
+  # Multiplier for percentages
+  mult <- if (show_percentages) 100 else 1
+  suffix <- if (show_percentages) "%" else ""
+
+  # Agreement metrics (sensitivity/PPV)
+  agreement_df <- data.frame(
+    Metric = c("Sensitivity (H)", "Sensitivity (Hc)",
+               "PPV (H)", "PPV (Hc)"),
+    Description = c(
+      "Agreement rate for subgroup H",
+      "Agreement rate for complement Hc",
+      "Positive predictive value for H",
+      "Positive predictive value for Hc"
+    ),
+    Value = c(
+      sens_summary["sens_H"],
+      sens_summary["sens_Hc"],
+      sens_summary["ppv_H"],
+      sens_summary["ppv_Hc"]
+    ) * mult,
+    stringsAsFactors = FALSE
   )
+  rownames(agreement_df) <- NULL
 
-  estimates_gt <- tables$estimates_table
+  # Finding metrics
+  finding_df <- data.frame(
+    Metric = c("Any Found", "Exact Match", "At Least 1",
+               "Cov1 Any", "Cov2 Any", "Cov1 & Cov2",
+               "Cov1 Exact", "Cov2 Exact"),
+    Description = c(
+      "Any subgroup identified",
+      "Exact match on all factors",
+      "At least one factor matches",
+      "First covariate found (any cut)",
+      "Second covariate found (any cut)",
+      "Both covariates found",
+      "First covariate exact match",
+      "Second covariate exact match"
+    ),
+    Value = c(
+      find_summary["Any"],
+      find_summary["Exact"],
+      find_summary["At least 1"],
+      find_summary["Cov1"],
+      find_summary["Cov2"],
+      find_summary["Cov 1 & 2"],
+      find_summary["Cov1 exact"],
+      find_summary["Cov2 exact"]
+    ) * mult,
+    stringsAsFactors = FALSE
+  )
+  rownames(finding_df) <- NULL
 
-  # Add CV metrics as source note
-  if (!is.null(cv_out$find_metrics) && !is.null(cv_out$sens_metrics_original)) {
-    find <- cv_out$find_metrics
-    sens <- cv_out$sens_metrics_original
+  # ===========================================================================
+  # CREATE TABLES BASED ON STYLE
+  # ===========================================================================
 
-    cv_text <- sprintf(
-      "**CV Summary:** Found in %.0f%% of folds (exact: %.0f%%) | Agreement: Sens(H)=%.0f%%, Sens(Hc)=%.0f%%, PPV(H)=%.0f%%, PPV(Hc)=%.0f%%",
-      100 * find["Any"],
-      100 * find["Exact"],
-      100 * sens["sens_H"],
-      100 * sens["sens_Hc"],
-      100 * sens["ppv_H"],
-      100 * sens["ppv_Hc"]
+  if (table_style == "combined") {
+
+    # Combine into single table
+    combined_df <- data.frame(
+      Category = c(rep("Agreement", 4), rep("Subgroup Finding", 8)),
+      Metric = c(agreement_df$Metric, finding_df$Metric),
+      Description = c(agreement_df$Description, finding_df$Description),
+      Value = c(agreement_df$Value, finding_df$Value),
+      stringsAsFactors = FALSE
     )
 
-    estimates_gt <- estimates_gt |>
-      gt::tab_source_note(
-        source_note = gt::md(cv_text)
+    if (!use_gt) {
+      result <- combined_df
+    } else {
+      # Create gt table
+      gt_table <- combined_df |>
+        gt::gt(groupname_col = "Category") |>
+        gt::tab_header(
+          title = gt::md(paste0("**", title, "**")),
+          subtitle = paste0("Subgroup: ", sg_label)
+        ) |>
+        gt::fmt_number(
+          columns = "Value",
+          decimals = digits
+        ) |>
+        gt::cols_label(
+          Metric = "Metric",
+          Description = "Description",
+          Value = if (show_percentages) "Value (%)" else "Value"
+        ) |>
+        gt::tab_style(
+          style = gt::cell_text(weight = "bold"),
+          locations = gt::cells_column_labels()
+        ) |>
+        gt::tab_style(
+          style = gt::cell_text(weight = "bold"),
+          locations = gt::cells_row_groups()
+        )
+
+      # Add footnote with metadata
+      footnote_text <- paste0(
+        "Based on ", sims, " simulation(s)",
+        if (!is.na(Kfolds)) paste0(" with ", Kfolds, "-fold CV") else "",
+        ". Values are ", if (sims > 1) "medians" else "proportions",
+        if (show_percentages) " shown as percentages." else "."
       )
+
+      gt_table <- gt_table |>
+        gt::tab_footnote(
+          footnote = footnote_text
+        )
+
+      result <- gt_table
+    }
+
+  } else if (table_style == "separate") {
+
+    if (!use_gt) {
+      result <- list(
+        agreement_table = agreement_df,
+        finding_table = finding_df
+      )
+    } else {
+      # Agreement table
+      agreement_gt <- agreement_df |>
+        gt::gt() |>
+        gt::tab_header(
+          title = gt::md("**Agreement Metrics**"),
+          subtitle = paste0("Subgroup: ", sg_label)
+        ) |>
+        gt::fmt_number(columns = "Value", decimals = digits) |>
+        gt::cols_label(
+          Metric = "Metric",
+          Description = "Description",
+          Value = if (show_percentages) "Value (%)" else "Value"
+        ) |>
+        gt::tab_style(
+          style = gt::cell_text(weight = "bold"),
+          locations = gt::cells_column_labels()
+        )
+
+      # Finding table
+      finding_gt <- finding_df |>
+        gt::gt() |>
+        gt::tab_header(
+          title = gt::md("**Subgroup Finding Metrics**"),
+          subtitle = paste0("Subgroup: ", sg_label)
+        ) |>
+        gt::fmt_number(columns = "Value", decimals = digits) |>
+        gt::cols_label(
+          Metric = "Metric",
+          Description = "Description",
+          Value = if (show_percentages) "Value (%)" else "Value"
+        ) |>
+        gt::tab_style(
+          style = gt::cell_text(weight = "bold"),
+          locations = gt::cells_column_labels()
+        )
+
+      result <- list(
+        agreement_table = agreement_gt,
+        finding_table = finding_gt
+      )
+    }
+
+  } else if (table_style == "minimal") {
+
+    # Single-row compact summary
+    minimal_df <- data.frame(
+      Simulations = sims,
+      Kfolds = Kfolds,
+      `Any Found` = find_summary["Any"] * mult,
+      `Exact Match` = find_summary["Exact"] * mult,
+      `Sens H` = sens_summary["sens_H"] * mult,
+      `Sens Hc` = sens_summary["sens_Hc"] * mult,
+      `PPV H` = sens_summary["ppv_H"] * mult,
+      `PPV Hc` = sens_summary["ppv_Hc"] * mult,
+      check.names = FALSE,
+      stringsAsFactors = FALSE
+    )
+
+    if (!use_gt) {
+      result <- minimal_df
+    } else {
+      gt_table <- minimal_df |>
+        gt::gt() |>
+        gt::tab_header(
+          title = gt::md(paste0("**", title, "**")),
+          subtitle = paste0("Subgroup: ", sg_label)
+        ) |>
+        gt::fmt_number(
+          columns = c("Any Found", "Exact Match", "Sens H", "Sens Hc", "PPV H", "PPV Hc"),
+          decimals = digits
+        ) |>
+        gt::fmt_integer(columns = c("Simulations", "Kfolds")) |>
+        gt::tab_spanner(
+          label = "Finding",
+          columns = c("Any Found", "Exact Match")
+        ) |>
+        gt::tab_spanner(
+          label = "Agreement",
+          columns = c("Sens H", "Sens Hc", "PPV H", "PPV Hc")
+        ) |>
+        gt::tab_style(
+          style = gt::cell_text(weight = "bold"),
+          locations = gt::cells_column_labels()
+        )
+
+      result <- gt_table
+    }
   }
 
-  # Add subgroup definition
-  if (!is.null(sg_definition)) {
-    estimates_gt <- estimates_gt |>
-      gt::tab_source_note(
-        source_note = gt::md(paste0("**Identified subgroup (H):** ", sg_definition))
+  # ===========================================================================
+  # INCLUDE RAW DATA IF REQUESTED
+  # ===========================================================================
+
+  if (include_raw && table_style != "minimal") {
+    if (is.list(result)) {
+      result$sens_out <- cv_result$sens_out
+      result$find_out <- cv_result$find_out
+      result$metadata <- list(
+        sims = sims,
+        Kfolds = Kfolds,
+        sg_definition = sg_definition
       )
+    } else {
+      result <- list(
+        table = result,
+        sens_out = cv_result$sens_out,
+        find_out = cv_result$find_out,
+        metadata = list(
+          sims = sims,
+          Kfolds = Kfolds,
+          sg_definition = sg_definition
+        )
+      )
+    }
   }
 
-  return(estimates_gt)
+  return(result)
+}
+
+
+#' Create Compact CV Summary Text
+#'
+#' Generates a compact text string summarizing CV results, suitable for
+#' annotations in plots or reports.
+#'
+#' @param cv_result List. Result from \code{forestsearch_tenfold()} or
+#'   \code{forestsearch_Kfold()}.
+#' @param est.scale Character. "hr" or "1/hr" to determine label orientation.
+#'   Default: "hr".
+#' @param include_finding Logical. Include subgroup finding rate. Default: TRUE.
+#' @param include_agreement Logical
+#'
+#' @return Character string with formatted CV metrics.
+#'
+#' @examples
+#' \dontrun{
+#' cv_text <- cv_summary_text(tenfold_results)
+#' # Returns: "CV found = 95%, Agree(+,-) = 88%, 92%"
+#' }
+#'
+#' @export
+cv_summary_text <- function(
+    cv_result,
+    est.scale = "hr",
+    include_finding = TRUE,
+    include_agreement = TRUE
+) {
+
+  if (is.null(cv_result)) return(NULL)
+
+  parts <- character(0)
+
+  # Finding rate
+  if (include_finding && !is.null(cv_result$find_summary)) {
+    cv_found <- cv_result$find_summary["Any"]
+    parts <- c(parts, paste0("CV found = ", round(100 * cv_found, 0), "%"))
+  }
+
+  # Agreement rates
+  if (include_agreement && !is.null(cv_result$sens_summary)) {
+    if (est.scale == "hr") {
+      sens_pos <- cv_result$sens_summary["sens_H"]
+      sens_neg <- cv_result$sens_summary["sens_Hc"]
+    } else {
+      sens_pos <- cv_result$sens_summary["sens_Hc"]
+      sens_neg <- cv_result$sens_summary["sens_H"]
+    }
+
+    agree_text <- paste0(
+      "Agree(+,-) = ",
+      round(100 * sens_neg, 0), "%, ",
+      round(100 * sens_pos, 0), "%"
+    )
+    parts <- c(parts, agree_text)
+  }
+
+  paste(parts, collapse = ", ")
+}
+
+
+#' Compare Multiple CV Results
+#'
+#' Creates a comparison table from multiple cross-validation runs with
+#' different configurations.
+#'
+#' @param cv_list Named list of cv_result objects from \code{forestsearch_tenfold()}
+#'   or \code{forestsearch_Kfold()}.
+#' @param metrics Character vector. Which metrics to include. Options:
+#'   "finding", "agreement", "all". Default: "all".
+#' @param show_percentages Logical. Display as percentages. Default: TRUE.
+#' @param digits Integer. Decimal places. Default: 1.
+#' @param use_gt Logical. Return gt table if TRUE. Default: TRUE.
+#'
+#' @return A gt table or data.frame comparing CV results across configurations.
+#'
+#' @examples
+#' \dontrun{
+#' # Compare CV results from different configurations
+#' cv_comparison <- cv_compare_results(
+#'   cv_list = list(
+#'     "maxk=1" = cv_maxk1,
+#'     "maxk=2" = cv_maxk2,
+#'     "maxk=3" = cv_maxk3
+#'   )
+#' )
+#' }
+#'
+#' @export
+cv_compare_results <- function(
+    cv_list,
+    metrics = c("all", "finding", "agreement"),
+    show_percentages = TRUE,
+    digits = 1,
+    use_gt = TRUE
+) {
+
+  metrics <- match.arg(metrics)
+
+  if (!is.list(cv_list) || length(cv_list) == 0) {
+    stop("cv_list must be a non-empty named list of cv_result objects")
+  }
+
+  # Ensure names exist
+  if (is.null(names(cv_list))) {
+    names(cv_list) <- paste0("Config_", seq_along(cv_list))
+  }
+
+  mult <- if (show_percentages) 100 else 1
+
+  # Build comparison data frame
+  comparison_rows <- lapply(names(cv_list), function(config_name) {
+    cv <- cv_list[[config_name]]
+
+    row_data <- data.frame(
+      Configuration = config_name,
+      Sims = if (!is.null(cv$sims)) cv$sims else 1,
+      Kfolds = if (!is.null(cv$Kfolds)) cv$Kfolds else NA,
+      stringsAsFactors = FALSE
+    )
+
+    # Finding metrics
+    if (metrics %in% c("all", "finding") && !is.null(cv$find_summary)) {
+      row_data$Any_Found <- cv$find_summary["Any"] * mult
+      row_data$Exact_Match <- cv$find_summary["Exact"] * mult
+      row_data$At_Least_1 <- cv$find_summary["At least 1"] * mult
+    }
+
+    # Agreement metrics
+    if (metrics %in% c("all", "agreement") && !is.null(cv$sens_summary)) {
+      row_data$Sens_H <- cv$sens_summary["sens_H"] * mult
+      row_data$Sens_Hc <- cv$sens_summary["sens_Hc"] * mult
+      row_data$PPV_H <- cv$sens_summary["ppv_H"] * mult
+      row_data$PPV_Hc <- cv$sens_summary["ppv_Hc"] * mult
+    }
+
+    row_data
+  })
+
+  comparison_df <- do.call(rbind, comparison_rows)
+  rownames(comparison_df) <- NULL
+
+  if (!use_gt) {
+    return(comparison_df)
+  }
+
+  # Create gt table
+  gt_table <- comparison_df |>
+    gt::gt() |>
+    gt::tab_header(
+      title = gt::md("**Cross-Validation Comparison**"),
+      subtitle = paste0(length(cv_list), " configurations compared")
+    ) |>
+    gt::tab_style(
+      style = gt::cell_text(weight = "bold"),
+      locations = gt::cells_column_labels()
+    )
+
+  # Format numeric columns
+  numeric_cols <- setdiff(names(comparison_df), c("Configuration", "Sims", "Kfolds"))
+
+  if (length(numeric_cols) > 0) {
+    gt_table <- gt_table |>
+      gt::fmt_number(columns = gt::all_of(numeric_cols), decimals = digits)
+  }
+
+  # Format integer columns
+  gt_table <- gt_table |>
+    gt::fmt_integer(columns = c("Sims", "Kfolds"))
+
+  # Add column spanners
+  finding_cols <- intersect(c("Any_Found", "Exact_Match", "At_Least_1"), names(comparison_df))
+  agreement_cols <- intersect(c("Sens_H", "Sens_Hc", "PPV_H", "PPV_Hc"), names(comparison_df))
+
+  if (length(finding_cols) > 0) {
+    gt_table <- gt_table |>
+      gt::tab_spanner(label = "Finding", columns = gt::all_of(finding_cols))
+  }
+
+  if (length(agreement_cols) > 0) {
+    gt_table <- gt_table |>
+      gt::tab_spanner(label = "Agreement", columns = gt::all_of(agreement_cols))
+  }
+
+  # Rename columns for display
+  gt_table <- gt_table |>
+    gt::cols_label(
+      Configuration = "Config",
+      .fn = ~ gsub("_", " ", .x)
+    )
+
+  gt_table
 }

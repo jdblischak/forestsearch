@@ -22,7 +22,7 @@ create_success_result(
 
 \item{trees}{List. All fitted policy trees}
 
-\item{tree_cuts}{List. Cut information from all trees}
+\item{tree_cuts}{List. Cut information from trees}
 
 \item{selected_tree}{Policy tree. The tree that identified the subgroup}
 

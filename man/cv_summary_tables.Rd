@@ -2,66 +2,53 @@
 % Please edit documentation in R/cv_summary_tables.R
 \name{cv_summary_tables}
 \alias{cv_summary_tables}
-\title{Cross-Validation Summary Tables}
+\title{Create Summary Tables from forestsearch_KfoldOut Results}
 \usage{
 cv_summary_tables(
-  cv_out,
-  est.scale = "hr",
-  sg_definition = NULL,
-  caption = NULL,
+  kfold_out,
+  title = "Cross-Validation Summary",
+  subtitle = NULL,
+  show_metrics = TRUE,
+  digits = 3,
   font_size = 12,
-  show_cv_metrics = TRUE,
-  show_sg_finding = TRUE,
-  decimals = 2
+  use_gt = TRUE
 )
 }
 \arguments{
-\item{cv_out}{List. Output from \code{forestsearch_KfoldOut(outall = TRUE)}.}
+\item{kfold_out}{List. Result from \code{forestsearch_KfoldOut(res, outall = TRUE)}.
+Must contain \code{itt_tab}, \code{SG_tab_original}, \code{SG_tab_Kfold},
+and optionally \code{tab_all}.}
 
-\item{est.scale}{Character. Estimate scale: "hr" or "1/hr" (default: "hr").}
+\item{title}{Character. Main title for combined table.
+Default: "Cross-Validation Summary".}
 
-\item{sg_definition}{Character. Subgroup definition text for footnote.
-If NULL, attempts to extract from cv_out.}
+\item{subtitle}{Character. Subtitle for table. Default: NULL (auto-generated).}
 
-\item{caption}{Character. Table caption (default: auto-generated).}
+\item{show_metrics}{Logical. Include agreement and finding metrics in output.
+Default: TRUE.}
 
-\item{font_size}{Numeric. Base font size in pixels (default: 12).}
+\item{digits}{Integer. Decimal places for numeric formatting. Default: 3.}
 
-\item{show_cv_metrics}{Logical. Include CV agreement metrics table
-(default: TRUE).}
+\item{font_size}{Integer. Font size in pixels. Default: 12.}
 
-\item{show_sg_finding}{Logical. Include subgroup finding summary table
-(default: TRUE).}
-
-\item{decimals}{Integer. Number of decimal places for estimates (default: 2).}
+\item{use_gt}{Logical. Return gt table if TRUE, data.frame if FALSE.
+Default: TRUE.}
 }
 \value{
-A list containing gt table objects:
-\describe{
-\item{estimates_table}{Combined ITT/Full-Analysis/K-fold estimates}
-\item{cv_metrics_table}{CV agreement metrics (sensitivity, PPV)}
-\item{sg_finding_table}{Subgroup finding summary across folds}
-\item{tab_all}{The underlying data frame}
+If \code{use_gt = TRUE}, returns a list with gt table objects:
+\itemize{
+\item \code{combined_table}: Combined ITT and subgroup estimates
+\item \code{itt_table}: ITT estimates only
+\item \code{original_table}: Original full-data subgroup estimates
+\item \code{kfold_table}: K-fold subgroup estimates
+\item \code{metrics_table}: Agreement and finding metrics (if \code{show_metrics = TRUE})
 }
+If \code{use_gt = FALSE}, returns equivalent data.frames.
 }
 \description{
-Creates publication-ready gt tables summarizing ForestSearch cross-validation
-results, including ITT estimates, subgroup estimates from full analysis vs
-K-fold analysis, and CV agreement metrics.
-}
-\details{
-The estimates table shows:
-\itemize{
-\item \strong{Overall (ITT)}: Intent-to-treat population
-\item \strong{Full-Analysis (FA)}: Using full-data subgroup assignment
-\item \strong{K-fold Analysis (KfA)}: Using CV-predicted subgroup assignment
-}
-
-Row naming convention:
-\itemize{
-\item FA_0 / KfA_0: Questionable/Harm subgroup (H)
-\item FA_1 / KfA_1: Recommend/Benefit subgroup (Hc)
-}
+Formats the detailed output from \code{\link{forestsearch_KfoldOut}(outall=TRUE)}
+into publication-ready gt tables. This includes ITT estimates, original subgroup
+estimates, and K-fold subgroup estimates.
 }
 \examples{
 \dontrun{
@@ -69,21 +56,15 @@ Row naming convention:
 cv_results <- forestsearch_Kfold(fs.est = fs_result, Kfolds = 10)
 
 # Get detailed output
-cv_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
+kfold_out <- forestsearch_KfoldOut(cv_results, outall = TRUE)
 
-# Create gt tables
-tables <- cv_summary_tables(cv_out)
-
-# View estimates table
-tables$estimates_table
-
-# View CV metrics
-tables$cv_metrics_table
+# Create summary tables
+cv_tables <- cv_summary_tables(kfold_out)
+cv_tables$combined_table
+cv_tables$metrics_table
 }
 
 }
 \seealso{
-\code{\link{forestsearch_Kfold}} for running cross-validation
-\code{\link{forestsearch_KfoldOut}} for summarizing CV results
-\code{\link{sg_tables}} for similar formatting of main ForestSearch results
+\code{\link{cv_metrics_tables}} for formatting \code{forestsearch_tenfold()} results
 }

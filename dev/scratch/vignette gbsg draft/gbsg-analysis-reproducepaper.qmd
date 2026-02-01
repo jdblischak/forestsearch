@@ -194,7 +194,8 @@ grf_est <- grf.subg.harm.survival(
   n.min = 60,
   dmin.grf = 12,
   frac.tau = 0.6,
-  details = TRUE
+  details = TRUE,
+  return_selected_cuts_only = FALSE
 )
 
 timings$grf <- (proc.time() - t0)["elapsed"]
@@ -222,7 +223,7 @@ operations (bootstrap, cross-validation).
 
 ```{r parallel-setup}
 # Detect available cores (use fewer for CRAN checks)
-n_cores <- min(parallel::detectCores() - 1, 4)
+n_cores <- min(parallel::detectCores() - 1, 20)
 cat("Using", n_cores, "cores for parallel processing\n")
 
 # Configure parallel backend
@@ -262,18 +263,19 @@ fs <- forestsearch(
   pconsistency.threshold = 0.90,
   stop_threshold = 0.95,
   # Search configuration
-  sg_focus = "hrMaxSG",
+  sg_focus = "hr",
   max_subgroups_search = 10,
   use_twostage = TRUE,
   # Factor selection
-  use_grf = TRUE,
+  use_grf = TRUE, 
+  return_selected_cuts_only = TRUE,
   use_lasso = TRUE,
   cut_type = "default",
   # Subgroup constraints
   maxk = 2,
   n.min = 60,
-  d0.min = 12,
-  d1.min = 12,
+  d0.min = 10,
+  d1.min = 10,
   # Consistency evaluation
   fs.splits = 400,
   # Parallel processing
@@ -348,14 +350,14 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 1000
+NB <- 20
 
 t0 <- proc.time()
 
 fs_bc <- forestsearch_bootstrap_dofuture(
   fs.est = fs,
   nb_boots = NB,
-  show_three = FALSE,
+  show_three = TRUE,
   details = TRUE
 )
 
@@ -456,14 +458,14 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 100
+Ksims <- 10
 
 t0 <- proc.time()
 
 fs_kfold <- forestsearch_tenfold(
   fs.est = fs,
   sims = Ksims,
-  Kfolds = 10,
+  Kfolds = 3,
   details = FALSE,
   parallel_args = list(
     plan = "multisession",
@@ -475,9 +477,12 @@ fs_kfold <- forestsearch_tenfold(
 plan("sequential")
 timings$kfold <- (proc.time() - t0)["elapsed"]
 
-# Summary metrics
-print(fs_kfold$find_summary)
-print(fs_kfold$sens_summary)
+
+metrics_tables <- cv_metrics_tables(fs_kfold)
+
+
+
+
 ```
 
 ## Out-of-Bag (N-Fold) Cross-Validation
@@ -490,7 +495,7 @@ t0 <- proc.time()
 fs_OOB <- forestsearch_Kfold(
   fs.est = fs,
   details = TRUE,
-  Kfolds = nrow(df.analysis),  # N-fold = leave-one-out
+  Kfolds = round(nrow(df.analysis)/150,0),  # N-fold = leave-one-out
   parallel_args = list(
     plan = "multisession",
     workers = n_cores,
@@ -512,11 +517,11 @@ cv_out <- forestsearch_KfoldOut(
 
 tables <- cv_summary_tables(cv_out)
 
-tables$estimates_table
+tables$combined_table
 
-tables$cv_metrics_table
+tables$metrics_table
 
-tables$sg_finding_table
+tables$kfold_table
 
 
 ```
@@ -560,7 +565,7 @@ subgroups <- list(
 
 
 my_theme <- create_forest_theme(base_size = 24, 
-footnote_fontsize = 15, cv_fontsize = 15)
+footnote_fontsize = 22, cv_fontsize = 22)
 
 
 # Create forest plot

@@ -29,7 +29,8 @@ create_grf_config <- function(frac.tau, n.min, dmin.grf, RCT,
     maxdepth = maxdepth,
     seedit = seedit,
     valid_criteria = c("mDiff", "Nsg"),
-    max_tree_depth = 3
+    max_tree_depth = 3,
+    return_selected_cuts_only = FALSE
   )
 }
 
@@ -257,7 +258,9 @@ find_leaf_split <- function(tree, leaf_node) {
 
 #' Extract all cuts from fitted trees
 #'
-#' Consolidates cut information from all fitted policy trees
+#' Consolidates cut information from all fitted policy trees. This is the
+#' default behavior that returns cuts from all trees regardless of which
+#' tree identified the selected subgroup.
 #'
 #' @param trees List. Policy trees (indexed by depth)
 #' @param maxdepth Integer. Maximum tree depth
@@ -286,6 +289,71 @@ extract_all_tree_cuts <- function(trees, maxdepth) {
 
   result$all <- unique(all_cuts)
   result$all_names <- unique(all_names)
+
+  return(result)
+}
+
+#' Extract cuts from selected tree only
+#'
+#' Extracts cut information only from the tree at the specified selected depth.
+#' This provides a focused set of cuts from the tree that identified the
+#' subgroup meeting the `dmin.grf` criterion, rather than cuts from all trees.
+#'
+#' @param trees List. Policy trees (indexed by depth)
+#' @param selected_depth Integer. Depth of the selected tree (from best_subgroup$depth)
+#' @param maxdepth Integer. Maximum tree depth (for populating tree-specific slots)
+#' @return List with cuts and names, structured similarly to extract_all_tree_cuts
+#'   but with only the selected tree's cuts in the `all` field
+#'
+#' @details
+#' This function is used when `return_selected_cuts_only = TRUE` in
+#' `grf.subg.harm.survival()`. It returns:
+#' \itemize{
+#'   \item `tree1`, `tree2`, `tree3`: Individual tree cuts (still populated for reference)
+#'   \item `names1`, `names2`, `names3`: Individual tree variable names
+#'   \item `all`: Cuts from the SELECTED tree only (not union of all trees)
+#'   \item `all_names`: Variable names from the SELECTED tree only
+#'   \item `selected_depth`: The depth that was selected
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # When best_subgroup$depth = 2, only tree2 cuts are returned in $all
+#' tree_cuts <- extract_selected_tree_cuts(trees, selected_depth = 2, maxdepth = 2)
+#' tree_cuts$all
+#' # Returns only cuts from depth 2 tree
+#' }
+#'
+#' @keywords internal
+#' @export
+
+extract_selected_tree_cuts <- function(trees, selected_depth, maxdepth) {
+  result <- list()
+
+  # Still extract cuts from all trees for reference
+  for (depth in 1:maxdepth) {
+    if (!is.null(trees[[depth]])) {
+      tree_info <- extract_tree_cuts(trees[[depth]])
+
+      # Store tree-specific cuts
+      result[[paste0("tree", depth)]] <- tree_info$cuts
+      result[[paste0("names", depth)]] <- tree_info$names
+    }
+  }
+
+  # For the combined 'all' field, only use the selected tree
+  if (!is.null(trees[[selected_depth]])) {
+    selected_tree_info <- extract_tree_cuts(trees[[selected_depth]])
+    result$all <- unique(selected_tree_info$cuts)
+    result$all_names <- unique(selected_tree_info$names)
+  } else {
+    result$all <- character()
+    result$all_names <- character()
+  }
+
+  # Record which depth was selected
+
+result$selected_depth <- selected_depth
 
   return(result)
 }
@@ -328,7 +396,7 @@ assign_subgroup_membership <- function(data, best_subgroup, trees, X) {
 #' @param data Data frame. Original data with subgroup assignments
 #' @param best_subgroup Data frame row. Selected subgroup information
 #' @param trees List. All fitted policy trees
-#' @param tree_cuts List. Cut information from all trees
+#' @param tree_cuts List. Cut information from trees
 #' @param selected_tree Policy tree. The tree that identified the subgroup
 #' @param sg_harm_id Character. Expression defining the subgroup
 #' @param values Data frame. All node metrics
@@ -365,7 +433,15 @@ create_success_result <- function(data, best_subgroup, trees, tree_cuts,
     tree1 = trees[[1]],
 
     # Configuration
-    tau.rmst = config$tau.rmst
+    tau.rmst = config$tau.rmst,
+    dmin.grf = config$dmin.grf,
+    frac.tau = config$frac.tau,
+    maxdepth = config$maxdepth,
+    n.min = config$n.min,
+
+    # Track selected depth and cut extraction mode
+    selected_depth = best_subgroup$depth,
+    return_selected_cuts_only = config$return_selected_cuts_only
   )
 
   # Add tree2 cuts if maxdepth >= 2
@@ -418,13 +494,17 @@ create_null_result <- function(data, values, trees, config) {
     data = data,
     grf.gsub = NULL,
     sg.harm.id = NULL,
+    tree.cuts = character(),
+    tree.names = character(),
     harm.any = harm_any,
     tree = selected_tree,
     tau.rmst = config$tau.rmst,
     dmin.grf = config$dmin.grf,
     frac.tau = config$frac.tau,
     maxdepth = config$maxdepth,
-    n.min = config$n.min
+    n.min = config$n.min,
+    selected_depth = NULL,
+    return_selected_cuts_only = config$return_selected_cuts_only
   )
 
   # Add tree objects if they exist
@@ -468,7 +548,11 @@ print_grf_details <- function(config, values, best_subgroup, sg_harm_id, tree_cu
       print(sg_harm_id)
 
       if (!is.null(tree_cuts)) {
-        cat("\nAll splits:\n")
+        if (isTRUE(config$return_selected_cuts_only)) {
+          cat("\nCuts from selected tree (depth =", best_subgroup$depth, "):\n")
+        } else {
+          cat("\nAll splits (from all trees):\n")
+        }
         print(tree_cuts$all)
       }
     }
@@ -495,10 +579,21 @@ validate_grf_data <- function(W, D, n.min) {
     return(FALSE)
   }
 
-  # Check sufficient events
-  if (sum(D) < 2 * n.min) {
-    warning("Insufficient events to identify meaningful subgroups (need at least ",
-            2 * n.min, " events, found ", sum(D), ")")
+  # Check event variation
+  if (length(unique(D)) < 2) {
+    warning("Event variable has only one unique value. Cannot identify subgroups.")
+    return(FALSE)
+  }
+
+  # Check minimum sample size per arm
+  n_treat <- sum(W == 1)
+  n_control <- sum(W == 0)
+
+  if (n_treat < n.min || n_control < n.min) {
+    warning(sprintf(
+      "Insufficient sample size: treatment=%d, control=%d, required=%d per arm.",
+      n_treat, n_control, n.min
+    ))
     return(FALSE)
   }
 

@@ -18,7 +18,8 @@ grf.subg.harm.survival(
   details = FALSE,
   sg.criterion = "mDiff",
   maxdepth = 2,
-  seedit = 8316951
+  seedit = 8316951,
+  return_selected_cuts_only = FALSE
 )
 }
 \arguments{
@@ -49,21 +50,78 @@ grf.subg.harm.survival(
 \item{maxdepth}{Integer. Maximum tree depth (1, 2, or 3; default: 2).}
 
 \item{seedit}{Integer. Random seed (default: 8316951).}
+
+\item{return_selected_cuts_only}{Logical. If TRUE, returns only cuts from the tree
+depth that identified the selected subgroup meeting \code{dmin.grf}. If FALSE (default),
+returns all cuts from all fitted trees (depths 1 through \code{maxdepth}).}
 }
 \value{
 A list with GRF results, including:
 \item{data}{Original data with added treatment recommendation flags}
 \item{grf.gsub}{Selected subgroup information}
 \item{sg.harm.id}{Expression defining the identified subgroup}
-\item{tree.cuts}{All cut expressions from the selected tree}
+\item{tree.cuts}{Cut expressions - either all cuts from all trees (if
+\code{return_selected_cuts_only = FALSE}) or only cuts from the selected tree
+depth (if \code{return_selected_cuts_only = TRUE})}
 \item{tree.names}{Unique variable names used in cuts}
 \item{tree}{Selected policy tree object}
 \item{tau.rmst}{Time horizon used for RMST}
 \item{harm.any}{All subgroups with positive treatment effect difference}
+\item{selected_depth}{Depth of the tree that identified the subgroup (when found)}
+\item{return_selected_cuts_only}{Logical indicating which cut extraction mode was used}
 Additional tree-specific cuts and objects (tree1, tree2, tree3) based on maxdepth
 }
 \description{
 Identifies subgroups with differential treatment effect using generalized random forests (GRF)
 and policy trees. This function uses causal survival forests to identify heterogeneous
 treatment effects and policy trees to create interpretable subgroup definitions.
+}
+\details{
+The \code{return_selected_cuts_only} parameter controls which cuts are returned:
+
+\describe{
+\item{FALSE (default)}{Returns all cuts from all fitted trees (depths 1 to
+\code{maxdepth}). This provides the full set of candidate splits for downstream
+exploration and is the original behavior for backward compatibility.}
+\item{TRUE}{Returns only cuts from the tree at the depth that identified
+the "winning" subgroup meeting the \code{dmin.grf} criterion. This is useful
+when you want a focused set of cuts associated with the selected subgroup,
+reducing noise from non-selected trees.}
+}
+
+When \code{return_selected_cuts_only = TRUE} and no subgroup meets the criteria,
+\code{tree.cuts} will be empty (character(0)).
+}
+\examples{
+\dontrun{
+# Return all cuts (default behavior)
+result_all <- grf.subg.harm.survival(
+  data = trial_data,
+  confounders.name = c("age", "biomarker", "region"),
+  outcome.name = "tte",
+  event.name = "event",
+  id.name = "id",
+  treat.name = "treat",
+  dmin.grf = 0.1,
+  maxdepth = 2
+)
+result_all$tree.cuts
+# Returns cuts from both depth 1 and depth 2 trees
+
+# Return only cuts from the selected tree
+result_selected <- grf.subg.harm.survival(
+  data = trial_data,
+  confounders.name = c("age", "biomarker", "region"),
+  outcome.name = "tte",
+  event.name = "event",
+  id.name = "id",
+  treat.name = "treat",
+  dmin.grf = 0.1,
+  maxdepth = 2,
+  return_selected_cuts_only = TRUE
+)
+result_selected$tree.cuts
+# Returns cuts only from the depth that identified the winning subgroup
+}
+
 }

@@ -51,7 +51,28 @@ subgroup.search(
 \item{maxk}{Integer. Maximum number of factors in a subgroup.}
 }
 \value{
-List with found subgroups, maximum HR, search time, and configuration info.
+List with found subgroups, maximum HR, search time, configuration info,
+and filtering statistics:
+\describe{
+\item{out.found}{List containing hr.subgroups data.table of candidates}
+\item{max_sg_est}{Maximum HR estimate found}
+\item{time_search}{Search time in minutes}
+\item{L}{Number of single factors}
+\item{max_count}{Total combinations evaluated}
+\item{prop_max_count}{Proportion of max combinations (always 1)}
+\item{filter_counts}{List with counts at each filtering stage:
+\itemize{
+\item n_evaluated: Total combinations evaluated
+\item n_passed_variance: Passed variance check
+\item n_passed_prevalence: Passed prevalence threshold
+\item n_passed_redundancy: Passed redundancy check
+\item n_passed_events: Passed event count criteria (d0.min, d1.min)
+\item n_passed_sample_size: Passed sample size criteria (n.min)
+\item n_passed_cox: Cox model fit successfully
+\item n_passed_hr: Passed HR threshold (final candidates)
+}
+}
+}
 }
 \description{
 Searches for subgroups with treatment effect heterogeneity using combinations

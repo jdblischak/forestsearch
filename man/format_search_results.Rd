@@ -4,7 +4,30 @@
 \alias{format_search_results}
 \title{Format Search Results}
 \usage{
-format_search_results(results_list, Z, details, t.sofar, L, max_count)
+format_search_results(
+  results_list,
+  Z,
+  details,
+  t.sofar,
+  L,
+  max_count,
+  filter_counts = NULL
+)
+}
+\arguments{
+\item{results_list}{List of result rows}
+
+\item{Z}{Matrix of factor indicators}
+
+\item{details}{Logical. Print details}
+
+\item{t.sofar}{Numeric. Time elapsed}
+
+\item{L}{Integer. Number of factors}
+
+\item{max_count}{Integer. Maximum combinations}
+
+\item{filter_counts}{List. Counts at each filtering stage (optional)}
 }
 \description{
 Format Search Results

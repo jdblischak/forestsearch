@@ -2,7 +2,7 @@
 % Please edit documentation in R/subgroup_search.R
 \name{evaluate_combination}
 \alias{evaluate_combination}
-\title{Evaluate a Single Factor Combination}
+\title{Evaluate a Single Factor Combination (Original - for backward compatibility)}
 \usage{
 evaluate_combination(
   covs.in,

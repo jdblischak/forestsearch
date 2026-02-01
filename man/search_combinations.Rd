@@ -23,6 +23,7 @@ search_combinations(
 )
 }
 \description{
-Main search loop evaluating each factor combination
+Main search loop evaluating each factor combination. Returns both results
+and counts at each filtering stage.
 }
 \keyword{internal}

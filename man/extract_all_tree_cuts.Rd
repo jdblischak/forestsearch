@@ -15,6 +15,8 @@ extract_all_tree_cuts(trees, maxdepth)
 List with cuts and names for each tree and combined
 }
 \description{
-Consolidates cut information from all fitted policy trees
+Consolidates cut information from all fitted policy trees. This is the
+default behavior that returns cuts from all trees regardless of which
+tree identified the selected subgroup.
 }
 \keyword{internal}
