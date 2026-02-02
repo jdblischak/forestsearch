@@ -45,7 +45,8 @@ Suggests:
     patchwork,
     tidyr,
     forestploter,
-    cubature
+    cubature,
+    svglite
 URL: https://github.com/larry-leon/forestsearch
 BugReports: https://github.com/larry-leon/forestsearch/issues
 Remotes: 

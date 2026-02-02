@@ -263,7 +263,7 @@ fs <- forestsearch(
   pconsistency.threshold = 0.90,
   stop_threshold = 0.95,
   # Search configuration
-  sg_focus = "hr",
+  sg_focus = "hrMaxSG",
   max_subgroups_search = 10,
   use_twostage = TRUE,
   # Factor selection
@@ -350,7 +350,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 20
+NB <- 1000
 
 t0 <- proc.time()
 
@@ -458,14 +458,14 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 10
+Ksims <- 30
 
 t0 <- proc.time()
 
 fs_kfold <- forestsearch_tenfold(
   fs.est = fs,
   sims = Ksims,
-  Kfolds = 3,
+  Kfolds = 10,
   details = FALSE,
   parallel_args = list(
     plan = "multisession",
@@ -481,7 +481,7 @@ timings$kfold <- (proc.time() - t0)["elapsed"]
 metrics_tables <- cv_metrics_tables(fs_kfold)
 
 
-
+metrics_tables
 
 ```
 
@@ -494,8 +494,8 @@ t0 <- proc.time()
 
 fs_OOB <- forestsearch_Kfold(
   fs.est = fs,
-  details = TRUE,
-  Kfolds = round(nrow(df.analysis)/150,0),  # N-fold = leave-one-out
+  details = FALSE,
+  Kfolds = nrow(df.analysis),  # N-fold = leave-one-out
   parallel_args = list(
     plan = "multisession",
     workers = n_cores,
@@ -565,7 +565,7 @@ subgroups <- list(
 
 
 my_theme <- create_forest_theme(base_size = 24, 
-footnote_fontsize = 22, cv_fontsize = 22)
+footnote_fontsize = 17, cv_fontsize = 22)
 
 
 # Create forest plot
