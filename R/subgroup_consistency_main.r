@@ -375,79 +375,44 @@ subgroup.consistency <- function(df,
   # ===========================================================================
   # SECTION 5b: DISPLAY TOP CANDIDATE SUBGROUPS (if showten_subgroups = TRUE)
   # ===========================================================================
-
   if (showten_subgroups && details) {
     n_show <- min(10, n_candidates)
-
     cat("\n")
     cat(paste(rep("=", 80), collapse = ""), "\n")
     cat("TOP", n_show, "CANDIDATE SUBGROUPS FOR CONSISTENCY EVALUATION\n")
     cat("Sorted by:", sg_focus, "\n")
     cat(paste(rep("=", 80), collapse = ""), "\n\n")
-
     # Print header
     cat(sprintf("%-5s  %-8s  %-6s  %-6s  %-3s  %s\n",
                 "Rank", "HR", "N", "Events", "K", "Subgroup Definition"))
     cat(paste(rep("-", 80), collapse = ""), "\n")
 
-    # Helper function to convert q-codes to labels (inline to avoid scope issues)
-    convert_q_to_label <- function(q_code, labels_vec) {
-      # Pattern: q<index>.<action> where action 0=NOT, 1=IN
-      pattern <- "^q(\\d+)\\.(\\d+)$"
-      match <- regmatches(q_code, regexec(pattern, q_code))[[1]]
-
-      if (length(match) == 3) {
-        idx <- as.integer(match[2])
-        action <- match[3]
-
-        if (idx >= 1 && idx <= length(labels_vec)) {
-          base_label <- labels_vec[idx]
-          if (action == "0") {
-            return(paste0("NOT(", base_label, ")"))
-          } else {
-            return(base_label)
-          }
-        }
-      }
-      return(q_code)  # Fallback to raw code
-    }
 
     for (i in seq_len(n_show)) {
       # Extract subgroup info
       hr_i <- found.hrs$HR[i]
       n_i <- found.hrs$n[i]
       e_i <- found.hrs$E[i]
-
       # Get factor names for this subgroup (e.g., "q1.1", "q3.0", "q5.1")
       index_i <- as.numeric(unlist(index.Z[i, ]))
       factors_i <- names.Z[index_i == 1]
       k_i <- length(factors_i)
 
-      # Convert factor codes to labels
-      factors_labels <- tryCatch({
-        if (!missing(confs_labels) && !is.null(confs_labels) && length(confs_labels) > 0) {
-          sapply(factors_i, convert_q_to_label, labels_vec = confs_labels,
-                 USE.NAMES = FALSE)
-        } else {
-          factors_i  # No labels available, use raw names
-        }
-      }, error = function(e) {
-        factors_i  # On error, fallback to raw names
-      })
+      # Convert factor codes to labels using FS_labels()
+      factors_labels <- sapply(factors_i, FS_labels,
+                               confs_labels = confs_labels,
+                               USE.NAMES = FALSE)
 
       # Format factors string (truncate if too long)
       factors_str <- paste(factors_labels, collapse = " & ")
       if (nchar(factors_str) > 45) {
         factors_str <- paste0(substr(factors_str, 1, 42), "...")
       }
-
       # Print row
       cat(sprintf("%-5d  %-8.3f  %-6d  %-6d  %-3d  %s\n",
                   i, hr_i, n_i, e_i, k_i, factors_str))
     }
-
     cat(paste(rep("-", 80), collapse = ""), "\n")
-
     if (n_candidates > 10) {
       cat("... and", n_candidates - 10, "more candidates\n")
     }

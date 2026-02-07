@@ -162,52 +162,6 @@ filter_by_lassokeep <- function(x, lassokeep) {
   return(NULL)
 }
 
-#' Format subgroup labels for ForestSearch
-#'
-#' Converts q-indexed subgroup codes to human-readable labels.
-#'
-#' @param Qsg Character vector of codes (e.g., 'q1.0', 'q2.1').
-#' @param confs_labels Character vector of confounder labels.
-#' @return Character vector of formatted subgroup labels.
-#' @importFrom stringr str_length str_sub
-#' @export
-
-FS_labels <- function(Qsg, confs_labels) {
-  # Validate inputs
-  if (!is.character(Qsg)) stop("Qsg must be a character vector.")
-  if (!is.character(confs_labels)) stop("confs_labels must be a character vector.")
-
-  # Use regex to extract index and action
-  # Pattern: q<index>.<action>, e.g., q1.0, q12.1, q123.0, q1234.1
-  pattern <- "^q(\\d+)\\.(\\d+)$"
-  matches <- regexec(pattern, Qsg)
-  parts <- regmatches(Qsg, matches)
-
-  sg_labels <- character(length(Qsg))
-
-  for (i in seq_along(parts)) {
-    if (length(parts[[i]]) == 3) {
-      idx <- as.numeric(parts[[i]][2])
-      action <- as.numeric(parts[[i]][3])
-      if (!is.na(idx) && idx >= 1 && idx <= length(confs_labels)) {
-        label <- confs_labels[idx]
-        if (action == 0) {
-          sg_labels[i] <- paste0("!{", label, "}")
-        } else if (action == 1) {
-          sg_labels[i] <- paste0("{", label, "}")
-        } else {
-          sg_labels[i] <- NA
-        }
-      } else {
-        sg_labels[i] <- NA
-      }
-    } else {
-      sg_labels[i] <- NA
-    }
-  }
-  return(sg_labels)
-}
-
 
 #' Process forced cut expression for a variable
 #'
@@ -312,98 +266,52 @@ is_flag_drop <- function(thiscut, confounders.name, df) {
 }
 
 
-#' Disjunctive coding for factors (modified from ade4)
-#'
-#' Converts factor variables in a data frame to disjunctive (dummy) coding.
+#' Disjunctive (dummy) coding for factor columns
 #'
 #' @param df Data frame with factor variables.
-#' @return Data frame with dummy-coded variables.
+#' @return Data frame with dummy-coded columns.
 #' @export
-
-acm.disjctif<-function (df)
-{
-  acm.util.df <- function(i) {
-    cl <- df[, i]
-    cha <- names(df)[i]
-    n <- length(cl)
-    cl <- as.factor(cl)
-    x <- matrix(0, n, length(levels(cl)))
-    x[(1:n) + n * (unclass(cl) - 1)] <- 1
-    dimnames(x) <- list(row.names(df), paste(cha, levels(cl),
-                                             sep = "."))
-    return(x)
-  }
-  # For FAC(df) with only single variable
-  acm.util.df2 <- function(i) {
-    cl <- df[, i]
+acm.disjctif <- function(df) {
+  encode_col <- function(i) {
+    cl <- as.factor(df[, i])
     cha <- colnames(df)[i]
     n <- length(cl)
-    cl <- as.factor(cl)
-    x <- matrix(0, n, length(levels(cl)))
-    x[(1:n) + n * (unclass(cl) - 1)] <- 1
-    dimnames(x) <- list(row.names(df), paste(cha, levels(cl),
-                                             sep = "."))
-    return(x)
+    x <- matrix(0L, n, nlevels(cl))
+    x[cbind(seq_len(n), as.integer(cl))] <- 1L
+    dimnames(x) <- list(rownames(df), paste(cha, levels(cl), sep = "."))
+    x
   }
-  if(!is.null(ncol(df)) & ncol(df)>1) G <- lapply(1:ncol(df), acm.util.df)
-  if(!is.null(ncol(df)) & ncol(df)==1) G <- lapply(1, acm.util.df2)
-  G <- data.frame(G, check.names = FALSE)
-  return(G)
-}
+  parts <- lapply(seq_len(ncol(df)), encode_col)
+  data.frame(do.call(cbind, parts), check.names = FALSE)
+  }
 
 
-#' Dummy coding for data frame (numeric and factor)
+#' Dummy-code a data frame (numeric pass-through, factors expanded)
 #'
-#' Converts numeric and factor variables in a data frame to dummy-coded format.
-#'
-#' @param df Data frame.
-#' @return Data frame with numeric and dummy-coded factor variables.
+#' @param df Data frame with numeric and/or factor columns.
+#' @return Data frame with numeric columns unchanged and factor columns
+#'   expanded via \code{\link{acm.disjctif}}.
 #' @export
-
-dummy2 <- function(df) {
-  NUM <- function(dataframe)dataframe[,sapply(dataframe,is.numeric)]
-  FAC <- function(dataframe)dataframe[,sapply(dataframe,is.factor)]
-  if (is.null(ncol(NUM(df)))){
-    DF <- data.frame(NUM(df), acm.disjctif(FAC(df)))
-    names(DF)[1] <- colnames(df)[which(sapply(df, is.numeric))]
-  } else {
-    if (!is.null(ncol(FAC(df))) && ncol(FAC(df))>0) DF <- data.frame(NUM(df), acm.disjctif(FAC(df)))
-    if (!is.null(ncol(FAC(df))) | ncol(FAC(df))==0) DF <- data.frame(NUM(df))
-    if (is.null(ncol(FAC(df)))){
-      temp <- as.matrix(FAC(df))
-      colnames(temp)[1] <- colnames(df)[which(sapply(df, is.factor))]
-      df.fac <- acm.disjctif(temp)
-      DF <- data.frame(NUM(df), df.fac)
-    }
-  }
-  return(DF)
+dummy_encode <- function(df) {
+  stopifnot(is.data.frame(df))
+  is_num <- vapply(df, is.numeric, logical(1))
+  is_fac <- vapply(df, is.factor, logical(1))
+  parts <- list()
+  if (any(is_num)) parts[[length(parts) + 1L]] <- df[, is_num, drop = FALSE]
+  if (any(is_fac)) parts[[length(parts) + 1L]] <- acm.disjctif(df[, is_fac, drop = FALSE])
+  if (length(parts) == 0L) stop("df contains no numeric or factor columns")
+  do.call(data.frame, c(parts, list(check.names = FALSE)))
 }
 
-#' Dummy coding for data frame (numeric and factor)
-#'
-#' Converts numeric and factor variables in a data frame to dummy-coded format.
-#'
-#' @param df Data frame.
-#' @return Data frame with numeric and dummy-coded factor variables.
+#' @rdname dummy_encode
 #' @export
+dummy <- dummy_encode
 
-dummy <- function(df) {
-  NUM <- function(dataframe)dataframe[,sapply(dataframe,is.numeric)]
-  FAC <- function(dataframe)dataframe[,sapply(dataframe,is.factor)]
-  if (is.null(ncol(NUM(df)))){
-    DF <- data.frame(NUM(df), acm.disjctif(FAC(df)))
-    names(DF)[1] <- colnames(df)[which(sapply(df, is.numeric))]
-  } else {
-    if (!is.null(ncol(FAC(df)))) DF <- data.frame(NUM(df), acm.disjctif(FAC(df)))
-    if (is.null(ncol(FAC(df)))){
-      temp <- as.matrix(FAC(df))
-      colnames(temp)[1] <- colnames(df)[which(sapply(df, is.factor))]
-      df.fac <- acm.disjctif(temp)
-      DF <- data.frame(NUM(df), df.fac)
-    }
-  }
-  return(DF)
-}
+#' @rdname dummy_encode
+#' @export
+dummy2 <- dummy_encode
+
+
 
 #' Trailing zeros in binary representation
 #'
@@ -423,24 +331,13 @@ ztrail <- function(kk){
   return(ii)
 }
 
-#' Flip 1/0 value
+
+#' Flip binary value(s)
 #'
-#' Flips a binary value: returns 0 if input is 1, returns 1 if input is 0.
-#'
-#' @param x Integer (0 or 1).
-#' @return Integer (0 or 1).
+#' @param x Integer vector of 0s and 1s.
+#' @return Integer vector with values flipped.
 #' @export
-
-one.zero <- function(x){
-  if (x == 1){
-    x <- 0}
-  else {
-    x <- 1}
-  return(x)
-}
-
-
-
+one.zero <- function(x) 1L - x
 
 
 #' Cache and validate cut expressions efficiently

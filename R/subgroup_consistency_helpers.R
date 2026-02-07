@@ -231,27 +231,57 @@ run_single_consistency_split <- function(df.x, N.x, hr.consistency, cox_init = 0
 
 #' Convert Factor Code to Label
 #'
-#' Converts q-indexed codes (e.g., "q1.1", "q3.0") to human-readable labels
-#' using the confs_labels mapping.
+#' Converts q-indexed codes to human-readable labels using the confs_labels
+#' mapping. Supports both full format ("q1.1", "q3.0") and short format
+#' ("q1", "q3"). Handles vector input via recursion.
 #'
-#' @param Qsg Character. Factor code in format "q<index>.<action>" where
-#'   action 0 = NOT (complement), action 1 = IN (member).
+#' @param Qsg Character. Factor code in format "q<index>.<action>" or
+#'   "q<index>". For the full format, action 0 = NOT (complement),
+#'   action 1 = IN (member). Short format defaults to action 1.
+#'   Can also be a character vector for vectorized input.
 #' @param confs_labels Character vector. Labels for each factor, indexed by
 #'   factor number.
 #'
 #' @return Character. Human-readable label wrapped in braces, e.g.,
-#'   "\{age <= 50\}" or "!\{age <= 50\}" for complement.
+#'   "\{age <= 50\}" or "!\{age <= 50\}" for complement. Returns the
+#'   original code if no match is found.
 #'
+#' @examples
+#' \dontrun{
+#' labels <- c("age <= 50", "tumor size <= 20", "nodes <= 3")
+#' FS_labels("q1.1", labels)
+#' FS_labels("q1.0", labels)
+#' FS_labels("q2", labels)
+#' FS_labels(c("q1", "q3"), labels)
+#' }
 #' @export
+
 FS_labels <- function(Qsg, confs_labels) {
-  pattern <- "^q(\\d+)\\.(\\d)$"
-  matches <- regmatches(Qsg, regexec(pattern, Qsg))[[1]]
+  # Handle vector input
+  if (length(Qsg) > 1) {
+    return(vapply(Qsg, FS_labels, character(1), confs_labels = confs_labels,
+                  USE.NAMES = FALSE))
+  }
 
-  if (length(matches) < 3) return(Qsg)
+  # Try full format: q<index>.<action> (e.g., "q1.1", "q3.0")
+  pattern_full <- "^q(\\d+)\\.(\\d)$"
+  matches <- regmatches(Qsg, regexec(pattern_full, Qsg))[[1]]
 
-  idx <- as.integer(matches[2])
-  action <- matches[3]
+  if (length(matches) >= 3) {
+    idx <- as.integer(matches[2])
+    action <- matches[3]
+  } else {
+    # Try short format: q<index> (e.g., "q1") — default action = 1
+    pattern_short <- "^q(\\d+)$"
+    matches <- regmatches(Qsg, regexec(pattern_short, Qsg))[[1]]
 
+    if (length(matches) >= 2) {
+      idx <- as.integer(matches[2])
+      action <- "1"
+    } else {
+      return(Qsg)
+    }
+  }
 
   if (idx < 1 || idx > length(confs_labels)) return(Qsg)
 
@@ -263,6 +293,8 @@ FS_labels <- function(Qsg, confs_labels) {
     paste0("{", base_label, "}")
   }
 }
+
+
 
 
 #' Sort Subgroups by Focus
@@ -816,20 +848,6 @@ evaluate_consistency_twostage <- function(
     }
   }
 
-  .FS_labels <- function(Qsg, confs_labels) {
-    pattern <- "^q(\\d+)\\.(\\d)$"
-    matches <- regmatches(Qsg, regexec(pattern, Qsg))[[1]]
-    if (length(matches) < 3) return(Qsg)
-    idx <- as.integer(matches[2])
-    action <- matches[3]
-    if (idx < 1 || idx > length(confs_labels)) return(Qsg)
-    base_label <- confs_labels[idx]
-    if (action == "0") {
-      paste0("!{", base_label, "}")
-    } else {
-      paste0("{", base_label, "}")
-    }
-  }
 
   # ---------------------------------------------------------------------------
   # Parameter initialization
@@ -868,7 +886,7 @@ evaluate_consistency_twostage <- function(
     return(NULL)
   }
 
-  this.m_label <- sapply(this.m, function(q) .FS_labels(q, confs_labels))
+  this.m_label <- sapply(this.m, function(q) FS_labels(q, confs_labels))
 
   # ---------------------------------------------------------------------------
   # Identify subgroup members

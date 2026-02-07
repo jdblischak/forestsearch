@@ -498,7 +498,16 @@ forestsearch <- function(df.analysis,
   # ===========================================================================
 
   # Prepare data for subgroup search
+
   df.confounders <- df[, conf.screen]
+
+  # Ensure binary cut indicators are numeric, not factor
+  for (col in names(df.confounders)) {
+    if (is.factor(df.confounders[[col]])) {
+      df.confounders[[col]] <- as.numeric(as.character(df.confounders[[col]]))
+    }
+  }
+
   df.confounders <- dummy(df.confounders)
 
   id <- df[, c(id.name)]

@@ -9,13 +9,18 @@ get_dfpred(df.predict, sg.harm, version = 1)
 \arguments{
 \item{df.predict}{Data frame for prediction (test or validation set).}
 
-\item{sg.harm}{Character vector of subgroup-defining covariate names.}
+\item{sg.harm}{Character vector of subgroup-defining labels. If named,
+values are used as label expressions (e.g., "er <= 0", "size <= 35").}
 
-\item{version}{Integer; 1 uses \code{dummy()}, 2 uses \code{dummy2()} for factor encoding.}
+\item{version}{Integer; encoding version (maintained for backward
+compatibility). Default: 1.}
 }
 \value{
-Data frame with treatment recommendation flag (\code{treat.recommend}).
+Data frame with treatment recommendation flag
+(\code{treat.recommend}): 0 for harm subgroup, 1 for complement.
 }
 \description{
-Creates a prediction dataset with a treatment recommendation flag based on subgroup definition.
+Creates a prediction dataset with a treatment recommendation flag based
+on the subgroup definition. Supports both q-coded column names (for
+internally encoded data) and label expressions (for raw prediction data).
 }

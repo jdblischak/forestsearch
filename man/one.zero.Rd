@@ -2,16 +2,16 @@
 % Please edit documentation in R/get_FSdata_helpers.R
 \name{one.zero}
 \alias{one.zero}
-\title{Flip 1/0 value}
+\title{Flip binary value(s)}
 \usage{
 one.zero(x)
 }
 \arguments{
-\item{x}{Integer (0 or 1).}
+\item{x}{Integer vector of 0s and 1s.}
 }
 \value{
-Integer (0 or 1).
+Integer vector with values flipped.
 }
 \description{
-Flips a binary value: returns 0 if input is 1, returns 1 if input is 0.
+Flip binary value(s)
 }

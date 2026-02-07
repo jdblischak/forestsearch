@@ -2,7 +2,7 @@
 % Please edit documentation in R/get_FSdata_helpers.R
 \name{acm.disjctif}
 \alias{acm.disjctif}
-\title{Disjunctive coding for factors (modified from ade4)}
+\title{Disjunctive (dummy) coding for factor columns}
 \usage{
 acm.disjctif(df)
 }
@@ -10,8 +10,8 @@ acm.disjctif(df)
 \item{df}{Data frame with factor variables.}
 }
 \value{
-Data frame with dummy-coded variables.
+Data frame with dummy-coded columns.
 }
 \description{
-Converts factor variables in a data frame to disjunctive (dummy) coding.
+Disjunctive (dummy) coding for factor columns
 }

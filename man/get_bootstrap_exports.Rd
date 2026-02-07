@@ -2,14 +2,11 @@
 % Please edit documentation in R/bootstrap_dofuture_setup_helpers.R
 \name{get_bootstrap_exports}
 \alias{get_bootstrap_exports}
-\title{Flatten required functions list to character vector}
+\title{Get all exported functions from ForestSearch namespace}
 \usage{
 get_bootstrap_exports()
 }
-\value{
-Character vector of all function names needed in parallel workers
-}
 \description{
-Flatten required functions list to character vector
+Get all exported functions from ForestSearch namespace
 }
 \keyword{internal}

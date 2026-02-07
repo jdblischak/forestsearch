@@ -77,7 +77,7 @@ BOOTSTRAP_REQUIRED_FUNCTIONS <- list(
   data_prep = c(
     "get_FSdata",
     "dummy", "dummy2",
-    "acm.disjctif", "acm.util.df2", "acm.util.df",
+    "acm.disjctif",
     "ztrail", "one.zero",
     "prepare_data",
     "clean_data"
@@ -133,13 +133,14 @@ BOOTSTRAP_REQUIRED_FUNCTIONS <- list(
   )
 )
 
-#' Flatten required functions list to character vector
-#'
-#' @return Character vector of all function names needed in parallel workers
+#' Get all exported functions from ForestSearch namespace
 #' @keywords internal
 get_bootstrap_exports <- function() {
-  unlist(BOOTSTRAP_REQUIRED_FUNCTIONS, use.names = FALSE)
+  # Automatically discover all exported functions
+  ns <- asNamespace("forestsearch")
+  ls(ns, all.names = FALSE)
 }
+
 
 ensure_packages <- function(pkgs) {
   missing <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
