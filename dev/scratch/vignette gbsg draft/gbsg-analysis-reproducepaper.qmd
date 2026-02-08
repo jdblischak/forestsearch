@@ -715,11 +715,13 @@ patients may not benefit is consistent with:
 timings$total <- (proc.time() - t_vignette_start)["elapsed"]
 
 timing_df <- data.frame(
-  Analysis = c("GRF", "ForestSearch", "Bootstrap", "Total"),
+  Analysis = c("GRF", "ForestSearch", "Bootstrap", "Kfold", "OOB", "Total"),
   Seconds = c(
     timings$grf,
     timings$forestsearch,
     timings$bootstrap,
+    timings$kfold,
+    timings$oob,
     timings$total
   )
 )

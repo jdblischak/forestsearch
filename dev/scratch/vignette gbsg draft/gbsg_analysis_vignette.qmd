@@ -260,8 +260,8 @@ fs <- forestsearch(
   # Threshold parameters (per León et al. 2024)
   hr.threshold = 1.25,
   hr.consistency = 1.0,
-  pconsistency.threshold = 0.90,
-  stop_threshold = 0.90,
+  pconsistency.threshold = 0.80,
+  stop_threshold = 0.80,
   # Search configuration
   sg_focus = "hr",
   max_subgroups_search = 5,
@@ -277,7 +277,7 @@ fs <- forestsearch(
   d0.min = 10,
   d1.min = 10,
   # Consistency evaluation
-  fs.splits = 400,
+  fs.splits = 100,
   # Parallel processing
   parallel_args = list(
     plan = "multisession",
@@ -350,7 +350,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 3
+NB <- 2
 
 t0 <- proc.time()
 
@@ -458,14 +458,14 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 2
+Ksims <- 1
 
 t0 <- proc.time()
 
 fs_kfold <- forestsearch_tenfold(
   fs.est = fs,
   sims = Ksims,
-  Kfolds = 5,
+  Kfolds = 2,
   details = FALSE,
   parallel_args = list(
     plan = "multisession",
@@ -768,7 +768,7 @@ plot_km_band_forestsearch(
  outcome.name = outcome.name,
    event.name = event.name,
    treat.name = treat.name,
- draws_band = 1000
+ draws_band = 20
 )
  
 # # Example with more subgroups

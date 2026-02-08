@@ -1,21 +1,30 @@
-# # List of required packages for ForestSearch analysis
-# required_packages <- c("grf","policytree","data.table","randomForest","survival","weightedsurv","future.apply")
-# missing <- required_packages[!sapply(required_packages, requireNamespace, quietly = TRUE)]
-# if(length(missing) > 0) stop("Missing required packages: ", paste(missing, collapse = ", "))
+# =============================================================================
+# forestsearch_helpers.R - Utility Functions for ForestSearch
+# =============================================================================
+#
+# Helper functions used across the ForestSearch package:
+#   - add_id_column()          : Ensure data frame has a unique ID column
+#   - get_dfpred()             : Apply subgroup definition to new data
+#   - evaluate_comparison()    : Safe operator-dispatch expression evaluator
+#   - get_param()              : Extract parameter with default fallback
+#   - plot.forestsearch()      : S3 plot method dispatching to plot_sg_results()
+#
+# =============================================================================
 
 
 #' Add ID Column to Data Frame
 #'
-#' Ensures that a data frame has a unique ID column. If \code{id.name} is not provided,
-#' a column named "id" is added. If \code{id.name} is provided but does not exist in the data frame,
-#' it is created with unique integer values.
+#' Ensures that a data frame has a unique ID column. If \code{id.name} is not
+#' provided, a column named \code{"id"} is added. If \code{id.name} is provided
+#' but does not exist in the data frame, it is created with unique integer
+#' values.
 #'
 #' @param df.analysis Data frame to which the ID column will be added.
-#' @param id.name Character. Name of the ID column to add (default is \code{NULL}, which uses "id").
+#' @param id.name Character. Name of the ID column to add (default is
+#'   \code{NULL}, which uses \code{"id"}).
 #'
 #' @return Data frame with the ID column added if necessary.
 #' @export
-
 add_id_column <- function(df.analysis, id.name = NULL) {
   if (is.null(id.name)) {
     df.analysis$id <- seq_len(nrow(df.analysis))
@@ -27,28 +36,60 @@ add_id_column <- function(df.analysis, id.name = NULL) {
 }
 
 
+# =============================================================================
+# SUBGROUP APPLICATION
+# =============================================================================
+
 #' Generate Prediction Dataset with Subgroup Treatment Recommendation
 #'
 #' Creates a prediction dataset with a treatment recommendation flag based
-#' on the subgroup definition. Supports both q-coded column names (for
-#' internally encoded data) and label expressions (for raw prediction data).
+#' on the subgroup definition. Supports both label expressions
+#' (e.g., \code{"\{er <= 0\}"}) and bare column names (e.g., \code{"q3.1"}).
+#'
+#' Each element of \code{sg.harm} is processed as follows:
+#' \enumerate{
+#'   \item Outer braces and leading \code{!} are stripped.
+#'   \item If the result matches \code{"var op value"} (where \code{op} is
+#'     one of \code{<=}, \code{<}, \code{>=}, \code{>}, \code{==},
+#'     \code{!=}), the comparison is executed directly on
+#'     \code{df.predict[[var]]}.
+#'   \item Otherwise the expression is treated as a column name and
+#'     membership is \code{df.predict[[name]] == 1}.
+#' }
 #'
 #' @param df.predict Data frame for prediction (test or validation set).
-#' @param sg.harm Character vector of subgroup-defining labels. If named,
-#'   values are used as label expressions (e.g., "er <= 0", "size <= 35").
+#' @param sg.harm Character vector of subgroup-defining labels. Values may
+#'   be wrapped in braces and optionally negated, e.g. \code{"\{er <= 0\}"}
+#'   or \code{"!\{size <= 35\}"}. Plain column names (e.g., \code{"q3.1"})
+#'   are treated as binary indicators that must equal 1.
 #' @param version Integer; encoding version (maintained for backward
 #'   compatibility). Default: 1.
 #'
 #' @return Data frame with treatment recommendation flag
 #'   (\code{treat.recommend}): 0 for harm subgroup, 1 for complement.
+#'
+#' @seealso \code{\link{evaluate_comparison}} for the operator-dispatch
+#'   logic, \code{\link{forestsearch}} for the main analysis function.
+#'
+#' @examples
+#' \dontrun{
+#' # With brace-wrapped label expressions
+#' sg <- c("{er <= 0}", "{size <= 35}")
+#' df_out <- get_dfpred(df.predict = test_data, sg.harm = sg)
+#'
+#' # With negation
+#' sg_neg <- c("{er <= 0}", "!{size <= 35}")
+#' df_neg <- get_dfpred(df.predict = test_data, sg.harm = sg_neg)
+#'
+#' # With bare column names (binary indicators)
+#' sg_col <- c("q1.1", "q3.1")
+#' df_col <- get_dfpred(df.predict = encoded_data, sg.harm = sg_col)
+#' }
+#'
 #' @export
 get_dfpred <- function(df.predict, sg.harm, version = 1) {
 
   df.pred <- df.predict
-  df.pred$treat.recommend <- NA
-
-  # Extract label expressions, stripping braces and negation
-  # sg.harm values look like "{er <= 0}" or "!{er <= 0}"
   labels <- if (!is.null(names(sg.harm))) unname(sg.harm) else sg.harm
 
   # Build membership indicator for each factor
@@ -59,14 +100,7 @@ get_dfpred <- function(df.predict, sg.harm, version = 1) {
     clean <- gsub("^!?\\{(.*)\\}$", "\\1", lab)
     is_negated <- grepl("^!", lab)
 
-    # Evaluate the expression on the data
-    member <- tryCatch(
-      eval(parse(text = clean), envir = df.pred),
-      error = function(e) {
-        warning("Could not evaluate: ", clean, " - ", e$message)
-        rep(NA, nrow(df.pred))
-      }
-    )
+    member <- evaluate_comparison(clean, df.pred)
 
     # Apply negation if needed
     if (is_negated) member <- !member
@@ -78,7 +112,110 @@ get_dfpred <- function(df.predict, sg.harm, version = 1) {
   df.pred
 }
 
-#' Get parameter with default fallback
+
+#' Evaluate a Comparison Expression Without eval(parse())
+#'
+#' Parses a string of the form \code{"var op value"} and evaluates it
+#' directly against a data frame column using operator dispatch. Falls back
+#' to column-name lookup for bare names.
+#'
+#' @param expr Character. An expression like \code{"er <= 0"},
+#'   \code{"size > 35"}, \code{"grade3 == 1"}, or a bare column name
+#'   like \code{"q3.1"}.
+#' @param df Data frame whose columns are referenced by \code{expr}.
+#'
+#' @return Logical vector of length \code{nrow(df)}.
+#'
+#' @details
+#' Supported operators (matched longest-first to avoid partial-match
+#' ambiguity): \code{<=}, \code{>=}, \code{!=}, \code{==}, \code{<},
+#' \code{>}.
+#'
+#' If no operator is found, \code{expr} is treated as a column name and
+#' the result is \code{df[[expr]] == 1}.
+#'
+#' The value on the right-hand side is coerced to numeric when possible,
+#' otherwise kept as character for string comparisons.
+#'
+#' @examples
+#' \dontrun{
+#' df <- data.frame(er = c(-1, 0, 1, 2), size = c(10, 20, 30, 40))
+#' evaluate_comparison("er <= 0", df)
+#' # [1]  TRUE  TRUE FALSE FALSE
+#'
+#' evaluate_comparison("size > 25", df)
+#' # [1] FALSE FALSE  TRUE  TRUE
+#' }
+#'
+#' @export
+evaluate_comparison <- function(expr, df) {
+
+  expr <- trimws(expr)
+
+  # Operators ordered longest-first to avoid partial matching
+  # (e.g., "<=" must be tried before "<")
+  ops <- c("<=", ">=", "!=", "==", "<", ">")
+
+  for (op in ops) {
+    if (grepl(op, expr, fixed = TRUE)) {
+      parts <- strsplit(expr, op, fixed = TRUE)[[1L]]
+      if (length(parts) != 2L) next
+
+      var_name <- trimws(parts[1L])
+      value <- trimws(parts[2L])
+
+      if (!var_name %in% names(df)) {
+        warning("Column '", var_name, "' not found in data frame",
+                call. = FALSE)
+        return(rep(NA, nrow(df)))
+      }
+
+      col <- df[[var_name]]
+      val <- suppressWarnings(as.numeric(value))
+      if (is.na(val)) val <- value # keep as character for string comparisons
+
+      result <- switch(
+        op,
+        "<=" = col <= val,
+        ">=" = col >= val,
+        "!=" = col != val,
+        "==" = col == val,
+        "<"  = col <  val,
+        ">"  = col >  val
+      )
+
+      return(result)
+    }
+  }
+
+  # No operator found - treat as a column name (binary indicator)
+  if (expr %in% names(df)) {
+    return(df[[expr]] == 1)
+  }
+
+  warning("Could not parse expression and column '", expr,
+          "' not found in data frame", call. = FALSE)
+  rep(NA, nrow(df))
+}
+
+
+# =============================================================================
+# PARAMETER HELPERS
+# =============================================================================
+
+#' Get Parameter with Default Fallback
+#'
+#' Safely retrieves a named element from a list, returning a default value
+#' if the element is missing or \code{NULL}.
+#'
+#' @param args_list List to extract from.
+#' @param param_name Character. Name of the element to retrieve.
+#' @param default_value Default value to return if element is missing or
+#'   \code{NULL}.
+#'
+#' @return The value of \code{args_list[[param_name]]} if present and
+#'   non-\code{NULL}, otherwise \code{default_value}.
+#'
 #' @keywords internal
 get_param <- function(args_list, param_name, default_value) {
   if (hasName(args_list, param_name) && !is.null(args_list[[param_name]])) {
@@ -88,26 +225,92 @@ get_param <- function(args_list, param_name, default_value) {
 }
 
 
-
+# =============================================================================
+# S3 PLOT METHOD
+# =============================================================================
 
 #' Plot ForestSearch Results
 #'
-#' @description
-#' Creates visualization of forestsearch results including subgroup characteristics,
-#' consistency metrics, and treatment effect estimates.
+#' Dispatches to \code{\link{plot_sg_results}} for Kaplan-Meier curves,
+#' hazard-ratio forest plots, or combined panels.
 #'
-#' @param x A forestsearch object
-#' @param type Character. Type of plot: "consistency", "effects", "selection", or "all"
-#' @param ... Additional plotting parameters
+#' @param x A \code{forestsearch} object returned by
+#'   \code{\link{forestsearch}}.
+#' @param type Character. Type of plot:
+#'   \describe{
+#'     \item{\code{"combined"}}{KM curves + forest plot (default)}
+#'     \item{\code{"km"}}{Kaplan-Meier survival curves only}
+#'     \item{\code{"forest"}}{Hazard-ratio forest plot only}
+#'     \item{\code{"summary"}}{Summary statistics panel}
+#'   }
+#' @param outcome.name Character. Name of time-to-event column.
+#'   Default: \code{"Y"}.
+#' @param event.name Character. Name of event indicator column.
+#'   Default: \code{"Event"}.
+#' @param treat.name Character. Name of treatment column.
+#'   Default: \code{"Treat"}.
+#' @param ... Additional arguments passed to \code{\link{plot_sg_results}},
+#'   such as \code{by.risk}, \code{conf.level}, \code{est.scale},
+#'   \code{sg0_name}, \code{sg1_name}, \code{treat_labels}, \code{colors},
+#'   \code{title}, \code{show_events}, \code{show_ci}, \code{show_logrank},
+#'   \code{show_hr}.
+#'
+#' @return Invisibly returns the plot result from
+#'   \code{\link{plot_sg_results}}.
+#'
+#' @seealso \code{\link{plot_sg_results}} for full control over appearance,
+#'   \code{\link{plot_sg_weighted_km}} for weighted KM curves,
+#'   \code{\link{plot_subgroup_results_forestplot}} for publication-ready
+#'   forest plots.
+#'
+#' @examples
+#' \dontrun{
+#' fs <- forestsearch(df.analysis = my_data, ...)
+#'
+#' # Combined KM + forest plot (default)
+#' plot(fs)
+#'
+#' # KM curves only
+#' plot(fs, type = "km")
+#'
+#' # Forest plot only
+#' plot(fs, type = "forest")
+#'
+#' # With non-standard column names
+#' plot(fs, type = "km",
+#'      outcome.name = "os_months",
+#'      event.name = "os_event",
+#'      treat.name = "treatment")
+#'
+#' # With custom labels
+#' plot(fs, sg0_name = "High Risk", sg1_name = "Standard Risk",
+#'      treat_labels = c("0" = "Placebo", "1" = "Active Drug"))
+#' }
 #'
 #' @export
-plot.forestsearch <- function(x, type = c("consistency", "effects", "selection", "all"), ...) {
+plot.forestsearch <- function(x,
+                              type = c("combined", "km",
+                                       "forest", "summary"),
+                              outcome.name = "Y",
+                              event.name = "Event",
+                              treat.name = "Treat",
+                              ...) {
+
   type <- match.arg(type)
 
-  # Implementation would create appropriate visualizations
-  # This is a placeholder for the documentation
+  if (is.null(x$df.est)) {
+    message("No subgroup identified -- nothing to plot.")
+    return(invisible(x))
+  }
 
-  invisible(x)
+  result <- plot_sg_results(
+    fs.est       = x,
+    plot_type    = type,
+    outcome.name = outcome.name,
+    event.name   = event.name,
+    treat.name   = treat.name,
+    ...
+  )
+
+  invisible(result)
 }
-
-

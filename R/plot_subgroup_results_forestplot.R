@@ -794,42 +794,6 @@ plot_subgroup_results_forestplot <- function(
 }
 
 
-#' Print Method for ForestSearch Forest Plot
-#'
-#' @param x An fs_forestplot object
-#' @param ... Additional arguments (ignored)
-#' @export
-print.fs_forestplot <- function(x, ...) {
-  cat("ForestSearch Subgroup Results Forest Plot\n")
-  cat("=========================================\n")
-  cat("Number of rows:", nrow(x$data), "\n")
-  cat("Row types:", paste(unique(x$row_types), collapse = ", "), "\n")
-
-  # Check if CV metrics are present
-  if (length(x$cv_metrics) > 0) {
-    cat("\nCross-validation metrics:\n")
-    for (i in seq_along(x$cv_metrics)) {
-      cat("  -", x$cv_metrics[[i]], "\n")
-    }
-  }
-  cat("\nTo display: render_forestplot(x) or plot(x)\n")
-  cat("To save:    save_forestplot(x, 'plot.pdf', width = 14, height = 12)\n")
-  invisible(x)
-}
-
-
-#' Plot Method for ForestSearch Forest Plot
-#'
-#' @param x An fs_forestplot object
-#' @param ... Additional arguments passed to grid plotting
-#' @export
-plot.fs_forestplot <- function(x, ...) {
-  grid::grid.newpage()
-  grid::grid.draw(x$plot)
-  invisible(x)
-}
-
-
 # ==============================================================================
 # ADDITIONAL HELPER FUNCTIONS
 # ==============================================================================

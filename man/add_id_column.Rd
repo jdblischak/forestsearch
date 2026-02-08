@@ -9,13 +9,15 @@ add_id_column(df.analysis, id.name = NULL)
 \arguments{
 \item{df.analysis}{Data frame to which the ID column will be added.}
 
-\item{id.name}{Character. Name of the ID column to add (default is \code{NULL}, which uses "id").}
+\item{id.name}{Character. Name of the ID column to add (default is
+\code{NULL}, which uses \code{"id"}).}
 }
 \value{
 Data frame with the ID column added if necessary.
 }
 \description{
-Ensures that a data frame has a unique ID column. If \code{id.name} is not provided,
-a column named "id" is added. If \code{id.name} is provided but does not exist in the data frame,
-it is created with unique integer values.
+Ensures that a data frame has a unique ID column. If \code{id.name} is not
+provided, a column named \code{"id"} is added. If \code{id.name} is provided
+but does not exist in the data frame, it is created with unique integer
+values.
 }

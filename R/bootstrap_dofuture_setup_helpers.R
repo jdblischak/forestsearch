@@ -57,7 +57,8 @@ BOOTSTRAP_REQUIRED_FUNCTIONS <- list(
     "var_summary",
     "format_results",
     "format_CI",
-    "qlow", "qhigh"
+    "qlow", "qhigh",
+    "evaluate_comparison"
   ),
   subgroup_analysis = c(
     "cox_summary",

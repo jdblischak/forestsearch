@@ -498,17 +498,14 @@ forestsearch <- function(df.analysis,
   # ===========================================================================
 
   # Prepare data for subgroup search
+  # NOTE: df[, conf.screen] columns are factors with levels {0, 1}.
+  # dummy() expands each 2-level factor into two indicator columns
+  # (e.g., q1 -> q1.0, q1.1), so the search explores BOTH directions
+  # of each cut (subgroup and complement).
 
   df.confounders <- df[, conf.screen]
-
-  # Ensure binary cut indicators are numeric, not factor
-  for (col in names(df.confounders)) {
-    if (is.factor(df.confounders[[col]])) {
-      df.confounders[[col]] <- as.numeric(as.character(df.confounders[[col]]))
-    }
-  }
-
   df.confounders <- dummy(df.confounders)
+
 
   id <- df[, c(id.name)]
   df.fs <- data.frame(Y, Event, Treat, id, df.confounders)
