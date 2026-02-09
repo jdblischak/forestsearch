@@ -743,6 +743,11 @@ plot_subgroup_results_forestplot <- function(
   dt[[ci_label]] <- ifelse(is.na(dt$se), "",
                            sprintf("%.2f (%.2f to %.2f)", dt$est, dt$low, dt$hi))
 
+  # Suppress footnote if no CV data
+  if (!has_cv_data) {
+    footnote_text <- NULL
+  }
+
   # Generate the forest plot
   p <- forestploter::forest(
     dt[, c("Subgroup", E.name, C.name, " ", ci_label)],

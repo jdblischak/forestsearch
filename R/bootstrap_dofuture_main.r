@@ -181,30 +181,6 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
   # SECTION 6: SETUP PARALLEL PROCESSING
   # =======================================================================
 
-  # on.exit({
-  #   # Ensure workers are properly shut down
-  #   if (exists(".Last.future.plan")) {
-  #     future::plan(.Last.future.plan)
-  #   } else {
-  #     future::plan("sequential")  # Safe fallback
-  #   }
-  #
-  #   # Clear large objects from workers
-  #   if (parallel_args$plan %in% c("multisession", "multicore", "callr")) {
-  #     foreach::registerDoSEQ()  # Reset to sequential
-  #   }
-  #
-  #   # Only gc() if truly needed
-  #   if (object.size(Ystar_mat) > 1e9) {  # If >1GB
-  #     gc(verbose = FALSE, reset = TRUE)
-  #   }
-  # }, add = TRUE)
-  #
-  #
-  # suppressWarnings({
-  #   setup_parallel_SGcons(parallel_args)
-  # })
-
 
   # Suppress warnings during entire parallel section
   old_warn <- getOption("warn")
