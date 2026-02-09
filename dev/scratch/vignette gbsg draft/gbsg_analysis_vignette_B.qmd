@@ -569,7 +569,7 @@ result <- plot_subgroup_results_forestplot(
   fs_results = list(
     fs.est = fs,
     fs_bc = fs_bc,
-    fs_OOB = NULL,
+    fs_OOB = fs_OOB,
     fs_kfold = fs_kfold
   ),
   df_analysis = df.analysis,
