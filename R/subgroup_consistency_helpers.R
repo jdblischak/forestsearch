@@ -457,7 +457,7 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
     )
   }
 
-
+  # DEAD CODE
   # if (details && plot.sg) {
   #   # Create subgroup and complement data frames
   #   sg.harm <- subgroup_info$sg.harm

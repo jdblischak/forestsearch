@@ -2,7 +2,7 @@
 % Please edit documentation in R/subgroup_search.R
 \name{subgroup.search}
 \alias{subgroup.search}
-\title{Subgroup Search for Treatment Effect Heterogeneity (Improved)}
+\title{Subgroup Search for Treatment Effect Heterogeneity (Improved, Parallelized)}
 \usage{
 subgroup.search(
   Y,
@@ -18,7 +18,8 @@ subgroup.search(
   minp = 0.05,
   rmin = 5,
   details = FALSE,
-  maxk = 2
+  maxk = 2,
+  parallel_workers = parallel::detectCores()
 )
 }
 \arguments{
@@ -49,33 +50,15 @@ subgroup.search(
 \item{details}{Logical. Print details during execution.}
 
 \item{maxk}{Integer. Maximum number of factors in a subgroup.}
+
+\item{parallel_workers}{Integer. Number of parallel workers (default: all available cores).}
 }
 \value{
 List with found subgroups, maximum HR, search time, configuration info,
-and filtering statistics:
-\describe{
-\item{out.found}{List containing hr.subgroups data.table of candidates}
-\item{max_sg_est}{Maximum HR estimate found}
-\item{time_search}{Search time in minutes}
-\item{L}{Number of single factors}
-\item{max_count}{Total combinations evaluated}
-\item{prop_max_count}{Proportion of max combinations (always 1)}
-\item{filter_counts}{List with counts at each filtering stage:
-\itemize{
-\item n_evaluated: Total combinations evaluated
-\item n_passed_variance: Passed variance check
-\item n_passed_prevalence: Passed prevalence threshold
-\item n_passed_redundancy: Passed redundancy check
-\item n_passed_events: Passed event count criteria (d0.min, d1.min)
-\item n_passed_sample_size: Passed sample size criteria (n.min)
-\item n_passed_cox: Cox model fit successfully
-\item n_passed_hr: Passed HR threshold (final candidates)
-}
-}
-}
+and filtering statistics.
 }
 \description{
 Searches for subgroups with treatment effect heterogeneity using combinations
 of candidate factors. Evaluates subgroups for minimum prevalence, event counts,
-and hazard ratio threshold.
+and hazard ratio threshold. Parallelizes the main search loop.
 }
