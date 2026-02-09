@@ -225,3 +225,59 @@ get_param <- function(args_list, param_name, default_value) {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────
+# Core helper: evaluates any expression string against a data frame
+# ─────────────────────────────────────────────────────────────────────
+
+#' Evaluate an expression string in a data-frame scope
+#'
+#' Parses and evaluates \code{expr} in a restricted environment
+#' containing only the columns of \code{df} (parent: \code{baseenv()}).
+#' This isolates evaluation from the global environment, reducing
+#' scope for unintended side effects.
+#'
+#' @param df Data frame providing column names as variables.
+#' @param expr Character. Expression to evaluate
+#'   (e.g., \code{"BM > 1 & tmrsize > 19"}).
+#'
+#' @return Result of evaluating \code{expr}, or \code{NULL} on failure.
+#'
+#' @keywords internal
+safe_eval_expr <- function(df, expr) {
+  tryCatch({
+    env <- list2env(as.list(df), parent = baseenv())
+    eval(parse(text = expr), envir = env)
+  }, error = function(e) {
+    warning(
+      "Failed to evaluate expression: '", expr, "' - ", e$message,
+      call. = FALSE
+    )
+    NULL
+  })
+}
+
+
+# ─────────────────────────────────────────────────────────────────────
+# Convenience wrapper: subset rows using an expression string
+# ─────────────────────────────────────────────────────────────────────
+
+#' Subset a data frame using an expression string
+#'
+#' Thin wrapper around \code{\link{safe_eval_expr}} that uses the
+#' logical result to subset rows.
+#'
+#' @param df Data frame.
+#' @param expr Character. Subset expression
+#'   (e.g., \code{"BM > 1 & tmrsize > 19"}).
+#'
+#' @return Subset of \code{df}, or \code{NULL} on failure.
+#'
+#' @keywords internal
+safe_subset <- function(df, expr) {
+  idx <- safe_eval_expr(df, expr)
+  if (is.null(idx)) return(NULL)
+  df[idx, , drop = FALSE]
+}
+
+
+

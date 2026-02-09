@@ -457,27 +457,6 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
     )
   }
 
-  # DEAD CODE
-  # if (details && plot.sg) {
-  #   # Create subgroup and complement data frames
-  #   sg.harm <- subgroup_info$sg.harm
-  #   id.harm <- paste(paste(sg.harm, collapse = "==1 & "), "==1")
-  #   id.noharm <- paste(paste(sg.harm, collapse = "!=1 | "), "!=1")
-  #
-  #   df.sub <- subset(df, eval(parse(text = id.harm)))
-  #   df.subC <- subset(df, eval(parse(text = id.noharm)))
-  #
-  #   # Call plot_subgroup
-  #   plot_subgroup(
-  #     df.sub = df.sub,
-  #     df.subC = df.subC,
-  #     by.risk = by.risk,
-  #     confs_labels = confs_labels,
-  #     this.1_label = subgroup_info$sg.harm_label,
-  #     top_result = top_result
-  #   )
-  # }
-
 
   # === END PLOTTING SECTION ===
 

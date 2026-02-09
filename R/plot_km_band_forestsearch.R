@@ -655,13 +655,16 @@ create_reference_subgroup_columns <- function(df, ref_subgroups, verbose = FALSE
     # Create indicator column
     col_name <- paste0("ref_", sg_name)
 
-    indicator <- tryCatch({
-      as.integer(eval(parse(text = subset_expr), envir = df))
-    }, error = function(e) {
-      warning("Failed to evaluate expression for '", sg_name, "': ",
-              subset_expr, " - ", e$message)
-      NULL
-    })
+    # DEAD
+    # indicator <- tryCatch({
+    #   as.integer(eval(parse(text = subset_expr), envir = df))
+    # }, error = function(e) {
+    #   warning("Failed to evaluate expression for '", sg_name, "': ",
+    #           subset_expr, " - ", e$message)
+    #   NULL
+    # })
+
+    indicator <- as.integer(safe_eval_expr(df, subset_expr))
 
     if (is.null(indicator)) next
 

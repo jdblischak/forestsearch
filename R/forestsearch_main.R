@@ -512,33 +512,6 @@ forestsearch <- function(df.analysis,
   Z <- as.matrix(df.confounders)
   colnames(Z) <- names(df.confounders)
 
-  # DEAD CODE
-  # find.grps <- tryCatch(
-  #   subgroup.search(
-  #     Y = Y,
-  #     Event = Event,
-  #     Treat = Treat,
-  #     Z = Z,
-  #     d0.min = d0.min,
-  #     d1.min = d1.min,
-  #     n.min = n.min,
-  #     hr.threshold = hr.threshold,
-  #     max.minutes = max.minutes,
-  #     minp = minp,
-  #     details = details,
-  #     maxk = maxk
-  #   ),
-  #   error = function(e) {
-  #     warning("Error in subgroup.search: ", e$message)
-  #     return(NULL)
-  #   }
-  # )
-  #
-  # if (is.null(find.grps) || inherits(find.grps, "try-error")) {
-  #   warning("Subgroup search failed")
-  #   return(list(sg.harm = NULL, args_call_all = args_call_all))
-  # }
-
 
   search_overrides <- list(
         Y = Y,
@@ -553,7 +526,7 @@ forestsearch <- function(df.analysis,
         minp = minp,
         maxk = maxk,
         parallel_workers = 1,  # Ensure sequential execution if inside parallel context
-        details = FALSE        # Optionally suppress details
+        details = details        # Optionally suppress details
   )
 
   # Merge and filter arguments

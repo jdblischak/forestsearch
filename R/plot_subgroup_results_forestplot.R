@@ -409,14 +409,20 @@ plot_subgroup_results_forestplot <- function(
     # -----------------------------------------------------------------
     ref_sgs <- Filter(function(x) x$type == "reference", subgroup_list)
     if (length(ref_sgs) > 0) {
+
       for (sg in ref_sgs) {
-        df_sg <- tryCatch(
-          subset(df_analysis, eval(parse(text = sg$subset_expr))),
-          error = function(e) {
-            warning(paste("Failed to subset for:", sg$name, "-", e$message))
-            NULL
-          }
-        )
+
+        # DEAD
+        # df_sg <- tryCatch(
+        #   subset(df_analysis, eval(parse(text = sg$subset_expr))),
+        #   error = function(e) {
+        #     warning(paste("Failed to subset for:", sg$name, "-", e$message))
+        #     NULL
+        #   }
+        # )
+
+        df_sg <- safe_subset(df_analysis, sg$subset_expr)
+
 
         if (!is.null(df_sg) && nrow(df_sg) > 10) {
           sg_row <- create_hr_row(df_sg, sg$name, outcome.name, event.name,
@@ -441,13 +447,17 @@ plot_subgroup_results_forestplot <- function(
 
       # Loop through and add each posthoc subgroup from subgroup_list
       for (sg in posthoc_sgs) {
-        df_sg <- tryCatch(
-          subset(df_analysis, eval(parse(text = sg$subset_expr))),
-          error = function(e) {
-            warning(paste("Failed to subset for:", sg$name, "-", e$message))
-            NULL
-          }
-        )
+
+        # DEAD
+        # df_sg <- tryCatch(
+        #   subset(df_analysis, eval(parse(text = sg$subset_expr))),
+        #   error = function(e) {
+        #     warning(paste("Failed to subset for:", sg$name, "-", e$message))
+        #     NULL
+        #   }
+        # )
+
+        df_sg <- safe_subset(df_analysis, sg$subset_expr)
 
         if (!is.null(df_sg) && nrow(df_sg) > 10) {
           sg_row <- create_hr_row(df_sg, paste0("  ", sg$name), outcome.name,
@@ -849,7 +859,11 @@ create_subgroup_summary_df <- function(
   # Each subgroup
   for (sg_name in names(subgroups)) {
     sg <- subgroups[[sg_name]]
-    df_sg <- subset(df_analysis, eval(parse(text = sg$subset_expr)))
+
+    # DEAD
+    #df_sg <- subset(df_analysis, eval(parse(text = sg$subset_expr)))
+
+    df_sg <- safe_subset(df_analysis, sg$subset_expr)
 
     if (nrow(df_sg) > 10) {
       results[[sg_name]] <- compute_sg_hr(
