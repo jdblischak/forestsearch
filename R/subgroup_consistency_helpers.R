@@ -438,16 +438,15 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
   subgroup_info <- extract_subgroup(df, top_result, index.Z, names.Z, confs_labels)
 
   # === ADD THIS PLOTTING SECTION ===
+
+
   if (details && plot.sg) {
-    # Create subgroup and complement data frames
     sg.harm <- subgroup_info$sg.harm
-    id.harm <- paste(paste(sg.harm, collapse = "==1 & "), "==1")
-    id.noharm <- paste(paste(sg.harm, collapse = "!=1 | "), "!=1")
 
-    df.sub <- subset(df, eval(parse(text = id.harm)))
-    df.subC <- subset(df, eval(parse(text = id.noharm)))
+    in_harm <- Reduce(`&`, lapply(sg.harm, function(v) df[[v]] == 1L))
+    df.sub  <- df[in_harm, , drop = FALSE]
+    df.subC <- df[!in_harm, , drop = FALSE]
 
-    # Call plot_subgroup
     plot_subgroup(
       df.sub = df.sub,
       df.subC = df.subC,
@@ -457,6 +456,29 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
       top_result = top_result
     )
   }
+
+
+  # if (details && plot.sg) {
+  #   # Create subgroup and complement data frames
+  #   sg.harm <- subgroup_info$sg.harm
+  #   id.harm <- paste(paste(sg.harm, collapse = "==1 & "), "==1")
+  #   id.noharm <- paste(paste(sg.harm, collapse = "!=1 | "), "!=1")
+  #
+  #   df.sub <- subset(df, eval(parse(text = id.harm)))
+  #   df.subC <- subset(df, eval(parse(text = id.noharm)))
+  #
+  #   # Call plot_subgroup
+  #   plot_subgroup(
+  #     df.sub = df.sub,
+  #     df.subC = df.subC,
+  #     by.risk = by.risk,
+  #     confs_labels = confs_labels,
+  #     this.1_label = subgroup_info$sg.harm_label,
+  #     top_result = top_result
+  #   )
+  # }
+
+
   # === END PLOTTING SECTION ===
 
   result_out <- data.table::copy(result_new)
