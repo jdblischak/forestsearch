@@ -26,3 +26,7 @@
 ^\.DS_Store$
 ^\.Rhistory$
 ^\.RData$
+^vignettes/articles$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

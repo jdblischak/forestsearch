@@ -149,7 +149,10 @@ splits when \code{use_twostage = TRUE}). Default 1000.}
 
 \item{stop_threshold}{Numeric. Early stopping threshold for consistency
 evaluation. When a candidate subgroup's estimated consistency probability
-exceeds this threshold, evaluation stops early. Default 0.95.}
+exceeds this threshold, evaluation stops early. Default 0.95.
+\strong{Note:} Automatically reset to NULL when \code{sg_focus} is
+"hrMaxSG" or "hrMinSG", as these criteria prioritize hazard ratio in
+selection and require full evaluation of all candidates.}
 
 \item{showten_subgroups}{Logical. Show top 10 subgroups. Default FALSE.}
 

@@ -85,6 +85,74 @@ devtools::check(cran = TRUE)     # Full CRAN validation
 
 # End prior flow
 
+dir.create("vignettes/articles", recursive = TRUE, showWarnings = FALSE)
+usethis::use_build_ignore("vignettes/articles")
+
+pkgdown::check_pkgdown()
+
+pkgdown::as_pkgdown()$vignettes
+
+
+
+# Starting with fresh yaml
+
+# Remove your current file first
+file.rename("_pkgdown.yml", "_pkgdown_old.yml")
+
+## Auto-generate from actual namespace
+#pkgdown::template_reference()
+
+# Revised yaml 9-Feb-2026
+usethis::use_pkgdown()
+pkgdown::build_site()
+
+# See all exported functions
+# feed output into claude
+#sort(getNamespaceExports("forestsearch"))
+
+pkgdown::check_pkgdown()
+
+pkgdown::build_site()
+# Opens in browser automatically
+
+# Preview without building everything
+pkgdown::build_reference()
+pkgdown::preview_site()
+
+
+
+# Trying to clean up yaml WTF?
+# Get all exported functions
+exports <- getNamespaceExports("forestsearch")
+
+# Check each explicitly listed function in your _pkgdown.yml
+yml_functions <- c(
+  "forestsearch", "print.forestsearch", "summary.forestsearch",
+  "forestsearch_bootstrap_dofuture", "bootstrap_results", "get_dfRes",
+  "summarize_bootstrap_results", "summarize_bootstrap_subgroups",
+  "format_bootstrap_table", "format_subgroup_summary_tables",
+  "create_factor_summary_tables",
+  "forestsearch_Kfold", "forestsearch_tenfold", "forestsearch_KfoldOut",
+  "CV_sgs", "print.fs_kfold", "print.fs_tenfold",
+  "subgroup.consistency",
+  "grf.subg.harm.survival", "grf.estimates.out",
+  "cox_summary", "cox_ahr_cde_analysis", "cox_cs_fit", "plot_subgroup_effects",
+  "get_FSdata", "dummy_encode", "get_dfpred", "subgroup.search",
+  "plot_subgroup_results_forestplot", "print.fs_forestplot", "plot.fs_forestplot",
+  "create_subgroup_summary_df", "compute_sg_hr", "sens_text",
+  "sg_tables", "sg_estimates",
+  "generate_aft_dgm_flex", "create_gbsg_dgm", "create_dgm_for_mrct",
+  "simulate_from_gbsg_dgm",
+  "run_simulation_analysis", "default_fs_params", "default_grf_params",
+  "summarize_simulation_results",
+  "mrct_region_sims", "summaryout_mrct",
+  "cv_summary_tables", "cv_metrics_tables",
+  "get_param"
+)
+
+missing <- setdiff(yml_functions, exports)
+cat("Missing from namespace:\n")
+print(missing)
 
 
 

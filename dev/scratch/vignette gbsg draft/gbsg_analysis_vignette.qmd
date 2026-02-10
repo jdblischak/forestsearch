@@ -455,7 +455,7 @@ Two approaches are available:
 
 ## K-Fold Cross-Validation
 
-```{r kfold-cv, eval = FALSE}
+```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
 Ksims <- 1
@@ -569,7 +569,7 @@ result <- plot_subgroup_results_forestplot(
     fs.est = fs,
     fs_bc = fs_bc,
     fs_OOB = NULL,
-    fs_kfold = NULL
+    fs_kfold = fs_kfold
   ),
   df_analysis = df.analysis,
   subgroup_list = subgroups,

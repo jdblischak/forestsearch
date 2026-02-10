@@ -373,13 +373,11 @@ evaluate_cuts_once <- function(confs, df, details = FALSE) {
     thiscut <- confs[i]
 
     tryCatch({
-      # Evaluate expression once - should return logical (TRUE/FALSE)
-      result <- eval(parse(text = thiscut), envir = df)
+      # Use evaluate_comparison() — no eval(parse()) needed
+      # Cut expressions are always single comparisons like "er <= 0"
+      result <- evaluate_comparison(thiscut, df)
 
-      # Store the result (as logical)
       evaluations[[i]] <- as.logical(result)
-
-      # Check validity: must produce more than 1 unique value
       is_valid[i] <- length(unique(result)) > 1
 
     }, error = function(e) {
@@ -404,7 +402,6 @@ evaluate_cuts_once <- function(confs, df, details = FALSE) {
     has_error = has_error
   )
 }
-
 
 
 

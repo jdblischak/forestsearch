@@ -59,9 +59,6 @@
 #'   splits when \code{use_twostage = TRUE}). Default 1000.
 #' @param m1.threshold Numeric. Maximum median survival threshold. Default Inf.
 #' @param pconsistency.threshold Numeric. Minimum consistency proportion. Default 0.90.
-#' @param stop_threshold Numeric. Early stopping threshold for consistency
-#'   evaluation. When a candidate subgroup's estimated consistency probability
-#'   exceeds this threshold, evaluation stops early. Default 0.95.
 #' @param showten_subgroups Logical. Show top 10 subgroups. Default FALSE.
 #' @param d0.min Integer. Minimum control arm events. Default 12.
 #' @param d1.min Integer. Minimum treatment arm events. Default 12.

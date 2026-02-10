@@ -6,3 +6,4 @@ vignettes/data/
 .DS_Store
 dev/legacy_code/
 dev/vignettes-working
+docs
