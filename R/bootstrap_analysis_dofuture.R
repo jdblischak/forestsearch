@@ -26,6 +26,9 @@
 #' @param Hc_obs Numeric. Observed log hazard ratio for subgroup H^c (complement/recommend,
 #'   \code{treat.recommend == 1}) from original sample. Used as reference for
 #'   bias correction.
+#' @param seed Integer. Random seed for reproducibility. Default 8316951L.
+#'   Must match the seed used in \code{\link{bootstrap_ystar}} to ensure
+#'   bootstrap index alignment.
 #'
 #' @return Data.table with one row per bootstrap iteration and columns:
 #'   \describe{
@@ -192,13 +195,15 @@
 #' @importFrom doFuture %dofuture%
 #' @export
 bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
-                              nb_boots, show_three, H_obs, Hc_obs) {
+                              nb_boots, show_three, H_obs, Hc_obs,
+                              seed = 8316951L) {
   # =========================================================================
   # SECTION: INITIALIZE TIMING
   # =========================================================================
   t_start_bootstrap <- proc.time()[3]
 
-  set.seed(8316951)
+  set.seed(seed)
+
   NN <- nrow(df_boot_analysis)
   id0 <- seq_len(NN)
 
@@ -208,15 +213,8 @@ bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
     boot = seq_len(nb_boots),
     .options.future = list(
       seed = TRUE,
-      globals = structure(TRUE, add = c(
-      # Functions
-      get_bootstrap_exports(),
-      # Variables
-      "fs.est", "df_boot_analysis", "cox.formula.boot","confounders_candidate",
-      "H_obs", "Hc_obs", "nb_boots", "show_three", "args_foresearch_call","pconsistency.threshold",
-      "pconsistency.digits","hr.consistency"
-      ))
-  ),
+      globals = TRUE
+    ),
     .combine = "rbind",
     .errorhandling = "pass"
   ) %dofuture% {

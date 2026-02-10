@@ -7,7 +7,7 @@
 forestsearch_Kfold(
   fs.est,
   Kfolds = nrow(fs.est$df.est),
-  seedit = 8316951,
+  seedit = 8316951L,
   parallel_args = list(plan = "multisession", workers = 6, show_message = TRUE),
   sg0.name = "Not recommend",
   sg1.name = "Recommend",

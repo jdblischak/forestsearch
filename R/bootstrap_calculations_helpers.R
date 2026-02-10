@@ -1,18 +1,20 @@
+
 #' Bootstrap Ystar Matrix
 #'
 #' Generates a bootstrap matrix for Ystar using parallel processing.
 #'
 #' @param df Data frame.
 #' @param nb_boots Integer. Number of bootstrap samples.
-#' @return Matrix of bootstrap samples.
+#' @param seed Integer. Random seed for reproducibility. Default 8316951L.
+#'   Must match the seed used in \code{\link{bootstrap_results}} to ensure
+#'   bootstrap index alignment with the Ystar matrix.
+#' @return Matrix of bootstrap samples (nb_boots x nrow(df)).
 #' @importFrom foreach foreach
 #' @export
 
-bootstrap_ystar <- function(df, nb_boots) {
+bootstrap_ystar <- function(df, nb_boots, seed = 8316951L) {
   NN <- nrow(df)
-  # do not modify seed below it need to align with main bootstrap
-  # using manual seeding to allow reproducibility when qc-ing
-  set.seed(8316951)
+  set.seed(seed)
 suppressWarnings({foreach::foreach(
     boot = seq_len(nb_boots),
     .options.future = list(seed = TRUE),

@@ -9,6 +9,7 @@ forestsearch_tenfold(
   sims,
   Kfolds = 10,
   details = TRUE,
+  seed = 8316951L,
   parallel_args = list(plan = "multisession", workers = 6, show_message = TRUE)
 )
 }
@@ -20,6 +21,9 @@ forestsearch_tenfold(
 \item{Kfolds}{Integer. Number of folds per simulation (default: 10).}
 
 \item{details}{Logical. Print progress details (default: TRUE).}
+
+\item{seed}{Integer. Base random seed for fold shuffling. Default 8316951L.
+Each simulation uses seed + 1000 * ksim for reproducibility.}
 
 \item{parallel_args}{List. Parallelization configuration.}
 }

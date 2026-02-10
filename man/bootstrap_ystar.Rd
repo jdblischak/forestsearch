@@ -4,15 +4,19 @@
 \alias{bootstrap_ystar}
 \title{Bootstrap Ystar Matrix}
 \usage{
-bootstrap_ystar(df, nb_boots)
+bootstrap_ystar(df, nb_boots, seed = 8316951L)
 }
 \arguments{
 \item{df}{Data frame.}
 
 \item{nb_boots}{Integer. Number of bootstrap samples.}
+
+\item{seed}{Integer. Random seed for reproducibility. Default 8316951L.
+Must match the seed used in \code{\link{bootstrap_results}} to ensure
+bootstrap index alignment with the Ystar matrix.}
 }
 \value{
-Matrix of bootstrap samples.
+Matrix of bootstrap samples (nb_boots x nrow(df)).
 }
 \description{
 Generates a bootstrap matrix for Ystar using parallel processing.

@@ -107,7 +107,7 @@
 forestsearch_Kfold <- function(
     fs.est,
     Kfolds = nrow(fs.est$df.est),
-    seedit = 8316951,
+    seedit = 8316951L,
     parallel_args = list(plan = "multisession", workers = 6, show_message = TRUE),
     sg0.name = "Not recommend",
     sg1.name = "Recommend",
@@ -379,6 +379,8 @@ forestsearch_Kfold <- function(
 #'
 #' @param fs.est List. ForestSearch results object from \code{\link{forestsearch}}.
 #' @param sims Integer. Number of simulation repetitions.
+#' @param seed Integer. Base random seed for fold shuffling. Default 8316951L.
+#'   Each simulation uses seed + 1000 * ksim for reproducibility.
 #' @param Kfolds Integer. Number of folds per simulation (default: 10).
 #' @param details Logical. Print progress details (default: TRUE).
 #' @param parallel_args List. Parallelization configuration.
@@ -425,6 +427,7 @@ forestsearch_tenfold <- function(
     sims,
     Kfolds = 10,
     details = TRUE,
+    seed = 8316951L,
     parallel_args = list(plan = "multisession", workers = 6, show_message = TRUE)
 ) {
 
@@ -513,7 +516,7 @@ forestsearch_tenfold <- function(
 
     # Shuffle data for this simulation
     df_scrambled <- data.table::copy(dfnew)
-    set.seed(8316951 + 1000 * ksim)
+    set.seed(seed + 1000 * ksim)
     id_sample <- sample(seq_len(nrow(df_scrambled)), replace = FALSE)
     df_scrambled <- df_scrambled[id_sample, ]
 

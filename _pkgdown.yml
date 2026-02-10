@@ -362,7 +362,6 @@ reference:
     desc: >
       Lower-level helpers. Most users will not call these directly.
     contents:
-      - BOOTSTRAP_REQUIRED_FUNCTIONS
       - filter_call_args
       - get_combinations_info
       - get_conf_force

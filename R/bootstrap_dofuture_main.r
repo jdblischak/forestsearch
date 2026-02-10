@@ -210,7 +210,8 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
   # SECTION 7: GENERATE YSTAR MATRIX (BOOTSTRAP INDICATORS)
   # =======================================================================
 
-  Ystar_mat <- bootstrap_ystar(fs.est$df.est, nb_boots)
+  boot_seed <- 8316951L
+  Ystar_mat <- bootstrap_ystar(fs.est$df.est, nb_boots, seed = boot_seed)
 
   if (details) {
     cat("Ystar matrix generated should be 'boots x N': ", nrow(Ystar_mat), " x ",
@@ -267,7 +268,8 @@ forestsearch_bootstrap_dofuture <- function(fs.est,
     nb_boots = nb_boots,
     show_three = show_three,
     H_obs = H_obs,
-    Hc_obs = Hc_obs
+    Hc_obs = Hc_obs,
+    seed = boot_seed
   )
 
   options(warn = old_warn)

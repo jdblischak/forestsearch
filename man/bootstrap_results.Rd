@@ -11,7 +11,8 @@ bootstrap_results(
   nb_boots,
   show_three,
   H_obs,
-  Hc_obs
+  Hc_obs,
+  seed = 8316951L
 )
 }
 \arguments{
@@ -44,6 +45,10 @@ bias correction.}
 \item{Hc_obs}{Numeric. Observed log hazard ratio for subgroup H^c (complement/recommend,
 \code{treat.recommend == 1}) from original sample. Used as reference for
 bias correction.}
+
+\item{seed}{Integer. Random seed for reproducibility. Default 8316951L.
+Must match the seed used in \code{\link{bootstrap_ystar}} to ensure
+bootstrap index alignment.}
 }
 \value{
 Data.table with one row per bootstrap iteration and columns:
