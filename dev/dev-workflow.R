@@ -79,6 +79,8 @@ devtools::check()
 
 devtools::clean_dll()
 
+devtools::install()
+
 
 # Run these before CRAN submission
 devtools::check(cran = TRUE)     # Full CRAN validation
@@ -90,10 +92,57 @@ usethis::use_build_ignore("vignettes/articles")
 
 pkgdown::check_pkgdown()
 
+
+
+
+
+# One-time setup: creates a gh-pages branch and GitHub Actions workflow
+usethis::use_pkgdown_github_pages()
+
+#This does three things: sets the URL to https://larry-leon.github.io/forestsearch, creates .github/workflows/pkgdown.yaml for
+#automatic rebuilds on push, and configures the gh-pages branch.
+#After pushing, the site is live at https://larry-leon.github.io/forestsearch.
+
+usethis::create_github_token()
+# store the PAT
+gitcreds::gitcreds_set()
+
+usethis::gh_token_help()    # Should show your token status
+usethis::git_sitrep()       # Full diagnostics
+
+# USING THIS
+# Build locally, then push docs/ to gh-pages branch
 pkgdown::build_site()
+pkgdown::deploy_to_branch()
+
+
+# re-run
+#usethis::use_pkgdown_github_pages()
+
+# IMPORTANT
+# Restore the last committed version
+git checkout HEAD -- _pkgdown.yml
+
+
+pkgdown::check_pkgdown()    # Validate _pkgdown.yml against NAMESPACE
+pkgdown::build_reference()  # Build just the function reference
+pkgdown::build_articles()   # Build just the vignettes
 
 
 pkgdown::as_pkgdown()$vignettes
+
+
+# Alternative: Skip usethis entirely
+# If you'd rather not configure a PAT right now, you can set up GitHub Pages manually:
+# # 1. Build the site locally
+pkgdown::build_site()
+
+# 2. Deploy to gh-pages branch (uses git, not GitHub API)
+pkgdown::deploy_to_branch(branch = "gh-pages")
+
+# Then go to your repo on GitHub: Settings → Pages → Source → Deploy from a branch → gh-pages / / (root) → Save.
+# Your site will be live at https://larry-leon.github.io/forestsearch within a minute or two.
+
 
 
 # Confirm no scattered declarations remain

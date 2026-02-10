@@ -46,5 +46,5 @@ Suggests:
     forestploter,
     cubature,
     svglite
-URL: https://github.com/larry-leon/forestsearch
+URL: https://github.com/larry-leon/forestsearch, https://larry-leon.github.io/forestsearch/
 BugReports: https://github.com/larry-leon/forestsearch/issues
