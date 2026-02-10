@@ -139,7 +139,7 @@ create_forest_theme <- function(
 ) {
 
   if (!requireNamespace("forestploter", quietly = TRUE)) {
-    stop("Package 'forestploter' is required but not installed.", call. = FALSE)
+    stop("Package 'forestploter' is required. Install with: install.packages('forestploter')")
   }
 
   # Calculate scaling factor relative to base_size = 10

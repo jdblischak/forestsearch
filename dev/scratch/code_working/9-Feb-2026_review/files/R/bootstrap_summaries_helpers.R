@@ -27,8 +27,11 @@ format_bootstrap_table <- function(FSsg_tab,
                                    title = NULL,
                                    subtitle = NULL) {
 
-  if (!requireNamespace("gt", quietly = TRUE)) {
-    stop("Package 'gt' is required for table formatting.", call. = FALSE)
+ if (!requireNamespace("gt", quietly = TRUE)) {
+    stop(
+      "Package 'gt' is required for table formatting. ",
+      "Install with: install.packages('gt')"
+    )
   }
 
   # Convert matrix to data frame if needed

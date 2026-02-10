@@ -90,8 +90,23 @@ usethis::use_build_ignore("vignettes/articles")
 
 pkgdown::check_pkgdown()
 
+pkgdown::build_site()
+
+
 pkgdown::as_pkgdown()$vignettes
 
+
+# Confirm no scattered declarations remain
+grep -rn "globalVariables" R/ | grep -v "globals.R"
+
+# Find all globalVariables() calls outside globals.R
+matches <- grep(
+  "globalVariables",
+  list.files("R", full.names = TRUE, pattern = "\\.R$") |>
+    setdiff("R/globals.R") |>
+    sapply(readLines, simplify = FALSE) |>
+    unlist()
+)
 
 
 # Starting with fresh yaml

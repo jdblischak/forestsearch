@@ -143,20 +143,20 @@ get_bootstrap_exports <- function() {
 }
 
 
-#' Check that required packages are installed
-#'
-#' @param pkgs Character vector of package names.
-#' @return Invisible TRUE if all packages are available.
-#' @keywords internal
-#' @noRd
 ensure_packages <- function(pkgs) {
-  missing <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  missing <- pkgs[!sapply(pkgs, requireNamespace, quietly = TRUE)]
+
   if (length(missing) > 0) {
     stop(
       "Required package(s) not installed: ",
       paste(missing, collapse = ", "),
+      "\nPlease install with: install.packages(c('",
+      paste(missing, collapse = "', '"), "'))",
       call. = FALSE
     )
   }
+
   invisible(TRUE)
 }
+
+

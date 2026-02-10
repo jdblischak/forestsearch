@@ -275,12 +275,12 @@ compute_detection_probability_single <- function(
     tol
 ) {
 
-    if (method == "cubature") {
-      # Use adaptive cubature integration
-      if (!requireNamespace("cubature", quietly = TRUE)) {
-        stop("Package 'cubature' is required for method = 'cubature'.",
-             call. = FALSE)
-      }
+  if (method == "cubature") {
+    # Use adaptive cubature integration
+    if (!requireNamespace("cubature", quietly = TRUE)) {
+      stop("Package 'cubature' required for method = 'cubature'. ",
+           "Install with: install.packages('cubature')")
+    }
 
     result <- cubature::adaptIntegrate(
       f = density_threshold_integrand,

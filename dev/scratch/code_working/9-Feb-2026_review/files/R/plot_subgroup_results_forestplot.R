@@ -190,7 +190,7 @@ plot_subgroup_results_forestplot <- function(
   # ==========================================================================
 
   if (!requireNamespace("forestploter", quietly = TRUE)) {
-    stop("Package 'forestploter' is required but not installed.", call. = FALSE)
+    stop("Package 'forestploter' is required. Install with: install.packages('forestploter')")
   }
 
   if (!requireNamespace("grid", quietly = TRUE)) {

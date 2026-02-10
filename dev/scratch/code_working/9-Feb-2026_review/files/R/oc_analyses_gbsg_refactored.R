@@ -24,6 +24,20 @@
 #' @import data.table
 NULL
 
+# =============================================================================
+# Global Variables Declaration
+# =============================================================================
+
+utils::globalVariables(c(
+  "any.H", "ppv", "npv", "sens", "spec",
+  "size.H", "size.Hc", "hr.H.true", "hr.H.hat", "hr.Hc.true", "hr.Hc.hat",
+  "hr.itt", "hr.adj.itt", "p.cens", "taumax",
+  "analysis", "sim", "aa", "sg_hat",
+  # New aligned variables
+  "ahr.H.true", "ahr.Hc.true", "ahr.H.hat", "ahr.Hc.hat",
+  "loghr_po", "theta_0", "theta_1"
+))
+
 
 # =============================================================================
 # Configuration Defaults

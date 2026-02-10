@@ -99,14 +99,13 @@ utils::globalVariables(c(
   "N_positions",
   "N_total",
   "Positions",
-  "Position",
+ "Position",
 
 # ============================================================================
-# Cross-validation (includes foreach loop variable from Kfold/tenfold)
+# Cross-validation
 # ============================================================================
   "cv_index",
   "cvindex",
-  "ksim",
 
 # ============================================================================
 # ForestSearch parameters (used in NSE contexts)
@@ -149,7 +148,7 @@ utils::globalVariables(c(
   "event_sim",
   "t_true",
   "c_time",
-  "lin_pred_1",
+ "lin_pred_1",
   "lin_pred_0",
   "lin_pred_obs",
   "lin_pred_cens_1",
@@ -189,52 +188,7 @@ utils::globalVariables(c(
   "By_LogLik",
   "AIC_value",
   "BIC_value",
-  "LogLik_value",
-
-# ============================================================================
-# GBSG DGM internal variables (from sim_aft_gbsg_refactored.R)
-# ============================================================================
-  "z1", "z2", "z3", "z4", "z5",
-  "zh",
-  "v1", "v2", "v3", "v4", "v5", "v6", "v7",
-  "grade3",
-  "lin.conf.true", "lin1.conf", "lin0.conf",
-  "linC1.conf", "linC0.conf",
-  "hlin.conf.1", "hlin.conf.0", "hlin.ratio",
-  "h1.potential", "h0.potential",
-  "Ts", "es",
-  "t.sim",
-
-# ============================================================================
-# Operating characteristics / simulation analysis
-# (from oc_analyses_gbsg_refactored.R)
-# ============================================================================
-  "any.H",
-  "ppv", "npv", "sens", "spec",
-  "size.H", "size.Hc",
-  "hr.H.true", "hr.H.hat",
-  "hr.Hc.true", "hr.Hc.hat",
-  "hr.itt", "hr.adj.itt",
-  "p.cens", "taumax",
-  "analysis",
-  "aa",
-  "sg_hat",
-  "ahr.H.true", "ahr.Hc.true",
-  "ahr.H.hat", "ahr.Hc.hat",
-
-# ============================================================================
-# MRCT simulation variables (from mrct_simulation.R)
-# ============================================================================
-  "sim",
-  "hr_test",
-  "any_found", "sg_found", "hr_sg_null",
-  "regAflag", "sg_le85", "regAflag2", "regAflag3",
-  "found",
-  "sg_biomarker", "sg_age", "sg_male", "sg_ecog",
-  "sg_histology", "sg_CTregimen", "sg_region",
-  "sg_surgery", "sg_prior_treat",
-  "est",
-  "region_var", "z_regA"
+  "LogLik_value"
 ))
 
 

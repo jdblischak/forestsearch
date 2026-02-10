@@ -20,6 +20,26 @@
 #
 # =============================================================================
 
+# =============================================================================
+# Global Variables Declaration
+# =============================================================================
+
+utils::globalVariables(c(
+  # GBSG dataset variables
+  "rfstime", "status", "hormon", "er", "age", "pgr", "meno", "nodes",
+  "grade", "size",
+  
+  # Derived variables
+  "y", "event", "treat", "z1", "z2", "z3", "z4", "z5", "zh", "flag.harm",
+  "v1", "v2", "v3", "v4", "v5", "v6", "v7", "grade3",
+  "lin.conf.true", "lin1.conf", "lin0.conf", "linC1.conf", "linC0.conf",
+  "hlin.conf.1", "hlin.conf.0", "hlin.ratio", "h1.potential", "h0.potential",
+  "Ts", "es", "t.sim", "y.sim", "event.sim",
+  
+  # New aligned variables (matching generate_aft_dgm_flex)
+  "theta_0", "theta_1", "loghr_po", "lin_pred_0", "lin_pred_1"
+))
+
 
 # =============================================================================
 # Constants
@@ -208,36 +228,36 @@ create_gbsg_dgm <- function(
     seed = SEED_BASE,
     verbose = FALSE
 ) {
-
+  
   # -------------------------------------------------------------------------
   # Input Validation
   # -------------------------------------------------------------------------
   model <- match.arg(model)
   cens_type <- match.arg(cens_type)
-
+  
   stopifnot(
     "k_treat must be positive" = k_treat > 0,
     "k_z3 must be numeric" = is.numeric(k_z3),
     "z1_quantile must be between 0 and 1" = z1_quantile > 0 && z1_quantile < 1,
     "n_super must be positive integer" = n_super > 0
   )
-
+  
   # -------------------------------------------------------------------------
   # Load and Prepare GBSG Data
   # -------------------------------------------------------------------------
   if (!requireNamespace("survival", quietly = TRUE)) {
     stop("Package 'survival' required for GBSG dataset.")
   }
-
+  
   # Get GBSG data
   dfa <- survival::gbsg
-
+  
   # Create derived variables
   dfa$y <- dfa$rfstime / DAYS_PER_MONTH
   dfa$id <- seq_len(nrow(dfa))
   dfa$event <- ifelse(dfa$status == 1, 1L, 0L)
   dfa$treat <- dfa$hormon
-
+  
   # Create subgroup-defining variables
   er_threshold <- stats::quantile(dfa$er, probs = z1_quantile)
   dfa$z1 <- ifelse(dfa$er <= er_threshold, 1L, 0L)
@@ -245,13 +265,13 @@ create_gbsg_dgm <- function(
   dfa$z3 <- ifelse(dfa$meno == 0, 1L, 0L)  # Premenopausal
   dfa$z4 <- cut_numeric(dfa$pgr)
   dfa$z5 <- cut_numeric(dfa$nodes)
-
+  
   # Interaction term (treatment * subgroup indicator)
   dfa$zh <- dfa$treat * dfa$z1 * dfa$z3
-
+  
   # Harm subgroup indicator (based on covariate pattern, NOT treatment)
   dfa$flag.harm <- ifelse(dfa$z1 == 1 & dfa$z3 == 1, 1L, 0L)
-
+  
   # Analysis factors (observed by analyst)
   dfa$v1 <- as.factor(dfa$z1)
   dfa$v2 <- as.factor(dfa$z2)
@@ -261,7 +281,7 @@ create_gbsg_dgm <- function(
   dfa$v6 <- as.factor(cut_size(dfa$size))
   dfa$grade3 <- ifelse(dfa$grade == 3, 1L, 0L)
   dfa$v7 <- as.factor(dfa$grade3)
-
+  
   # -------------------------------------------------------------------------
   # Define Subgroup Identities
   # -------------------------------------------------------------------------
@@ -273,7 +293,7 @@ create_gbsg_dgm <- function(
     grf_harm_true <- NULL
     dfa$flag.harm <- 0L
   }
-
+  
   # -------------------------------------------------------------------------
   # Verbose Output: Initial Data Summary
   # -------------------------------------------------------------------------
@@ -288,12 +308,12 @@ create_gbsg_dgm <- function(
                     sum(dfa$flag.harm), 100 * mean(dfa$flag.harm)))
     message(sprintf("ER threshold (z1_quantile = %.2f): %.1f", z1_quantile, er_threshold))
   }
-
+  
   # -------------------------------------------------------------------------
   # Fit AFT Model
   # -------------------------------------------------------------------------
   covs_main <- c("treat", "z1", "z2", "z3", "z4", "z5")
-
+  
   if (model == "alt") {
     covs_true <- c(covs_main, "zh")
     col_treat <- 1
@@ -304,36 +324,36 @@ create_gbsg_dgm <- function(
     covs_true <- covs_main
     col_treat <- 1
   }
-
+  
   # Create design matrix from original data
   z_true <- as.matrix(dfa[, covs_true])
-
+  
   # -------------------------------------------------------------------------
   # Create Potential Outcome Design Matrices
   # -------------------------------------------------------------------------
   # Get z1 and z3 as numeric vectors
   z1_vec <- as.numeric(dfa$z1)
   z3_vec <- as.numeric(dfa$z3)
-
+  
   if (model == "alt") {
     # Potential outcome under treatment (treat = 1)
     z_true_1 <- z_true
     z_true_1[, col_treat] <- 1
     z_true_1[, col_zh] <- z1_vec * z3_vec  # zh = 1 * z1 * z3
-
+    
     # Potential outcome under control (treat = 0)
     z_true_0 <- z_true
     z_true_0[, col_treat] <- 0
     z_true_0[, col_zh] <- 0  # zh = 0 * z1 * z3 = 0
-
+    
   } else {
     z_true_1 <- z_true
     z_true_1[, col_treat] <- 1
-
+    
     z_true_0 <- z_true
     z_true_0[, col_treat] <- 0
   }
-
+  
   # Fit Weibull AFT model
   fit_aft <- survival::survreg(
     survival::Surv(y, event) ~ z_true,
@@ -341,12 +361,12 @@ create_gbsg_dgm <- function(
     dist = "weibull"
   )
   names(fit_aft$coefficients) <- c("(Intercept)", colnames(z_true))
-
+  
   # Extract parameters
   sigma <- fit_aft$scale
   mu <- stats::coef(fit_aft)[1]
   gamma <- stats::coef(fit_aft)[-1]
-
+  
   if (verbose) {
     message("\n--- Original AFT Coefficients ---")
     message(sprintf("sigma (scale): %.4f", sigma))
@@ -356,7 +376,7 @@ create_gbsg_dgm <- function(
       message(sprintf("  %s: %.4f", nm, gamma[nm]))
     }
   }
-
+  
   # -------------------------------------------------------------------------
   # Optionally Modify Parameters Using Randomized Subset
   # -------------------------------------------------------------------------
@@ -370,19 +390,19 @@ create_gbsg_dgm <- function(
     gamma_rand <- stats::coef(fit_rand)[-1]
     gamma[c("z1", "z2", "z4", "z5")] <- gamma_rand[c("z1", "z2", "z4", "z5")]
   }
-
+  
   # -------------------------------------------------------------------------
   # Apply Effect Modifiers
   # -------------------------------------------------------------------------
   gamma_orig <- gamma
-
+  
   gamma["z3"] <- k_z3 * gamma["z3"]
   gamma["treat"] <- k_treat * gamma["treat"]
-
+  
   if (model == "alt") {
     gamma["zh"] <- k_inter * gamma["zh"]
   }
-
+  
   if (verbose) {
     message("\n--- Modified AFT Coefficients ---")
     message(sprintf("gamma['treat']: %.4f -> %.4f (k_treat = %.3f)",
@@ -394,7 +414,7 @@ create_gbsg_dgm <- function(
                       gamma_orig["zh"], gamma["zh"], k_inter))
     }
   }
-
+  
   # -------------------------------------------------------------------------
   # Convert to Hazard Scale Coefficients
   # -------------------------------------------------------------------------
@@ -402,7 +422,7 @@ create_gbsg_dgm <- function(
   # Hazard: h(t|X) = h_0(t) * exp(X * b0) where b0 = -gamma/sigma
   b_true <- gamma
   b0 <- -gamma / sigma
-
+  
   if (verbose && model == "alt") {
     hr_H_theoretical <- exp(b0["treat"] + b0["zh"])
     hr_Hc_theoretical <- exp(b0["treat"])
@@ -412,62 +432,62 @@ create_gbsg_dgm <- function(
     message(sprintf("HR(Hc) = exp(b0['treat']) = exp(%.4f) = %.4f",
                     b0["treat"], hr_Hc_theoretical))
   }
-
+  
   # -------------------------------------------------------------------------
   # Compute Linear Predictors for Potential Outcomes (AFT scale)
   # -------------------------------------------------------------------------
   lin_conf <- as.vector(z_true %*% b_true)
   lin1_conf <- as.vector(z_true_1 %*% b_true)
   lin0_conf <- as.vector(z_true_0 %*% b_true)
-
+  
   # -------------------------------------------------------------------------
   # Compute Individual-Level Potential Outcome Log-Hazards (ALIGNED)
   # -------------------------------------------------------------------------
   # theta_0: log-hazard contribution under control (treat=0)
   # theta_1: log-hazard contribution under treatment (treat=1)
   # These use HAZARD-SCALE coefficients (b0), matching generate_aft_dgm_flex
-
+  
   dfa$theta_0 <- as.vector(z_true_0 %*% b0)
   dfa$theta_1 <- as.vector(z_true_1 %*% b0)
   dfa$loghr_po <- dfa$theta_1 - dfa$theta_0
-
+  
   # Also store linear predictors (AFT scale) for simulation
   dfa$lin_pred_0 <- lin0_conf
   dfa$lin_pred_1 <- lin1_conf
-
+  
   # -------------------------------------------------------------------------
   # Generate Super-Population Sample
   # -------------------------------------------------------------------------
   set.seed(seed)
-
+  
   # Sample with replacement from original data
   id_sample <- sample(seq_len(nrow(dfa)), size = n_super, replace = TRUE)
   df_samp <- dfa[id_sample, ]
   df_samp$id <- seq_len(n_super)
-
+  
   # Carry forward linear predictors and potential outcomes
   df_samp$lin1.conf <- lin1_conf[id_sample]
   df_samp$lin0.conf <- lin0_conf[id_sample]
   df_samp$theta_0 <- dfa$theta_0[id_sample]
   df_samp$theta_1 <- dfa$theta_1[id_sample]
   df_samp$loghr_po <- dfa$loghr_po[id_sample]
-
+  
   # -------------------------------------------------------------------------
   # Compute Hazard Ratios Using STACKED Potential Outcomes (ALIGNED)
   # -------------------------------------------------------------------------
   # This matches the methodology in calculate_hazard_ratios()
   # Use SAME epsilon for both potential outcomes (causal framework)
-
+  
   epsilon <- log(stats::rexp(n_super))
-
+  
   # Potential survival time under treatment
   logT_1 <- mu + sigma * epsilon + df_samp$lin1.conf
   T_1 <- exp(logT_1)
-
+  
   # Potential survival time under control
   logT_0 <- mu + sigma * epsilon + df_samp$lin0.conf
   T_0 <- exp(logT_0)
-
+  
   # Stack for Cox model (2 * n_super rows)
   df_po <- data.frame(
     time = c(T_1, T_0),
@@ -475,17 +495,17 @@ create_gbsg_dgm <- function(
     treat = c(rep(1L, n_super), rep(0L, n_super)),
     flag.harm = rep(df_samp$flag.harm, 2)
   )
-
+  
   # Cox-based HRs from stacked potential outcomes
   hr_causal <- exp(survival::coxph(
     survival::Surv(time, event) ~ treat,
     data = df_po
   )$coefficients)
-
+  
   if (model == "alt") {
     df_po_H <- subset(df_po, flag.harm == 1)
     df_po_Hc <- subset(df_po, flag.harm == 0)
-
+    
     if (nrow(df_po_H) > 20 && length(unique(df_po_H$treat)) == 2) {
       hr_H_true <- exp(survival::coxph(
         survival::Surv(time, event) ~ treat,
@@ -495,7 +515,7 @@ create_gbsg_dgm <- function(
       warning("Insufficient data in harm subgroup for HR calculation")
       hr_H_true <- NA_real_
     }
-
+    
     if (nrow(df_po_Hc) > 20 && length(unique(df_po_Hc$treat)) == 2) {
       hr_Hc_true <- exp(survival::coxph(
         survival::Surv(time, event) ~ treat,
@@ -505,19 +525,19 @@ create_gbsg_dgm <- function(
       warning("Insufficient data in complement subgroup for HR calculation")
       hr_Hc_true <- NA_real_
     }
-
+    
   } else {
     hr_H_true <- NA_real_
     hr_Hc_true <- hr_causal
   }
-
+  
   # -------------------------------------------------------------------------
   # Compute Average Hazard Ratios (AHR) from loghr_po (ALIGNED)
   # -------------------------------------------------------------------------
   # This matches the AHR calculation in calculate_hazard_ratios()
-
+  
   AHR <- exp(mean(df_samp$loghr_po))
-
+  
   if (model == "alt" && sum(df_samp$flag.harm) > 0) {
     AHR_H_true <- exp(mean(df_samp$loghr_po[df_samp$flag.harm == 1]))
     AHR_Hc_true <- exp(mean(df_samp$loghr_po[df_samp$flag.harm == 0]))
@@ -525,58 +545,58 @@ create_gbsg_dgm <- function(
     AHR_H_true <- NA_real_
     AHR_Hc_true <- AHR
   }
-
+  
   if (verbose) {
     message("\n--- Hazard Ratios (Stacked Potential Outcomes) ---")
     message(sprintf("HR (overall/causal): %.4f", hr_causal))
     message(sprintf("HR (harm subgroup, H): %.4f", hr_H_true))
     message(sprintf("HR (complement, Hc): %.4f", hr_Hc_true))
-
+    
     message("\n--- Average Hazard Ratios (from loghr_po) ---")
     message(sprintf("AHR (overall): %.4f", AHR))
     message(sprintf("AHR (harm subgroup, H): %.4f", AHR_H_true))
     message(sprintf("AHR (complement, Hc): %.4f", AHR_Hc_true))
-
+    
     if (model == "alt" && !is.na(hr_H_true) && !is.na(hr_Hc_true)) {
       message(sprintf("\nHR(H) / HR(Hc) ratio: %.4f", hr_H_true / hr_Hc_true))
       message(sprintf("AHR(H) / AHR(Hc) ratio: %.4f", AHR_H_true / AHR_Hc_true))
     }
   }
-
+  
   # -------------------------------------------------------------------------
   # Create Super-Population with Assigned Treatment (for simulation)
   # -------------------------------------------------------------------------
   n_treat <- round(n_super / 2)
   n_control <- n_super - n_treat
-
+  
   # Treatment group
   df_treat <- df_samp[seq_len(n_treat), ]
   df_treat$treat <- 1L
   df_treat$lin.conf.true <- df_treat$lin1.conf
   df_treat$zh <- df_treat$z1 * df_treat$z3
-
+  
   # Control group
   df_control <- df_samp[(n_treat + 1):n_super, ]
   df_control$treat <- 0L
   df_control$lin.conf.true <- df_control$lin0.conf
   df_control$zh <- 0L
-
+  
   df_big <- rbind(df_treat, df_control)
-
+  
   # Generate observed survival times for the assigned-treatment super-population
   set.seed(seed + 1)
   epsilon_obs <- log(stats::rexp(n_super))
   log_Ts_obs <- mu + sigma * epsilon_obs + df_big$lin.conf.true
   df_big$Ts <- exp(log_Ts_obs)
   df_big$es <- 1L
-
+  
   # Add potential outcome hazard ratios (for compatibility)
   df_big$hlin.conf.1 <- exp(df_big$theta_1)
   df_big$hlin.conf.0 <- exp(df_big$theta_0)
   df_big$hlin.ratio <- df_big$hlin.conf.1 / df_big$hlin.conf.0
   df_big$h1.potential <- df_big$hlin.conf.1
   df_big$h0.potential <- df_big$hlin.conf.0
-
+  
   # -------------------------------------------------------------------------
   # Fit Censoring Model
   # -------------------------------------------------------------------------
@@ -584,34 +604,34 @@ create_gbsg_dgm <- function(
   mu_cens <- NULL
   sigma_cens <- NULL
   gamma_cens <- NULL
-
+  
   if (cens_type == "weibull") {
     z_cens <- as.matrix(df_big[, covs_main])
-
+    
     fit_cens <- survival::survreg(
       survival::Surv(y, 1 - event) ~ z_cens,
       data = df_big,
       dist = "weibull"
     )
-
+    
     sigma_cens <- fit_cens$scale
     mu_cens <- stats::coef(fit_cens)[1]
     gamma_cens <- stats::coef(fit_cens)[-1]
     b0_cens <- -gamma_cens / sigma_cens
     b_cens <- -b0_cens * sigma
-
+    
     # Censoring linear predictors for potential outcomes
     z_cens_1 <- z_cens
     z_cens_1[, 1] <- 1
     z_cens_0 <- z_cens
     z_cens_0[, 1] <- 0
-
+    
     df_big$linC1.conf <- as.vector(z_cens_1 %*% b_cens)
     df_big$linC0.conf <- as.vector(z_cens_0 %*% b_cens)
     df_big$linC.conf <- ifelse(df_big$treat == 1,
                                 df_big$linC1.conf,
                                 df_big$linC0.conf)
-
+    
     cens_model <- list(
       type = "weibull",
       mu = mu_cens,
@@ -619,12 +639,12 @@ create_gbsg_dgm <- function(
       gamma = gamma_cens
     )
   }
-
+  
   # -------------------------------------------------------------------------
   # Assemble Output (ALIGNED with generate_aft_dgm_flex)
   # -------------------------------------------------------------------------
   analysis_vars <- c("v1", "v2", "v3", "v4", "v5", "v6", "v7")
-
+  
   # Hazard ratios list matching generate_aft_dgm_flex output
   hazard_ratios <- list(
     overall = hr_causal,
@@ -634,24 +654,24 @@ create_gbsg_dgm <- function(
     harm_subgroup = hr_H_true,
     no_harm_subgroup = hr_Hc_true
   )
-
+  
   result <- list(
     # Super-population data
     df_super_rand = df_big,
-
+    
     # Cox-based HRs (backward compatible)
     hr_H_true = hr_H_true,
     hr_Hc_true = hr_Hc_true,
     hr_causal = hr_causal,
-
+    
     # AHR metrics (aligned with generate_aft_dgm_flex)
     AHR = AHR,
     AHR_H_true = AHR_H_true,
     AHR_Hc_true = AHR_Hc_true,
-
+    
     # Combined hazard_ratios list (matches generate_aft_dgm_flex)
     hazard_ratios = hazard_ratios,
-
+    
     # Model parameters
     model_params = list(
       mu = mu,
@@ -661,7 +681,7 @@ create_gbsg_dgm <- function(
       b_true = b_true,
       b_hr = b0
     ),
-
+    
     # Censoring parameters
     cens_params = list(
       type = cens_type,
@@ -669,7 +689,7 @@ create_gbsg_dgm <- function(
       sigma = sigma_cens,
       model = cens_model
     ),
-
+    
     # Subgroup information
     subgroup_info = list(
       fs_harm_true = fs_harm_true,
@@ -680,23 +700,23 @@ create_gbsg_dgm <- function(
       size = sum(df_big$flag.harm),
       proportion = mean(df_big$flag.harm)
     ),
-
+    
     # Effect modifiers
     effect_modifiers = list(
       k_treat = k_treat,
       k_inter = k_inter,
       k_z3 = k_z3
     ),
-
+    
     # Analysis variables
     analysis_vars = analysis_vars,
     model_type = model,
     n_super = n_super,
     seed = seed
   )
-
+  
   class(result) <- c("gbsg_dgm", "list")
-
+  
   return(result)
 }
 
@@ -760,32 +780,32 @@ simulate_from_gbsg_dgm <- function(
     max_cens = NULL,
     draw_treatment = TRUE
 ) {
-
+  
   stopifnot(
     "dgm must be a gbsg_dgm object" = inherits(dgm, "gbsg_dgm"),
     "rand_ratio must be positive" = rand_ratio > 0
   )
-
+  
   cens_type <- dgm$cens_params$type
-
+  
   # -------------------------------------------------------------------------
   # Sample from Super-Population
   # -------------------------------------------------------------------------
   df_super <- dgm$df_super_rand
-
+  
   if (is.null(n)) {
     df_sim <- df_super
   } else {
     # Calculate group sizes
     n0 <- round(n / (1 + rand_ratio))
     n1 <- n - n0
-
+    
     if (draw_treatment) {
       # Random sampling with treatment assignment
       set.seed(dgm$seed + sim_id)
       id_sample <- sample(seq_len(nrow(df_super)), size = n, replace = TRUE)
       df_sample <- df_super[id_sample, ]
-
+      
       # Assign treatment
       df_treat <- df_sample[seq_len(n1), ]
       df_treat$treat <- 1L
@@ -794,7 +814,7 @@ simulate_from_gbsg_dgm <- function(
       if ("linC1.conf" %in% names(df_treat)) {
         df_treat$linC.conf <- df_treat$linC1.conf
       }
-
+      
       df_control <- df_sample[(n1 + 1):n, ]
       df_control$treat <- 0L
       df_control$lin.conf.true <- df_control$lin0.conf
@@ -802,48 +822,48 @@ simulate_from_gbsg_dgm <- function(
       if ("linC0.conf" %in% names(df_control)) {
         df_control$linC.conf <- df_control$linC0.conf
       }
-
+      
       df_sim <- rbind(df_control, df_treat)
-
+      
     } else {
       # Sample from existing treatment arms
       df1_super <- subset(df_super, treat == 1)
       df0_super <- subset(df_super, treat == 0)
-
+      
       set.seed(dgm$seed + sim_id)
       id1 <- sample(seq_len(nrow(df1_super)), size = n1, replace = TRUE)
       id0 <- sample(seq_len(nrow(df0_super)), size = n0, replace = TRUE)
-
+      
       df_sim <- rbind(df0_super[id0, ], df1_super[id1, ])
     }
   }
-
+  
   n_obs <- nrow(df_sim)
-
+  
   # -------------------------------------------------------------------------
   # Generate Event Times
   # -------------------------------------------------------------------------
   mu <- dgm$model_params$mu
   sigma <- dgm$model_params$sigma
-
+  
   set.seed(dgm$seed + sim_id + 1000)
   epsilon <- log(stats::rexp(n_obs))
   log_T <- mu + sigma * epsilon + df_sim$lin.conf.true
   T_sim <- exp(log_T)
-
+  
   # -------------------------------------------------------------------------
   # Generate Censoring Times
   # -------------------------------------------------------------------------
   set.seed(dgm$seed + sim_id + 2000)
-
+  
   if (cens_type == "weibull" && !is.null(dgm$cens_params$mu)) {
     mu_cens <- dgm$cens_params$mu + muC_adj
     sigma_cens <- dgm$cens_params$sigma
-
+    
     epsilon_cens <- log(stats::rexp(n_obs))
     log_C <- mu_cens + sigma_cens * epsilon_cens + df_sim$linC.conf
     C_sim <- exp(log_C)
-
+    
   } else {
     if (is.null(min_cens) || is.null(max_cens)) {
       min_cens <- 0
@@ -851,16 +871,16 @@ simulate_from_gbsg_dgm <- function(
     }
     C_sim <- stats::runif(n_obs, min = min_cens, max = max_cens)
   }
-
+  
   # Apply administrative censoring
   C_sim <- pmin(C_sim, max_follow)
-
+  
   # -------------------------------------------------------------------------
   # Create Observed Outcomes
   # -------------------------------------------------------------------------
   event_sim <- ifelse(T_sim <= C_sim, 1L, 0L)
   y_sim <- pmin(T_sim, C_sim)
-
+  
   # -------------------------------------------------------------------------
   # Finalize Output
   # -------------------------------------------------------------------------
@@ -868,7 +888,7 @@ simulate_from_gbsg_dgm <- function(
   df_sim$event.sim <- event_sim
   df_sim$t.sim <- T_sim
   df_sim$id <- seq_len(n_obs)
-
+  
   # Select output columns (including new aligned variables)
   keep_cols <- c(
     "id", "y.sim", "event.sim", "t.sim", "treat", "flag.harm",
@@ -878,7 +898,7 @@ simulate_from_gbsg_dgm <- function(
     "hlin.ratio", "h1.potential", "h0.potential"
   )
   keep_cols <- intersect(keep_cols, names(df_sim))
-
+  
   as.data.frame(df_sim[, keep_cols])
 }
 
@@ -938,12 +958,12 @@ calibrate_k_inter <- function(
     verbose = FALSE,
     ...
 ) {
-
+  
   stopifnot(
     "target_hr_harm must be positive" = target_hr_harm > 0,
     "model must be 'alt' for calibration" = model == "alt"
   )
-
+  
   # Objective function
   objective <- function(k_val) {
     dgm <- create_gbsg_dgm(
@@ -960,19 +980,19 @@ calibrate_k_inter <- function(
       dgm$hr_H_true - target_hr_harm
     }
   }
-
+  
   hr_type <- if (use_ahr) "AHR(H)" else "HR(H)"
-
+  
   if (verbose) {
     message(sprintf("Calibrating k_inter to achieve %s = %.4f", hr_type, target_hr_harm))
     message(sprintf("Search range: [%.1f, %.1f]", k_inter_range[1], k_inter_range[2]))
-
+    
     # Show HR at boundaries
     dgm_lower <- create_gbsg_dgm(model = model, k_treat = k_treat,
                                   k_inter = k_inter_range[1], verbose = FALSE, ...)
     dgm_upper <- create_gbsg_dgm(model = model, k_treat = k_treat,
                                   k_inter = k_inter_range[2], verbose = FALSE, ...)
-
+    
     if (use_ahr) {
       message(sprintf("%s at k_inter = %.1f: %.4f", hr_type, k_inter_range[1], dgm_lower$AHR_H_true))
       message(sprintf("%s at k_inter = %.1f: %.4f", hr_type, k_inter_range[2], dgm_upper$AHR_H_true))
@@ -981,20 +1001,20 @@ calibrate_k_inter <- function(
       message(sprintf("%s at k_inter = %.1f: %.4f", hr_type, k_inter_range[2], dgm_upper$hr_H_true))
     }
   }
-
+  
   result <- tryCatch({
     stats::uniroot(objective, interval = k_inter_range, tol = tol)
   }, error = function(e) {
     warning("Root finding failed: ", e$message)
     return(NULL)
   })
-
+  
   if (is.null(result)) {
     return(NA_real_)
   }
-
+  
   k_inter <- result$root
-
+  
   if (verbose) {
     dgm_verify <- create_gbsg_dgm(
       model = model,
@@ -1011,7 +1031,7 @@ calibrate_k_inter <- function(
     message(sprintf("Error: %.6f", abs(achieved - target_hr_harm)))
     message(sprintf("Iterations: %d", result$iter))
   }
-
+  
   k_inter
 }
 
@@ -1057,7 +1077,7 @@ get_dgm_with_output <- function(
     verbose = FALSE,
     ...
 ) {
-
+  
   # Calibrate k_inter if needed
   k_inter <- 1
   if (model_harm != "null" && !is.null(target_hr_harm)) {
@@ -1074,7 +1094,7 @@ get_dgm_with_output <- function(
       k_inter <- 1
     }
   }
-
+  
   # Create DGM
   dgm <- create_gbsg_dgm(
     model = model_harm,
@@ -1084,7 +1104,7 @@ get_dgm_with_output <- function(
     verbose = verbose,
     ...
   )
-
+  
   # Generate output file path
   out_file <- NULL
   if (!is.null(out_dir)) {
@@ -1103,7 +1123,7 @@ get_dgm_with_output <- function(
       )
     )
   }
-
+  
   list(dgm = dgm, out_file = out_file, k_inter = k_inter)
 }
 
@@ -1121,15 +1141,15 @@ get_dgm_with_output <- function(
 print.gbsg_dgm <- function(x, ...) {
   cat("GBSG-Based AFT Data Generating Mechanism (Aligned)\n")
   cat("===================================================\n\n")
-
+  
   cat("Model type:", x$model_type, "\n")
   cat("Super-population size:", x$n_super, "\n\n")
-
+  
   cat("Effect Modifiers:\n")
   cat("  k_treat:", x$effect_modifiers$k_treat, "\n")
   cat("  k_inter:", x$effect_modifiers$k_inter, "\n")
   cat("  k_z3:", x$effect_modifiers$k_z3, "\n\n")
-
+  
   cat("Hazard Ratios (Cox-based, stacked PO):\n")
   cat("  Overall (causal):", round(x$hr_causal, 4), "\n")
   if (!is.na(x$hr_H_true)) {
@@ -1140,7 +1160,7 @@ print.gbsg_dgm <- function(x, ...) {
     cat("  Ratio HR(H)/HR(Hc):", round(x$hr_H_true / x$hr_Hc_true, 4), "\n")
   }
   cat("\n")
-
+  
   cat("Average Hazard Ratios (from loghr_po):\n")
   cat("  AHR (overall):", round(x$AHR, 4), "\n")
   if (!is.na(x$AHR_H_true)) {
@@ -1153,14 +1173,14 @@ print.gbsg_dgm <- function(x, ...) {
     cat("  Ratio AHR(H)/AHR(Hc):", round(x$AHR_H_true / x$AHR_Hc_true, 4), "\n")
   }
   cat("\n")
-
+  
   cat("Subgroup definition:", x$subgroup_info$definition, "\n")
   cat("ER threshold:", round(x$subgroup_info$er_threshold, 2),
       sprintf("(quantile = %.2f)\n", x$subgroup_info$z1_quantile))
   cat("Subgroup size:", x$subgroup_info$size,
       sprintf("(%.1f%%)\n", 100 * x$subgroup_info$proportion))
   cat("Analysis variables:", paste(x$analysis_vars, collapse = ", "), "\n")
-
+  
   invisible(x)
 }
 
@@ -1195,7 +1215,7 @@ validate_k_inter_effect <- function(
     verbose = TRUE,
     ...
 ) {
-
+  
   results <- data.frame(
     k_inter = numeric(),
     hr_H = numeric(),
@@ -1205,7 +1225,7 @@ validate_k_inter_effect <- function(
     ratio_cox = numeric(),
     ratio_ahr = numeric()
   )
-
+  
   if (verbose) {
     cat("Testing k_inter effect on HR heterogeneity...\n\n")
     cat(sprintf("%-8s %-8s %-8s %-8s %-8s %-10s %-10s\n",
@@ -1213,18 +1233,18 @@ validate_k_inter_effect <- function(
                 "Ratio(Cox)", "Ratio(AHR)"))
     cat(paste(rep("-", 70), collapse = ""), "\n")
   }
-
+  
   for (k in k_inter_values) {
     dgm <- create_gbsg_dgm(model = "alt", k_inter = k, verbose = FALSE, ...)
-
+    
     ratio_cox <- if (!is.na(dgm$hr_H_true) && !is.na(dgm$hr_Hc_true)) {
       dgm$hr_H_true / dgm$hr_Hc_true
     } else NA
-
+    
     ratio_ahr <- if (!is.na(dgm$AHR_H_true) && !is.na(dgm$AHR_Hc_true)) {
       dgm$AHR_H_true / dgm$AHR_Hc_true
     } else NA
-
+    
     results <- rbind(results, data.frame(
       k_inter = k,
       hr_H = dgm$hr_H_true,
@@ -1234,7 +1254,7 @@ validate_k_inter_effect <- function(
       ratio_cox = ratio_cox,
       ratio_ahr = ratio_ahr
     ))
-
+    
     if (verbose) {
       cat(sprintf("%-8.1f %-8.4f %-8.4f %-8.4f %-8.4f %-10.4f %-10.4f\n",
                   k, dgm$hr_H_true, dgm$hr_Hc_true,
@@ -1242,7 +1262,7 @@ validate_k_inter_effect <- function(
                   ratio_cox, ratio_ahr))
     }
   }
-
+  
   if (verbose) {
     cat("\n")
     # Check if k_inter = 0 gives ratio approximately 1
@@ -1261,7 +1281,7 @@ validate_k_inter_effect <- function(
             "- expected ~= 1\n")
       }
     }
-
+    
     # Check AHR vs Cox alignment
     cat("\nAHR vs Cox HR alignment:\n")
     for (i in seq_len(nrow(results))) {
@@ -1275,6 +1295,6 @@ validate_k_inter_effect <- function(
       }
     }
   }
-
+  
   invisible(results)
 }
