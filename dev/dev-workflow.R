@@ -85,15 +85,29 @@ devtools::install()
 # Run these before CRAN submission
 devtools::check(cran = TRUE)     # Full CRAN validation
 
+
+# Retain dev/working locally
+# Remove from Git's index only (keeps local files intact)
+#git rm -r --cached dev/working/
+# Then commit
+#git add .gitignore
+
+echo "dev/working/" >> .gitignore
+
+git rm -r --cached dev/working/
+
+git add .gitignore
+git commit -m "Stop tracking dev/working/, keep locally"
+
+
+
 # End prior flow
 
 dir.create("vignettes/articles", recursive = TRUE, showWarnings = FALSE)
 usethis::use_build_ignore("vignettes/articles")
 
+
 pkgdown::check_pkgdown()
-
-
-
 
 
 # One-time setup: creates a gh-pages branch and GitHub Actions workflow
@@ -103,18 +117,19 @@ usethis::use_pkgdown_github_pages()
 #automatic rebuilds on push, and configures the gh-pages branch.
 #After pushing, the site is live at https://larry-leon.github.io/forestsearch.
 
-usethis::create_github_token()
-# store the PAT
-gitcreds::gitcreds_set()
-
-usethis::gh_token_help()    # Should show your token status
-usethis::git_sitrep()       # Full diagnostics
+# usethis::create_github_token()
+# # store the PAT
+# gitcreds::gitcreds_set()
+# usethis::gh_token_help()    # Should show your token status
+# usethis::git_sitrep()       # Full diagnostics
 
 # USING THIS
 # Build locally, then push docs/ to gh-pages branch
 pkgdown::build_site()
+
 pkgdown::deploy_to_branch()
 
+#https://larry-leon.github.io/forestsearch
 
 # re-run
 #usethis::use_pkgdown_github_pages()

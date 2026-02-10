@@ -12,6 +12,7 @@ Implements advanced statistical methods for exploratory subgroup identification 
 Useful links:
 \itemize{
   \item \url{https://github.com/larry-leon/forestsearch}
+  \item \url{https://larry-leon.github.io/forestsearch/}
   \item Report bugs at \url{https://github.com/larry-leon/forestsearch/issues}
 }
 
