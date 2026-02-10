@@ -22,3 +22,4 @@ Numeric. 1 if both splits meet threshold, 0 if not, NA if error.
 Performs one random 50/50 split and evaluates whether both halves
 meet the HR consistency threshold.
 }
+\keyword{internal}

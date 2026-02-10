@@ -21,3 +21,4 @@ Computes Wilson score confidence interval for a proportion, which has
 better coverage properties than the normal approximation for small samples
 and proportions near 0 or 1.
 }
+\keyword{internal}

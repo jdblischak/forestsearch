@@ -53,3 +53,4 @@ not met.
 Evaluates a single subgroup for consistency across random splits using
 a fixed number of splits.
 }
+\keyword{internal}

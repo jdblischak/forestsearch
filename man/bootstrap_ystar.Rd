@@ -21,3 +21,4 @@ Matrix of bootstrap samples (nb_boots x nrow(df)).
 \description{
 Generates a bootstrap matrix for Ystar using parallel processing.
 }
+\keyword{internal}

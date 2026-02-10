@@ -17,3 +17,4 @@ Character string with evaluated value.
 \description{
 Evaluates a cut expression (e.g., "age <= mean(age)") and returns the expression with the value.
 }
+\keyword{internal}

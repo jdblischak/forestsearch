@@ -34,3 +34,4 @@ By caching results, we avoid:
 \item Redundant uniqueness checks
 }
 }
+\keyword{internal}

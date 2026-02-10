@@ -23,3 +23,4 @@ List with sg.harm, sg.harm_label, df_flag, sg.harm.id.
 \description{
 Extracts subgroup definition and membership from results.
 }
+\keyword{internal}

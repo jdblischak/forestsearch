@@ -17,3 +17,4 @@ List with \code{max_count} (total combinations) and \code{indices_list} (indices
 \description{
 Generates all possible combinations of subgroup factors up to a specified maximum size.
 }
+\keyword{internal}

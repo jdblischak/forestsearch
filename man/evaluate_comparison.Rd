@@ -43,3 +43,4 @@ evaluate_comparison("size > 25", df)
 }
 
 }
+\keyword{internal}

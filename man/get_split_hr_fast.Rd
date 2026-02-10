@@ -18,3 +18,4 @@ Numeric. Estimated hazard ratio, or NA if model fails.
 Fits a minimal Cox model to estimate hazard ratio with reduced overhead.
 Disables robust variance, model matrix storage, and other extras for speed.
 }
+\keyword{internal}

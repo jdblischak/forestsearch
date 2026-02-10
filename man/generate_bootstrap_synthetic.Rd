@@ -82,3 +82,4 @@ synth_data <- generate_bootstrap_synthetic(
   seed = 456
 )
 }
+\keyword{internal}

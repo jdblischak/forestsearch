@@ -45,3 +45,4 @@ Character vector of results.
 Analyzes a subgroup and returns formatted results for summary table.
 Uses optimized cox_summary() and reduces redundant calculations.
 }
+\keyword{internal}

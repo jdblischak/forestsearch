@@ -17,3 +17,4 @@ Filtered character vector or NULL.
 \description{
 Returns elements of \code{x} that are in \code{lassokeep}.
 }
+\keyword{internal}

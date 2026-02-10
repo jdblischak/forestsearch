@@ -18,3 +18,4 @@ None. Sets up parallel backend as side effect.
 \description{
 Sets up parallel processing using the specified approach and number of workers.
 }
+\keyword{internal}

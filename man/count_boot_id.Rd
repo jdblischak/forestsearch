@@ -17,3 +17,4 @@ Integer count of occurrences.
 \description{
 Counts the number of times an ID appears in a bootstrap sample.
 }
+\keyword{internal}

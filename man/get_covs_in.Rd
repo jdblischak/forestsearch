@@ -41,3 +41,4 @@ Numeric vector indicating selected factors (1 = included, 0 = not included).
 \description{
 Returns a vector indicating which factors are included in a subgroup combination.
 }
+\keyword{internal}

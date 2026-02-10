@@ -30,3 +30,4 @@ Character. One of "continue", "pass", or "fail".
 Evaluates whether enough evidence exists to stop early based on
 confidence interval for consistency proportion.
 }
+\keyword{internal}

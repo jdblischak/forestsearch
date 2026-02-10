@@ -227,3 +227,4 @@ sets up parallelization and calls this function
 \code{\link{bootstrap_ystar}} for generating the Ystar matrix
 }
 \concept{bootstrap functions}
+\keyword{internal}

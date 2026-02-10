@@ -25,3 +25,4 @@ Fits a Cox model for a subgroup and returns estimate and standard error.
 \details{
 Function is utilized throughout codebase
 }
+\keyword{internal}

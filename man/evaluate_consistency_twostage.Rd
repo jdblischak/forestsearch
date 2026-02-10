@@ -68,3 +68,4 @@ Evaluates a single subgroup for consistency using a two-stage approach:
 Stage 1 screens with fewer splits, Stage 2 uses sequential batched
 evaluation with early stopping for efficient evaluation.
 }
+\keyword{internal}
