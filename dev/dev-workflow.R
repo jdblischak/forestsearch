@@ -119,8 +119,6 @@ pkgdown::build_site()
 pkgdown::build_reference()
 pkgdown::preview_site()
 
-
-
 # Trying to clean up yaml WTF?
 # Get all exported functions
 exports <- getNamespaceExports("forestsearch")
