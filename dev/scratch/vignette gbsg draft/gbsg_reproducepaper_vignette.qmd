@@ -349,7 +349,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 500
+NB <- 1000
 
 t0 <- proc.time()
 
@@ -455,16 +455,16 @@ Two approaches are available:
 ## K-Fold Cross-Validation
 
 ```{r kfold-cv, eval = TRUE}
-# 10-fold CV with multiple iterations
+# 5-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 30
+Ksims <- 50
 
 t0 <- proc.time()
 
 fs_kfold <- forestsearch_tenfold(
   fs.est = fs,
   sims = Ksims,
-  Kfolds = 10,
+  Kfolds = 5,
   details = FALSE,
   parallel_args = list(
     plan = "multisession",
