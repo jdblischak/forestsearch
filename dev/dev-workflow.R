@@ -111,8 +111,7 @@ pkgdown::check_pkgdown()
 
 
 # One-time setup: creates a gh-pages branch and GitHub Actions workflow
-usethis::use_pkgdown_github_pages()
-
+#usethis::use_pkgdown_github_pages()
 #This does three things: sets the URL to https://larry-leon.github.io/forestsearch, creates .github/workflows/pkgdown.yaml for
 #automatic rebuilds on push, and configures the gh-pages branch.
 #After pushing, the site is live at https://larry-leon.github.io/forestsearch.
