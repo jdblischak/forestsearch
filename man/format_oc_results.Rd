@@ -51,4 +51,3 @@ The function summarizes simulation results across multiple metrics:
 \item \strong{Subgroup Size}: Average, min, max sizes
 }
 }
-\keyword{internal}

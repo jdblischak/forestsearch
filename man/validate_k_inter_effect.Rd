@@ -34,4 +34,3 @@ results <- validate_k_inter_effect()
 }
 
 }
-\keyword{internal}

@@ -180,7 +180,7 @@ density_threshold_integrand <- function(x, theta, prop_cens, n_sg, k_avg, k_ind)
 #' }
 #'
 #' @importFrom stats dnorm rnorm
-#' @keywords internal
+#' @export
 compute_detection_probability <- function(
     theta,
     n_sg,

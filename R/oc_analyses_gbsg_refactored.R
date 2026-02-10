@@ -1454,7 +1454,7 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 #' }
 #'
 #' @importFrom data.table is.data.table as.data.table
-#' @keywords internal
+#' @export
 format_oc_results <- function(
     results,
     analyses = NULL,

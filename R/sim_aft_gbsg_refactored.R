@@ -1189,7 +1189,7 @@ print.gbsg_dgm <- function(x, ...) {
 #' # k_inter = 0 should give hr_H approximately equals hr_Hc (ratio approximately 1)
 #' }
 #'
-#' @keywords internal
+#' @export
 validate_k_inter_effect <- function(
     k_inter_values = c(-2, -1, 0, 1, 2, 3),
     verbose = TRUE,
