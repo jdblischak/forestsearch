@@ -29,3 +29,7 @@ fs
 }
 
 }
+\seealso{
+\code{\link{summary.forestsearch}} for detailed output,
+\code{\link{plot.forestsearch}} for visualization.
+}

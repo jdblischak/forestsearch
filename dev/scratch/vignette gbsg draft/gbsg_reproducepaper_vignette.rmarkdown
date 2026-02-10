@@ -349,7 +349,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 100
+NB <- 500
 
 t0 <- proc.time()
 

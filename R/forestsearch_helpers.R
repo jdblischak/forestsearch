@@ -7,8 +7,6 @@
 #   - get_dfpred()             : Apply subgroup definition to new data
 #   - evaluate_comparison()    : Safe operator-dispatch expression evaluator
 #   - get_param()              : Extract parameter with default fallback
-#   - plot.forestsearch()      : S3 plot method dispatching to plot_sg_results()
-#
 # =============================================================================
 
 

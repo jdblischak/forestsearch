@@ -412,15 +412,6 @@ plot_subgroup_results_forestplot <- function(
 
       for (sg in ref_sgs) {
 
-        # DEAD
-        # df_sg <- tryCatch(
-        #   subset(df_analysis, eval(parse(text = sg$subset_expr))),
-        #   error = function(e) {
-        #     warning(paste("Failed to subset for:", sg$name, "-", e$message))
-        #     NULL
-        #   }
-        # )
-
         df_sg <- safe_subset(df_analysis, sg$subset_expr)
 
 
@@ -447,15 +438,6 @@ plot_subgroup_results_forestplot <- function(
 
       # Loop through and add each posthoc subgroup from subgroup_list
       for (sg in posthoc_sgs) {
-
-        # DEAD
-        # df_sg <- tryCatch(
-        #   subset(df_analysis, eval(parse(text = sg$subset_expr))),
-        #   error = function(e) {
-        #     warning(paste("Failed to subset for:", sg$name, "-", e$message))
-        #     NULL
-        #   }
-        # )
 
         df_sg <- safe_subset(df_analysis, sg$subset_expr)
 
@@ -859,9 +841,6 @@ create_subgroup_summary_df <- function(
   # Each subgroup
   for (sg_name in names(subgroups)) {
     sg <- subgroups[[sg_name]]
-
-    # DEAD
-    #df_sg <- subset(df_analysis, eval(parse(text = sg$subset_expr)))
 
     df_sg <- safe_subset(df_analysis, sg$subset_expr)
 

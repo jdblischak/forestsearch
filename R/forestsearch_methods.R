@@ -1,19 +1,6 @@
 # =============================================================================
 # forestsearch_methods.R - S3 Methods for forestsearch Objects
 # =============================================================================
-#
-# Canonical definitions of print, summary, and plot methods for the
-# "forestsearch" class. All other files should NOT define these methods.
-#
-# After adopting this file:
-#   1. Remove print.forestsearch() from R/forestsearch_main.R
-#   2. Remove summary.forestsearch() from R/forestsearch_main.R
-#   3. Remove plot.forestsearch() from R/forestsearch_helpers.R
-#   4. Delete R/print_forestsearch.R if it exists
-#   5. Delete R/summary_forestsearch.R if it exists
-#
-# =============================================================================
-
 
 # -----------------------------------------------------------------------------
 # Internal helpers (not exported)
@@ -93,6 +80,8 @@
 #' fs
 #' }
 #'
+#' @seealso \code{\link{summary.forestsearch}} for detailed output,
+#'   \code{\link{plot.forestsearch}} for visualization.
 #' @export
 print.forestsearch <- function(x, ...) {
   cat("ForestSearch Results\n")
@@ -120,7 +109,6 @@ print.forestsearch <- function(x, ...) {
   }
 
   # --- Top-ranked consistency result ---
-  gc <- x$grp.consistency
   top_result <- .fs_get(x, c("grp.consistency", "out_sg", "result"))
 
   if (!is.null(top_result) && nrow(top_result) > 0) {

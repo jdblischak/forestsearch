@@ -1,8 +1,7 @@
 Package: forestsearch
-Title: What the Package Does (One Line, Title Case)
+Title: Exploratory Subgroup Identification in Clinical Trials with Survival Endpoints
 Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
+Authors@R: person("Larry", "Leon", , "larry.leon.05@post.harvard.edu", role = c("aut", "cre"))
 Description: Implements advanced statistical methods for exploratory subgroup 
     identification in clinical trials with survival endpoints. Provides 
     tools for identifying patient subgroups with differential treatment effects 
@@ -49,5 +48,3 @@ Suggests:
     svglite
 URL: https://github.com/larry-leon/forestsearch
 BugReports: https://github.com/larry-leon/forestsearch/issues
-Remotes: 
-    larry-leon/weightedsurv

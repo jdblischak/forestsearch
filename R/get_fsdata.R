@@ -342,10 +342,6 @@ get_FSdata <- function(df.analysis, use_lasso = FALSE, use_grf = FALSE, grf_cuts
       # Fallback (shouldn't happen if caching works correctly)
       if(details) warning("Cut '", thiscut, "' not found in cache, re-evaluating")
 
-
-      # DEAD
-      #result <- eval(parse(text = thiscut), envir = df.FS)
-
       result <- evaluate_comparison(thiscut, df.FS)
 
       df.FS[[names_new[i]]] <- as.factor(as.numeric(result))
@@ -367,9 +363,6 @@ get_FSdata <- function(df.analysis, use_lasso = FALSE, use_grf = FALSE, grf_cuts
     } else {
       # Fallback (shouldn't happen if caching works correctly)
       if(details) warning("Cut '", thiscut, "' not found in cache, re-evaluating")
-
-      # DEAD
-      #result <- eval(parse(text = thiscut), envir = df.FS)
 
       result <- evaluate_comparison(thiscut, df.FS)
 

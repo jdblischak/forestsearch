@@ -110,7 +110,7 @@ reference:
   - title: "Bootstrap Bias Correction"
     desc: >
       Bootstrap methods for bias-corrected hazard ratio estimation using
-      infinitesimal jackknife variance estimation (León et al., 2024).
+      infinitesimal jackknife variance estimation (Leon et al., 2024).
     contents:
       - forestsearch_bootstrap_dofuture
       - bootstrap_results
