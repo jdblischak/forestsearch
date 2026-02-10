@@ -1,9 +1,10 @@
 .Rproj.user
-vignettes/results/
-vignettes/data/
-^dev$
 *_files/
 .DS_Store
 dev/legacy_code/
-dev/vignettes-working
+dev/vignettes-working/
+dev/articles/
+dev/scratch/
+dev/working-docs
+dev/private_vignettes
 docs
