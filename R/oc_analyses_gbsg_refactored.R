@@ -49,7 +49,7 @@ NULL
 #' The `use_twostage` parameter is set to FALSE by default for backward
 #' compatibility. Set to TRUE for faster exploratory analyses.
 #'
-#' @export
+#' @keywords internal
 default_fs_params <- function() {
   list(
     outcome.name = "y.sim",
@@ -86,7 +86,7 @@ default_fs_params <- function() {
 #'
 #' @return List of default GRF parameters
 #'
-#' @export
+#' @keywords internal
 default_grf_params <- function() {
   list(
     # Data column names
@@ -1454,7 +1454,7 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 #' }
 #'
 #' @importFrom data.table is.data.table as.data.table
-#' @export
+#' @keywords internal
 format_oc_results <- function(
     results,
     analyses = NULL,

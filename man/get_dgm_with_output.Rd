@@ -56,3 +56,4 @@ List with components:
 Wrapper function that creates a GBSG DGM and generates a standardized
 output file path for saving results.
 }
+\keyword{internal}

@@ -21,3 +21,4 @@ provided, a column named \code{"id"} is added. If \code{id.name} is provided
 but does not exist in the data frame, it is created with unique integer
 values.
 }
+\keyword{internal}

@@ -18,3 +18,4 @@ If no single best model can be determined, returns the Weibull model if
 selected by either AIC or BIC. Defaults to Weibull0 model if no model
 can be determined.
 }
+\keyword{internal}

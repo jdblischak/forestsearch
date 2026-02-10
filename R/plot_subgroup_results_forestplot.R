@@ -812,7 +812,7 @@ plot_subgroup_results_forestplot <- function(
 #' @param conf.level Numeric. Confidence level for intervals (default: 0.95).
 #'
 #' @return Data frame with HR estimates for all subgroups.
-#' @export
+#' @keywords internal
 
 create_subgroup_summary_df <- function(
     df_analysis,
@@ -1026,7 +1026,7 @@ compute_sg_hr <- function(df, sg_name, outcome.name, event.name, treat.name,
 #' @param est.scale Character. "hr" or "1/hr".
 #'
 #' @return Character string with formatted CV metrics.
-#' @export
+#' @keywords internal
 
 sens_text <- function(fs_kfold, est.scale = "hr") {
   if (is.null(fs_kfold)) return(NULL)

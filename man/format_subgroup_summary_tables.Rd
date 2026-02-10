@@ -17,3 +17,4 @@ List of gt table objects
 \description{
 Creates publication-ready gt tables for bootstrap subgroup analysis
 }
+\keyword{internal}

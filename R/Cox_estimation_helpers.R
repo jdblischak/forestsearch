@@ -93,7 +93,7 @@ fit_cox_models <- function(df, formula) {
 #' @param Strata Vector of strata (optional).
 #' @return Character string with formatted HR and CI.
 #' @importFrom survival coxph Surv
-#' @export
+#' @keywords internal
 
 cox_summary_legacy <- function(Y, E, Treat, Strata) {
   fit <- survival::coxph(survival::Surv(Y, E) ~ Treat + strata(Strata), robust = TRUE)
@@ -253,7 +253,7 @@ cox_summary <- function(Y, E, Treat, Strata = NULL,
 #'
 #' @return Data frame with one row per subgroup and HR results.
 #' @importFrom survival coxph Surv
-#' @export
+#' @keywords internal
 
 cox_summary_vectorized <- function(data,
                                    outcome_col,
@@ -328,7 +328,7 @@ cox_summary_vectorized <- function(data,
 #'
 #' @return List of results, one per subset.
 #' @importFrom survival coxph Surv
-#' @export
+#' @keywords internal
 
 cox_summary_batch <- function(Y, E, Treat, Strata = NULL,
                               subset_indices,

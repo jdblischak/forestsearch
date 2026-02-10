@@ -12,3 +12,4 @@ create_summary_table_presentation(...)
 \description{
 Preset: Presentation Table (Large Fonts)
 }
+\keyword{internal}

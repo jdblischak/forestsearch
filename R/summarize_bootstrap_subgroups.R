@@ -29,7 +29,7 @@
 #' @importFrom data.table data.table .N setnames setcolorder copy as.data.table
 #'   rbindlist
 #' @importFrom stats median sd quantile
-#' @export
+#' @keywords internal
 summarize_bootstrap_subgroups <- function(results,
                                           nb_boots,
                                           original_sg = NULL,

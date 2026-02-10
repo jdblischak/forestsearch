@@ -22,3 +22,4 @@ plot_subgroup(df.sub, df.subC, by.risk, confs_labels, this.1_label, top_result)
 \description{
 Plots weighted Kaplan-Meier survival curves for a specified subgroup and its complement using the \pkg{weightedsurv} package.
 }
+\keyword{internal}

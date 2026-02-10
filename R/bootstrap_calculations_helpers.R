@@ -52,7 +52,7 @@ count_boot_id <- function(x,dfb){
 #' @param x Numeric vector.
 #' @param Est Numeric vector of bootstrap estimates.
 #' @return Numeric value of covariance.
-#' @export
+#' @keywords internal
 
 calc_cov <- function(x,Est){
   mean(c((x-mean(x,na.rm=TRUE)) * Est),na.rm=TRUE)
@@ -69,7 +69,7 @@ calc_cov <- function(x,Est){
 #' @param est.loghr Logical. Is estimate on log(HR) scale?
 #' @return List with length, lower, upper, sd, and estimate.
 #' @importFrom stats qnorm
-#' @export
+#' @keywords internal
 
 ci_est <- function(x, sd, alpha = 0.025, scale = "hr", est.loghr = TRUE) {
   # Input validation
@@ -232,7 +232,7 @@ get_dfRes <- function(Hobs, seHobs, H1_adj, H2_adj = NULL, ystar, cov_method = "
 #' @param cov_method Character. Covariance method ("standard" or "nocorrect").
 #' @param cov_trim Numeric. Trimming proportion for covariance (default: 0.0).
 #' @return List with target estimate, standard errors, and correction term.
-#' @export
+#' @keywords internal
 
 get_targetEst <- function(x, ystar, cov_method = "standard", cov_trim = 0.0) {
   mx <- mean(x, na.rm = TRUE)

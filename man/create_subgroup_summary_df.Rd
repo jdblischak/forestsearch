@@ -45,3 +45,4 @@ Data frame with HR estimates for all subgroups.
 Creates a data frame suitable for forestploter from multiple subgroup analyses.
 This is a more flexible alternative for complex subgroup configurations.
 }
+\keyword{internal}

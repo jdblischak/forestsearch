@@ -6,7 +6,7 @@
 #' @param x A vector.
 #' @param cutoff Integer. Minimum number of unique values to be considered continuous.
 #' @return 1 if continuous, 2 if not.
-#' @export
+#' @keywords internal
 
 is.continuous <- function(x,cutoff = 4){ifelse(length(unique(x))>=cutoff,1,2)}
 
@@ -17,7 +17,7 @@ is.continuous <- function(x,cutoff = 4){ifelse(length(unique(x))>=cutoff,1,2)}
 #' @param x A numeric vector.
 #' @return Numeric value of the 25th percentile.
 #' @importFrom stats quantile
-#' @export
+#' @keywords internal
 
 qlow <- function(x) c(quantile(x,0.25))
 
@@ -29,7 +29,7 @@ qlow <- function(x) c(quantile(x,0.25))
 #' @param x A numeric vector.
 #' @return Numeric value of the 75th percentile.
 #' @importFrom stats quantile
-#' @export
+#' @keywords internal
 
 qhigh <- function(x) c(quantile(x,0.75))
 
@@ -42,7 +42,7 @@ qhigh <- function(x) c(quantile(x,0.75))
 #'
 #' @param x Character. Variable name.
 #' @return Character vector of cut expressions.
-#' @export
+#' @keywords internal
 
 cut_var <- function(x){
   mx <- paste0("mean(",x,")")
@@ -215,7 +215,7 @@ process_conf_force_expr <- function(expr, df) {
 #' @param thiscut Character string of the cut expression.
 #' @param confounders.name Character vector of confounder names.
 #' @return Character vector of variable names.
-#' @export
+#' @keywords internal
 
 get_cut_name <- function(thiscut, confounders.name) {
   cov_index <- vapply(confounders.name, function(x) grepl(x, thiscut), logical(1))
@@ -234,7 +234,7 @@ get_cut_name <- function(thiscut, confounders.name) {
 #' @param cont.cutoff Integer. Cutoff for continuous.
 #'
 #' @return Logical; TRUE if continuous, FALSE otherwise.
-#' @export
+#' @keywords internal
 
 is_flag_continuous <- function(thiscut, confounders.name, df, cont.cutoff) {
   # Use word boundaries to avoid partial matches
@@ -259,7 +259,7 @@ is_flag_continuous <- function(thiscut, confounders.name, df, cont.cutoff) {
 #' @param confounders.name Character vector of confounder names.
 #' @param df Data frame.
 #' @return Logical; TRUE if should be dropped, FALSE otherwise.
-#' @export
+#' @keywords internal
 
 is_flag_drop <- function(thiscut, confounders.name, df) {
   cut_name <- get_cut_name(thiscut, confounders.name)
@@ -273,7 +273,7 @@ is_flag_drop <- function(thiscut, confounders.name, df) {
 #'
 #' @param df Data frame with factor variables.
 #' @return Data frame with dummy-coded columns.
-#' @export
+#' @keywords internal
 acm.disjctif <- function(df) {
   encode_col <- function(i) {
     cl <- as.factor(df[, i])
@@ -307,11 +307,11 @@ dummy_encode <- function(df) {
 }
 
 #' @rdname dummy_encode
-#' @export
+#' @noRd
 dummy <- dummy_encode
 
 #' @rdname dummy_encode
-#' @export
+#' @noRd
 dummy2 <- dummy_encode
 
 
@@ -322,7 +322,7 @@ dummy2 <- dummy_encode
 #'
 #' @param kk Integer.
 #' @return Integer count of trailing zeros.
-#' @export
+#' @noRd
 
 ztrail <- function(kk){
   ii <- 1
@@ -339,7 +339,7 @@ ztrail <- function(kk){
 #'
 #' @param x Integer vector of 0s and 1s.
 #' @return Integer vector with values flipped.
-#' @export
+#' @noRd
 one.zero <- function(x) 1L - x
 
 

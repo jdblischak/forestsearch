@@ -37,3 +37,4 @@ Comprehensive summary of bootstrap subgroup identification results including
 basic statistics, factor frequencies, consistency distributions, and agreement
 with the original analysis subgroup.
 }
+\keyword{internal}

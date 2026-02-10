@@ -17,3 +17,4 @@ List with \code{id.x} (membership vector) and \code{flag.redundant} (logical).
 \description{
 Checks if adding each factor to a subgroup reduces the sample size by at least \code{rmin}.
 }
+\keyword{internal}

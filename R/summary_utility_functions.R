@@ -57,7 +57,7 @@ prepare_subgroup_data <- function(df, SG_flag, est.scale, treat.name) {
 #' @param Treat Numeric vector of treatment indicators.
 #' @return Numeric vector of medians.
 #' @importFrom survival survfit
-#' @export
+#' @keywords internal
 
 km_summary <- function(Y, E, Treat) {
   fit <- summary(survival::survfit(survival::Surv(Y, E) ~ Treat))
@@ -73,7 +73,7 @@ km_summary <- function(Y, E, Treat) {
 #' @param Treat Numeric vector of treatment indicators.
 #' @param N Integer. Total sample size.
 #' @return List with formatted counts.
-#' @export
+#' @keywords internal
 
 calculate_counts <- function(Y, E, Treat, N) {
   n <- n_pcnt(Y, N)
@@ -89,7 +89,7 @@ calculate_counts <- function(Y, E, Treat, N) {
 #' @param df Data frame.
 #' @param potentialOutcome.name Character. Name of potential outcome variable.
 #' @return Numeric value of average hazard ratio.
-#' @export
+#' @keywords internal
 
 calculate_potential_hr <- function(df, potentialOutcome.name) {
   loghr.po <- df[, potentialOutcome.name]
@@ -112,7 +112,7 @@ calculate_potential_hr <- function(df, potentialOutcome.name) {
 #' @param hr_po Numeric. Potential outcome hazard ratio (optional).
 #' @param return_medians Logical. Use medians or RMST.
 #' @return Character vector of results.
-#' @export
+#' @keywords internal
 
 format_results <- function(subgroup_name, n, n_treat, d, m1, m0, drmst, hr, hr_a = NA, hr_po = NA, return_medians = TRUE) {
   if (is.na(hr_po)) {

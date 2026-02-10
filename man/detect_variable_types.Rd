@@ -39,7 +39,7 @@ and removed from the returned dataset
 }
 }
 \examples{
-# Create example dataset
+\dontrun{
 example_data <- data.frame(
   id = 1:100,
   age = rnorm(100, 50, 10),
@@ -47,15 +47,13 @@ example_data <- data.frame(
   status = sample(c("Active", "Inactive"), 100, replace = TRUE),
   score = runif(100, 0, 100)
 )
-
-# Detect variable types and exclude ID
 result <- detect_variable_types(example_data,
                                  max_unique_for_cat = 10,
                                  exclude_vars = "id")
-
-# Access results
 result$continuous_vars  # c("age", "score")
 result$cat_vars         # c("grade", "status")
 names(result$data_subset)  # c("age", "grade", "status", "score")
+}
 
 }
+\keyword{internal}

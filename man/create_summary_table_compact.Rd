@@ -12,3 +12,4 @@ create_summary_table_compact(...)
 \description{
 Preset: Compact Table
 }
+\keyword{internal}

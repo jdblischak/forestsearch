@@ -19,3 +19,4 @@ Logical; TRUE if should be dropped, FALSE otherwise.
 \description{
 Determines if a cut expression should be dropped (e.g., variable has <=1 unique value).
 }
+\keyword{internal}

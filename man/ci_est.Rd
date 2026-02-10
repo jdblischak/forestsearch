@@ -23,3 +23,4 @@ List with length, lower, upper, sd, and estimate.
 \description{
 Calculates confidence interval for an estimate, optionally on log(HR) scale.
 }
+\keyword{internal}

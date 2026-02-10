@@ -19,3 +19,4 @@ Numeric vector of medians.
 \description{
 Calculates median survival for each treatment group using Kaplan-Meier.
 }
+\keyword{internal}

@@ -24,3 +24,4 @@ Data.table with near-duplicate rows removed.
 Removes subgroups with nearly identical statistics (HR, n, E, etc.)
 to reduce redundancy in candidate list.
 }
+\keyword{internal}

@@ -26,3 +26,4 @@ Variable selection defaults:
 The \code{use_twostage} parameter is set to FALSE by default for backward
 compatibility. Set to TRUE for faster exploratory analyses.
 }
+\keyword{internal}

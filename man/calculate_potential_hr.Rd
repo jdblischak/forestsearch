@@ -17,3 +17,4 @@ Numeric value of average hazard ratio.
 \description{
 Calculates the average hazard ratio from a potential outcome variable.
 }
+\keyword{internal}

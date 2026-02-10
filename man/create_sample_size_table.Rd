@@ -41,3 +41,4 @@ print(ss_table)
 }
 
 }
+\keyword{internal}

@@ -47,3 +47,4 @@ Character vector of results.
 \description{
 Formats results for subgroup summary table.
 }
+\keyword{internal}

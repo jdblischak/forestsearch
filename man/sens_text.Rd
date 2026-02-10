@@ -17,3 +17,4 @@ Character string with formatted CV metrics.
 \description{
 Creates formatted text summarizing cross-validation agreement metrics.
 }
+\keyword{internal}

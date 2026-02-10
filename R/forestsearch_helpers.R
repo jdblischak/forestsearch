@@ -22,7 +22,7 @@
 #'   \code{NULL}, which uses \code{"id"}).
 #'
 #' @return Data frame with the ID column added if necessary.
-#' @export
+#' @keywords internal
 add_id_column <- function(df.analysis, id.name = NULL) {
   if (is.null(id.name)) {
     df.analysis$id <- seq_len(nrow(df.analysis))

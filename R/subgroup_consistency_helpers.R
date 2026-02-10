@@ -329,7 +329,7 @@ sort_subgroups <- function(result_new, sg_focus) {
 #' @param sg_focus Sorting focus: "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG".
 #' @return A sorted data.table.
 #' @importFrom data.table setorder
-#' @export
+#' @keywords internal
 sort_subgroups_preview <- function(result_new, sg_focus) {
   if (sg_focus == "hr") data.table::setorder(result_new, -HR, K)
   if (sg_focus == "maxSG") data.table::setorder(result_new, -n, K)
@@ -396,7 +396,7 @@ extract_subgroup <- function(df, top_result, index.Z, names.Z, confs_labels) {
 #' @param top_result Data frame row. The top subgroup result row, expected to contain a \code{Pcons} column for consistency criteria.
 #'
 #' @importFrom weightedsurv df_counting plot_weighted_km
-#' @export
+#' @keywords internal
 
 plot_subgroup <- function(df.sub, df.subC, by.risk, confs_labels, this.1_label, top_result) {
   if (requireNamespace("weightedsurv", quietly = TRUE)) {
@@ -495,7 +495,7 @@ sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
 #' @return Data.table with near-duplicate rows removed.
 #'
 #' @importFrom data.table as.data.table
-#' @export
+#' @keywords internal
 remove_near_duplicate_subgroups <- function(hr_subgroups,
                                             tolerance = 0.001,
                                             details = FALSE) {
@@ -536,7 +536,7 @@ remove_near_duplicate_subgroups <- function(hr_subgroups,
 #' @return Data.table of non-redundant subgroups.
 #'
 #' @importFrom data.table data.table
-#' @export
+#' @keywords internal
 remove_redundant_subgroups <- function(found.hrs) {
   found.new <- found.hrs[order(found.hrs$HR, decreasing = TRUE), ]
   f1.hrs <- found.new[1, ]

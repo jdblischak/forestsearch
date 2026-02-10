@@ -69,3 +69,4 @@ subgroup_cuts = list(
 \seealso{
 \code{\link{generate_aft_dgm_flex}}
 }
+\keyword{internal}

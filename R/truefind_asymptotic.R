@@ -53,7 +53,6 @@ NULL
 #' expected number of events per split.
 #'
 #' @keywords internal
-#' @export
 density_threshold_both <- function(x, theta, prop_cens = 0.3, n_sg, k_avg, k_ind) {
 
  # Events in subgroup (total)
@@ -181,7 +180,7 @@ density_threshold_integrand <- function(x, theta, prop_cens, n_sg, k_avg, k_ind)
 #' }
 #'
 #' @importFrom stats dnorm rnorm
-#' @export
+#' @keywords internal
 compute_detection_probability <- function(
     theta,
     n_sg,
@@ -705,7 +704,7 @@ find_required_sample_size <- function(
 #' print(ss_table)
 #' }
 #'
-#' @export
+#' @keywords internal
 create_sample_size_table <- function(
     theta_values,
     prop_cens_values,

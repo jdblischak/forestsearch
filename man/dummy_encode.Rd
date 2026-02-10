@@ -2,15 +2,9 @@
 % Please edit documentation in R/get_fsdata_helpers.R
 \name{dummy_encode}
 \alias{dummy_encode}
-\alias{dummy}
-\alias{dummy2}
 \title{Dummy-code a data frame (numeric pass-through, factors expanded)}
 \usage{
 dummy_encode(df)
-
-dummy(df)
-
-dummy2(df)
 }
 \arguments{
 \item{df}{Data frame with numeric and/or factor columns.}

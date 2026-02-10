@@ -360,11 +360,14 @@ unexport_internals <- function(pkg_dir = ".", dry_run = TRUE) {
 
       found <- TRUE
 
+      # Collect line indices to remove (applied in one pass at end)
+      lines_to_remove <- integer()
+
       # Determine what to do
       if (target_tag == "noRd") {
         if (!is.null(nord_line)) {
           # Already has @noRd — just remove @export
-          lines[export_line] <- NULL
+          lines_to_remove <- c(lines_to_remove, export_line)
           action <- "removed @export (already has @noRd)"
         } else {
           # Replace @export with @noRd
@@ -373,9 +376,7 @@ unexport_internals <- function(pkg_dir = ".", dry_run = TRUE) {
         }
         # Also remove @keywords internal if present (redundant with @noRd)
         if (!is.null(internal_line)) {
-          # Adjust index if we deleted a line above
-          adj <- if (!is.null(nord_line) && export_line < internal_line) -1 else 0
-          lines[internal_line + adj] <- NULL
+          lines_to_remove <- c(lines_to_remove, internal_line)
           action <- paste(action, "+ removed redundant @keywords internal")
         }
 
@@ -383,13 +384,18 @@ unexport_internals <- function(pkg_dir = ".", dry_run = TRUE) {
         # target_tag == "internal"
         if (!is.null(internal_line)) {
           # Already has @keywords internal — just remove @export
-          lines[export_line] <- NULL
+          lines_to_remove <- c(lines_to_remove, export_line)
           action <- "removed @export (already has @keywords internal)"
         } else {
           # Replace @export with @keywords internal
           lines[export_line] <- "#' @keywords internal"
           action <- "replaced @export with @keywords internal"
         }
+      }
+
+      # Remove collected lines in one pass (negative indexing)
+      if (length(lines_to_remove) > 0) {
+        lines <- lines[-lines_to_remove]
       }
 
       file_contents[[rfile]]$lines <- lines

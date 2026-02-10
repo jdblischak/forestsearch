@@ -404,7 +404,7 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
 #' }
 #'
 #' @seealso \code{\link{generate_aft_dgm_flex}}
-#' @export
+#' @keywords internal
 #' @importFrom stats quantile uniroot
 
 find_quantile_for_proportion <- function(data, var_name, target_prop,

@@ -29,3 +29,4 @@ A gt table object
 \description{
 Creates a publication-ready diagnostics table from bootstrap results.
 }
+\keyword{internal}

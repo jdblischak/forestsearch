@@ -17,3 +17,4 @@ Character vector of variable names.
 \description{
 Extracts the variable name from a cut expression.
 }
+\keyword{internal}

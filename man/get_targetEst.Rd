@@ -21,3 +21,4 @@ List with target estimate, standard errors, and correction term.
 \description{
 Calculates target estimate and standard error for bootstrap samples.
 }
+\keyword{internal}

@@ -12,3 +12,4 @@ create_summary_table_publication(...)
 \description{
 Preset: Publication-Ready Table
 }
+\keyword{internal}

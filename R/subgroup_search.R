@@ -364,7 +364,7 @@ get_covs_in <- function(kk, maxk, L,
 #' @param x Matrix of subgroup factor indicators.
 #' @param rmin Integer. Minimum required reduction in sample size.
 #' @return List with \code{id.x} (membership vector) and \code{flag.redundant} (logical).
-#' @export
+#' @keywords internal
 
 extract_idx_flagredundancy <- function(x, rmin) {
   n <- nrow(x)

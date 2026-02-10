@@ -15,3 +15,4 @@ Numeric value of the 25th percentile.
 \description{
 Returns the 25th percentile of a numeric vector.
 }
+\keyword{internal}

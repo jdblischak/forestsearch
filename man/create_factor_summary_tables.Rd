@@ -73,5 +73,6 @@ will be NULL.
 \concept{bootstrap summary functions}
 \concept{table formatting functions}
 \keyword{bootstrap}
+\keyword{internal}
 \keyword{subgroups}
 \keyword{tables}

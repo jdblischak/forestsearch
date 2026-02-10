@@ -24,3 +24,4 @@ Called in analyze_subgroup() <-- SG_tab_estimates
 \details{
 Calculates hazard ratio and confidence interval for a subgroup using Cox regression.
 }
+\keyword{internal}

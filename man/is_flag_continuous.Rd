@@ -23,3 +23,4 @@ Determines if a cut expression refers to a continuous variable.
 This optimized version avoids redundant lookups by using word boundary
 matching instead of partial string matching.
 }
+\keyword{internal}

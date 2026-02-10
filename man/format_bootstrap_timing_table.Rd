@@ -19,3 +19,4 @@ A gt table object
 \description{
 Creates a publication-ready timing summary table from bootstrap results.
 }
+\keyword{internal}

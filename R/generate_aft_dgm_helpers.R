@@ -1254,7 +1254,7 @@ compare_multiple_survreg <- function(...,
 #' @param comparison_result Output from compare_survreg_models or compare_multiple_survreg
 #'
 #' @return A survreg model object (defaults to Weibull0 model)
-#' @export
+#' @keywords internal
 #'
 get_best_survreg <- function(comparison_result) {
   if(!inherits(comparison_result, c("multi_survreg_comparison", "survreg_comparison"))) {

@@ -21,3 +21,4 @@ List with formatted counts.
 \description{
 Calculates sample size, treated count, and event count for a subgroup.
 }
+\keyword{internal}

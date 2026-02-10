@@ -15,3 +15,4 @@ Numeric value of the 75th percentile.
 \description{
 Returns the 75th percentile of a numeric vector.
 }
+\keyword{internal}

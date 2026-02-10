@@ -255,9 +255,6 @@ reference:
     contents:
       - get_dfpred
       - dummy_encode
-      - dummy
-      - dummy2
-      - acm.disjctif
       - add_id_column
       - evaluate_comparison
       - evaluate_cuts_once
@@ -267,8 +264,6 @@ reference:
       - is.continuous
       - get_cut_name
       - cut_var
-      - one.zero
-      - ztrail
       - lasso_selection
       - filter_by_lassokeep
 

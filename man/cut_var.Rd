@@ -15,3 +15,4 @@ Character vector of cut expressions.
 \description{
 For a continuous variable, returns expressions for mean, median, qlow, and qhigh cuts.
 }
+\keyword{internal}

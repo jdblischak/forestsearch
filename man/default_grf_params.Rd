@@ -14,3 +14,4 @@ Returns a list of default parameters for GRF analysis
 in GBSG-based simulations. Parameters align with
 \code{grf.subg.harm.survival()} function signature.
 }
+\keyword{internal}

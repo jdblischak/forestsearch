@@ -349,7 +349,7 @@ Bootstrap bias correction addresses this by:
 ```{r bootstrap, eval=TRUE}
 # Number of bootstrap iterations
 # Use 500-2000 for production; reduced here for vignette
-NB <- 80
+NB <- 500
 
 t0 <- proc.time()
 
@@ -457,7 +457,7 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 10
+Ksims <- 30
 
 t0 <- proc.time()
 

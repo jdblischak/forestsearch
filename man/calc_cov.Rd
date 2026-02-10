@@ -17,3 +17,4 @@ Numeric value of covariance.
 \description{
 Calculates the covariance between a vector and bootstrap estimates.
 }
+\keyword{internal}

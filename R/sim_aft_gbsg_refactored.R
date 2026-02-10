@@ -1043,7 +1043,7 @@ calibrate_k_inter <- function(
 #'   \item{k_inter}{The k_inter value used (either calibrated or default)}
 #' }
 #'
-#' @export
+#' @keywords internal
 get_dgm_with_output <- function(
     model_harm,
     n,
@@ -1189,7 +1189,7 @@ print.gbsg_dgm <- function(x, ...) {
 #' # k_inter = 0 should give hr_H approximately equals hr_Hc (ratio approximately 1)
 #' }
 #'
-#' @export
+#' @keywords internal
 validate_k_inter_effect <- function(
     k_inter_values = c(-2, -1, 0, 1, 2, 3),
     verbose = TRUE,

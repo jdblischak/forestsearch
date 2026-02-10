@@ -92,3 +92,4 @@ plot(results$theta, results$probability, type = "l",
 }
 
 }
+\keyword{internal}

@@ -326,7 +326,7 @@ create_timing_summary_table <- function(overall_timing,
 #' @return A gt table object
 #' @importFrom gt gt tab_header tab_spanner tab_footnote tab_source_note md
 #'   cols_label tab_style cell_fill cell_text
-#' @export
+#' @keywords internal
 format_bootstrap_timing_table <- function(timing_list, nb_boots, boot_success_rate) {
 
   if (!requireNamespace("gt", quietly = TRUE)) {
@@ -432,7 +432,7 @@ format_bootstrap_timing_table <- function(timing_list, nb_boots, boot_success_ra
 #' @return A gt table object
 #' @importFrom gt gt tab_header tab_footnote tab_source_note md cols_label
 #'   tab_style cell_fill cell_text cells_body cells_column_labels
-#' @export
+#' @keywords internal
 format_bootstrap_diagnostics_table <- function(diagnostics,
                                                nb_boots,
                                                results,
@@ -743,7 +743,6 @@ calculate_skewness <- function(x) {
 #'
 #' @return List with base_factors and specific_factors data.frames or gt tables
 #' @keywords internal
-#' @export
 summarize_factor_presence_robust <- function(results,
                                              maxk = 2,
                                              threshold = 10,

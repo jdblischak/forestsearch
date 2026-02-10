@@ -12,3 +12,4 @@ create_summary_table_minimal(...)
 \description{
 Preset: Minimal Table (No Highlighting, No Alternating)
 }
+\keyword{internal}

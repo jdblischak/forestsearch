@@ -17,3 +17,4 @@ is.continuous(x, cutoff = 4)
 \description{
 Determines if a variable is continuous based on the number of unique values.
 }
+\keyword{internal}

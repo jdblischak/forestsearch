@@ -198,7 +198,6 @@ select_best_subgroup <- function(values, sg.criterion, dmin.grf, n.max) {
 #' @param tree Policy tree object
 #' @return List with cuts (expressions) and names (unique variables)
 #' @keywords internal
-#' @export
 
 extract_tree_cuts <- function(tree) {
   grf_names <- tree$columns
@@ -266,7 +265,6 @@ find_leaf_split <- function(tree, leaf_node) {
 #' @param maxdepth Integer. Maximum tree depth
 #' @return List with cuts and names for each tree and combined
 #' @keywords internal
-#' @export
 
 extract_all_tree_cuts <- function(trees, maxdepth) {
   result <- list()
@@ -325,7 +323,6 @@ extract_all_tree_cuts <- function(trees, maxdepth) {
 #' }
 #'
 #' @keywords internal
-#' @export
 
 extract_selected_tree_cuts <- function(trees, selected_depth, maxdepth) {
   result <- list()
@@ -403,7 +400,6 @@ assign_subgroup_membership <- function(data, best_subgroup, trees, X) {
 #' @param config List. GRF configuration
 #' @return List with complete GRF results
 #' @keywords internal
-#' @export
 
 create_success_result <- function(data, best_subgroup, trees, tree_cuts,
                                   selected_tree, sg_harm_id, values, config) {
@@ -471,7 +467,6 @@ create_success_result <- function(data, best_subgroup, trees, tree_cuts,
 #' @param config List. GRF configuration
 #' @return List with limited GRF results
 #' @keywords internal
-#' @export
 
 create_null_result <- function(data, values, trees, config) {
 

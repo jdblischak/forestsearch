@@ -33,3 +33,4 @@ List of results, one per subset.
 For repeated calls with the same data structure but different subsets,
 this version pre-processes the data structure once.
 }
+\keyword{internal}

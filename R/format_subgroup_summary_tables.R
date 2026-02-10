@@ -7,7 +7,7 @@
 #'
 #' @return List of gt table objects
 #' @importFrom gt gt tab_header tab_spanner tab_footnote md
-#' @export
+#' @keywords internal
 
 format_subgroup_summary_tables <- function(subgroup_summary, nb_boots) {
 
@@ -350,7 +350,7 @@ format_subgroup_summary_tables <- function(subgroup_summary, nb_boots) {
 #'   tab_source_note md
 #' @importFrom dplyr group_by summarise mutate arrange n row_number select
 #'
-#' @export
+#' @keywords internal
 #'
 #' @family bootstrap summary functions
 #' @family table formatting functions

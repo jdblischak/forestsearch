@@ -36,3 +36,4 @@ Data frame with one row per subgroup and HR results.
 Efficiently processes multiple subgroups at once.
 Useful when analyzing many subgroups (e.g., in cross-validation).
 }
+\keyword{internal}

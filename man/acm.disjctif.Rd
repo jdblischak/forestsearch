@@ -15,3 +15,4 @@ Data frame with dummy-coded columns.
 \description{
 Disjunctive (dummy) coding for factor columns
 }
+\keyword{internal}

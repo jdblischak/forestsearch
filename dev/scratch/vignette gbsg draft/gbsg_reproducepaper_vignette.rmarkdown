@@ -457,7 +457,7 @@ Two approaches are available:
 ```{r kfold-cv, eval = TRUE}
 # 10-fold CV with multiple iterations
 # Use Ksims >= 50 for production
-Ksims <- 10
+Ksims <- 30
 
 t0 <- proc.time()
 

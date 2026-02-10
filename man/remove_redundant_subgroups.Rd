@@ -15,3 +15,4 @@ Data.table of non-redundant subgroups.
 \description{
 Removes redundant subgroups by checking for exact ties in key columns.
 }
+\keyword{internal}

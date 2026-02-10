@@ -753,7 +753,7 @@ create_summary_table <- function(data,
 #' Preset: Compact Table
 #'
 #' @param ... Arguments passed to create_summary_table()
-#' @export
+#' @keywords internal
 
 create_summary_table_compact <- function(...) {
   create_summary_table(
@@ -771,7 +771,7 @@ create_summary_table_compact <- function(...) {
 #' Preset: Publication-Ready Table
 #'
 #' @param ... Arguments passed to create_summary_table()
-#' @export
+#' @keywords internal
 
 create_summary_table_publication <- function(...) {
   create_summary_table(
@@ -792,7 +792,7 @@ create_summary_table_publication <- function(...) {
 #' Preset: Presentation Table (Large Fonts)
 #'
 #' @param ... Arguments passed to create_summary_table()
-#' @export
+#' @keywords internal
 
 create_summary_table_presentation <- function(...) {
   create_summary_table(
@@ -811,7 +811,7 @@ create_summary_table_presentation <- function(...) {
 #' Preset: Minimal Table (No Highlighting, No Alternating)
 #'
 #' @param ... Arguments passed to create_summary_table()
-#' @export
+#' @keywords internal
 
 create_summary_table_minimal <- function(...) {
   create_summary_table(
