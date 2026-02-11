@@ -130,6 +130,64 @@ pkgdown::deploy_to_branch()
 
 #https://larry-leon.github.io/forestsearch
 
+
+# =============================================================================
+# pkgdown Deployment Notes for forestsearch
+# =============================================================================
+#
+# Step 1: Build and deploy the pkgdown site to the gh-pages branch
+# -----------------------------------------------------------------------------
+#
+# From the package root directory in R:
+#
+#   pkgdown::deploy_to_branch()
+#
+# This builds the site locally and pushes the rendered HTML to the
+# gh-pages branch of the GitHub repository.
+#
+# Step 2: Enable GitHub Pages (one-time setup)
+# -----------------------------------------------------------------------------
+#
+# 1. Navigate to: https://github.com/larry-leon/forestsearch
+# 2. Go to: Settings > Pages (left sidebar)
+# 3. Under "Source", select:
+#      - Branch: gh-pages
+#      - Folder: / (root)
+# 4. Click "Save"
+#
+# The site will be live within 1-2 minutes at:
+#
+#   https://larry-leon.github.io/forestsearch
+#
+# Step 3: Verify deployment
+# -----------------------------------------------------------------------------
+#
+# - Check for a green checkmark on the latest gh-pages branch commit
+# - Or check Settings > Environments for an active "github-pages" deployment
+# - Browse the live site to confirm pages render correctly
+#
+# Notes
+# -----------------------------------------------------------------------------
+#
+# - The GitHub Pages setting persists once configured. Each subsequent
+#   call to pkgdown::deploy_to_branch() will automatically trigger a
+#   rebuild without needing to revisit Settings.
+#
+# - To rebuild the site locally without deploying:
+#
+#     pkgdown::build_site()
+#
+# - To preview locally before deploying:
+#
+#     pkgdown::preview_site()
+#
+# - To validate the _pkgdown.yml configuration:
+#
+#     pkgdown::check_pkgdown()
+#
+# =============================================================================
+
+
 # re-run
 #usethis::use_pkgdown_github_pages()
 

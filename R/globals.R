@@ -207,7 +207,7 @@ utils::globalVariables(c(
 
 # ============================================================================
 # Operating characteristics / simulation analysis
-# (from oc_analyses_gbsg_refactored.R)
+# (from oc_analyses_gbsg_refactored.R, simulation_tables.R)
 # ============================================================================
   "any.H",
   "ppv", "npv", "sens", "spec",
@@ -221,6 +221,8 @@ utils::globalVariables(c(
   "sg_hat",
   "ahr.H.true", "ahr.Hc.true",
   "ahr.H.hat", "ahr.Hc.hat",
+  "Group",
+  "Scenario",
 
 # ============================================================================
 # MRCT simulation variables (from mrct_simulation.R)

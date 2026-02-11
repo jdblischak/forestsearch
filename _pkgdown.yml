@@ -43,6 +43,8 @@ navbar:
         - text: "---"
         - text: Methodology
           href: articles/methodology.html
+        - text: Simulation Studies
+          href: articles/paper_simulations.html
     news:
       text: Changelog
       href: news/index.html
@@ -308,6 +310,9 @@ reference:
       - default_grf_params
       - summarize_simulation_results
       - format_oc_results
+      - build_classification_table
+      - build_estimation_table
+      - render_reference_table
       - compute_detection_probability
       - generate_detection_curve
       - find_required_sample_size
@@ -377,6 +382,11 @@ articles:
     desc: Technical details on the statistical methods
     contents:
       - "articles/methodology"
+
+  - title: Simulation Studies
+    desc: Operating characteristics and published benchmarks
+    contents:
+      - "articles/paper_simulations"
 
 # =============================================================================
 # NEWS
