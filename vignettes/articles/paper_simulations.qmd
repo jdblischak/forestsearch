@@ -92,9 +92,6 @@ library(foreach)
 library(doFuture)
 library(future)
 
-# Source simulation functions (if not yet in package)
-# source("sim_aft_gbsg_refactored.R")
-# source("oc_analyses_gbsg.R")
 ```
 
 ## Initializing the Timing Framework {#sec-timing-init}
@@ -451,7 +448,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config_alt <- list(
-  n_sims = 100,          # Number of simulations (use 500-1000 for final)
+  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -459,7 +456,7 @@ sim_config_alt <- list(
 )
 
 sim_config_null <- list(
-  n_sims = 100,          # More simulations for Type I error estimation
+  n_sims = 1000,          # More simulations for Type I error estimation
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -1901,7 +1898,7 @@ to assess reproducibility. Key comparisons:
 
 Note that exact replication requires the same DGM calibration, censoring
 rate, and random seeds. The vignette's reduced simulation count
-(`n_sims = 100`) will show higher Monte Carlo variability than the
+(`n_sims = 1000`) will show higher Monte Carlo variability than the
 published 20,000-simulation results.
 
 

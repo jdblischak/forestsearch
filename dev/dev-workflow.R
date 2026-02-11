@@ -99,8 +99,6 @@ git rm -r --cached dev/working/
 git add .gitignore
 git commit -m "Stop tracking dev/working/, keep locally"
 
-
-
 # End prior flow
 
 dir.create("vignettes/articles", recursive = TRUE, showWarnings = FALSE)
@@ -108,7 +106,6 @@ usethis::use_build_ignore("vignettes/articles")
 
 
 pkgdown::check_pkgdown()
-
 
 # One-time setup: creates a gh-pages branch and GitHub Actions workflow
 #usethis::use_pkgdown_github_pages()
@@ -126,6 +123,8 @@ pkgdown::check_pkgdown()
 # Build locally, then push docs/ to gh-pages branch
 pkgdown::build_site()
 
+# note: deploy_to_branch calls build_site(), so only run here if deploying
+# otherewise will duplicate the compiling of documents
 pkgdown::deploy_to_branch()
 
 #https://larry-leon.github.io/forestsearch
@@ -142,8 +141,9 @@ pkgdown::deploy_to_branch()
 #
 #   pkgdown::deploy_to_branch()
 #
-# This builds the site locally and pushes the rendered HTML to the
-# gh-pages branch of the GitHub repository.
+# This calls build_site() internally, then commits and pushes the
+# rendered HTML to the gh-pages branch. There is no need to call
+# build_site() separately before deploying.
 #
 # Step 2: Enable GitHub Pages (one-time setup)
 # -----------------------------------------------------------------------------
@@ -166,6 +166,35 @@ pkgdown::deploy_to_branch()
 # - Or check Settings > Environments for an active "github-pages" deployment
 # - Browse the live site to confirm pages render correctly
 #
+# Step 4: Remove GitHub Actions pkgdown workflow (one-time cleanup)
+# -----------------------------------------------------------------------------
+#
+# If you receive email notifications from GitHub stating
+# "pkgdown.yaml: All jobs have failed", this is a separate CI workflow
+# at .github/workflows/pkgdown.yaml that tries to auto-build the site
+# on every push. Since we deploy manually via deploy_to_branch(), this
+# workflow is unnecessary and can be removed.
+#
+# From the terminal in the package root:
+#
+#   git rm .github/workflows/pkgdown.yaml
+#   git commit -m "Remove pkgdown CI workflow (deploying manually)"
+#   git push
+#
+# This stops the failing emails. The existing live site is unaffected.
+# There is NO need to re-run deploy_to_branch() after this step.
+#
+# Ongoing workflow
+# -----------------------------------------------------------------------------
+#
+# After initial setup, the only command needed is:
+#
+#   pkgdown::deploy_to_branch()
+#
+# Run this whenever you want to update the live site after making
+# changes to documentation, vignettes, or package code. There is no
+# need to run it after routine git pushes that don't affect the site.
+#
 # Notes
 # -----------------------------------------------------------------------------
 #
@@ -173,12 +202,9 @@ pkgdown::deploy_to_branch()
 #   call to pkgdown::deploy_to_branch() will automatically trigger a
 #   rebuild without needing to revisit Settings.
 #
-# - To rebuild the site locally without deploying:
+# - To rebuild the site locally without deploying (preview only):
 #
 #     pkgdown::build_site()
-#
-# - To preview locally before deploying:
-#
 #     pkgdown::preview_site()
 #
 # - To validate the _pkgdown.yml configuration:

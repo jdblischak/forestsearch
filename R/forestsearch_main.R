@@ -32,9 +32,9 @@
 #' @param grf_depth Integer. GRF tree depth. Default 2.
 #' @param dmin.grf Integer. Minimum events for GRF. Default 12.
 #' @param frac.tau Numeric. Fraction of tau for RMST. Default 0.6.
-#' @param return_selected_cuts_only Logical. If TRUE, GRF returns only cuts from the
+#' @param return_selected_cuts_only Logical. If TRUE (default), GRF returns only cuts from the
 #'   tree depth that identified the selected subgroup meeting `dmin.grf`. If FALSE
-#'   (default), returns all cuts from all fitted trees (depths 1 through `grf_depth`).
+#'   returns all cuts from all fitted trees (depths 1 through `grf_depth`).
 #'   See \code{\link{grf.subg.harm.survival}} for details.
 #' @param conf_force Character vector. Variables to force include (optional).
 #' @param defaultcut_names Character vector. Default cut variable names (optional).
@@ -235,7 +235,7 @@ forestsearch <- function(df.analysis,
                          grf_depth = 2,
                          dmin.grf = 12,
                          frac.tau = 0.6,
-                         return_selected_cuts_only = FALSE,
+                         return_selected_cuts_only = TRUE,
                          conf_force = NULL,
                          defaultcut_names = NULL,
                          cut_type = "default",

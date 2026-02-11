@@ -27,7 +27,7 @@ forestsearch(
   grf_depth = 2,
   dmin.grf = 12,
   frac.tau = 0.6,
-  return_selected_cuts_only = FALSE,
+  return_selected_cuts_only = TRUE,
   conf_force = NULL,
   defaultcut_names = NULL,
   cut_type = "default",
@@ -110,9 +110,9 @@ forestsearch(
 
 \item{frac.tau}{Numeric. Fraction of tau for RMST. Default 0.6.}
 
-\item{return_selected_cuts_only}{Logical. If TRUE, GRF returns only cuts from the
+\item{return_selected_cuts_only}{Logical. If TRUE (default), GRF returns only cuts from the
 tree depth that identified the selected subgroup meeting \code{dmin.grf}. If FALSE
-(default), returns all cuts from all fitted trees (depths 1 through \code{grf_depth}).
+returns all cuts from all fitted trees (depths 1 through \code{grf_depth}).
 See \code{\link{grf.subg.harm.survival}} for details.}
 
 \item{conf_force}{Character vector. Variables to force include (optional).}
