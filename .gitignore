@@ -1,3 +1,4 @@
+.Rhistory
 .Rproj.user
 *_files/
 .DS_Store
@@ -9,3 +10,4 @@ dev/working-docs
 dev/private_vignettes
 docs
 dev/working/
+vignettes/*.html
