@@ -85,7 +85,6 @@ devtools::install()
 # Run these before CRAN submission
 devtools::check(cran = TRUE)     # Full CRAN validation
 
-
 # corrupt .rdb cached.  Force remove it
 # from terminal
 rm -rf /home/larryleon/R/x86_64-pc-linux-gnu-library/4.5/forestsearch
