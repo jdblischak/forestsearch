@@ -107,7 +107,6 @@ rm -rf /home/larryleon/R/x86_64-pc-linux-gnu-library/4.5/forestsearch
 dir.create("vignettes/articles", recursive = TRUE, showWarnings = FALSE)
 usethis::use_build_ignore("vignettes/articles")
 
-
 pkgdown::check_pkgdown()
 
 # One-time setup: creates a gh-pages branch and GitHub Actions workflow
