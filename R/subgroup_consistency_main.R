@@ -399,7 +399,8 @@ subgroup.consistency <- function(df,
       k_i <- length(factors_i)
 
       # Convert factor codes to labels using FS_labels()
-      factors_labels <- sapply(factors_i, FS_labels,
+      factors_labels <- vapply(factors_i, FS_labels,
+                               character(1),
                                confs_labels = confs_labels,
                                USE.NAMES = FALSE)
 
