@@ -86,6 +86,11 @@ devtools::install()
 devtools::check(cran = TRUE)     # Full CRAN validation
 
 
+# corrupt .rdb cached.  Force remove it
+# from terminal
+rm -rf /home/larryleon/R/x86_64-pc-linux-gnu-library/4.5/forestsearch
+# restart R (Session -> Restart R)
+
 # Retain dev/working locally
 # Remove from Git's index only (keeps local files intact)
 #git rm -r --cached dev/working/

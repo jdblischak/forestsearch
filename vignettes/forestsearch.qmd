@@ -9,8 +9,8 @@ toc-depth: 3
 format: 
   html:
     self-contained: true
-    code-fold: show
-    code-summary: "Show code"
+    code-fold: true
+    code-summary: "Hide code"
     theme: cosmo
     highlight-style: github
 execute:

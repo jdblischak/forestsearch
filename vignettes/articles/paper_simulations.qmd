@@ -8,8 +8,8 @@ format:
     self-contained: true
     toc: true
     toc-depth: 3
-    code-fold: false
-    code-summary: "Show code"
+    code-fold: true
+    code-summary: "Hide code"
     number-sections: true
     theme: cosmo
     highlight-style: github

@@ -497,17 +497,16 @@ compute_sg_summary <- function(
   # Convert to data frame
   data.frame(
     Subgroup = c("ITT", sg0_name, sg1_name),
-    n = sapply(summary_list, `[[`, "n"),
-    n_percent = round(100 * sapply(summary_list, `[[`, "n") / nrow(df), 1),
-    n_treatment = sapply(summary_list, `[[`, "n_treat"),
-    n_control = sapply(summary_list, `[[`, "n_control"),
-    events = sapply(summary_list, `[[`, "events"),
-    event_rate = round(100 * sapply(summary_list, `[[`, "events") /
-                         sapply(summary_list, `[[`, "n"), 1),
+    n = vapply(summary_list, `[[`, integer(1), "n"),
+    n_percent = round(100 * vapply(summary_list, `[[`, integer(1), "n") / nrow(df), 1),
+    n_treatment = vapply(summary_list, `[[`, integer(1), "n_treat"),
+    n_control = vapply(summary_list, `[[`, integer(1), "n_control"),
+    events = vapply(summary_list, `[[`, integer(1), "events"),
+    event_rate = round(100 * vapply(summary_list, `[[`, integer(1), "events") /
+                         vapply(summary_list, `[[`, integer(1), "n"), 1),
     stringsAsFactors = FALSE,
     row.names = NULL
   )
-}
 
 
 # =============================================================================
