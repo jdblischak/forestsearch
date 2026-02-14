@@ -357,7 +357,7 @@ extract_subgroup <- function(df, top_result, index.Z, names.Z, confs_labels) {
   m <- as.integer(top_result$m)
   indexm <- as.numeric(unlist(index.Z[m, ]))
   sg.harm <- names.Z[indexm == 1]
-  sg.harm_label <- sapply(sg.harm, function(q) FS_labels(q, confs_labels))
+  sg.harm_label <- vapply(sg.harm, function(q) FS_labels(q, confs_labels), character(1))
 
   # Create membership flag
   df_temp <- data.table::as.data.table(df)
@@ -621,7 +621,7 @@ evaluate_subgroup_consistency <- function(
   }
 
   # Convert to labels
-  this.m_label <- sapply(this.m, function(q) FS_labels(q, confs_labels))
+  this.m_label <- vapply(this.m, function(q) FS_labels(q, confs_labels), character(1))
 
   # -------------------------------------------------------------------------
   # SECTION 3: IDENTIFY SUBGROUP MEMBERS
@@ -897,7 +897,7 @@ evaluate_consistency_twostage <- function(
     return(NULL)
   }
 
-  this.m_label <- sapply(this.m, function(q) FS_labels(q, confs_labels))
+  this.m_label <- vapply(this.m, function(q) FS_labels(q, confs_labels), character(1))
 
   # ---------------------------------------------------------------------------
   # Identify subgroup members
