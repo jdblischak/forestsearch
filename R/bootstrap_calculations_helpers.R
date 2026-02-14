@@ -10,7 +10,6 @@
 #'   bootstrap index alignment with the Ystar matrix.
 #' @return Matrix of bootstrap samples (nb_boots x nrow(df)).
 #' @importFrom foreach foreach
-#' @keywords internal
 #' @export
 
 bootstrap_ystar <- function(df, nb_boots, seed = 8316951L) {
@@ -38,7 +37,6 @@ suppressWarnings({foreach::foreach(
 #' @param x ID value.
 #' @param dfb Data frame of bootstrap sample.
 #' @return Integer count of occurrences.
-#' @keywords internal
 #' @export
 
 count_boot_id <- function(x,dfb){
@@ -153,7 +151,6 @@ format_CI <- function(estimates, col_names) {
 #' @param est.loghr Logical. Is estimate on log(HR) scale?
 #' @return Data.table with confidence intervals and estimates.
 #' @importFrom data.table data.table
-#' @keywords internal
 #' @export
 
 get_dfRes <- function(Hobs, seHobs, H1_adj, H2_adj = NULL, ystar, cov_method = "standard", cov_trim = 0.0, est.scale = "hr", est.loghr = TRUE) {

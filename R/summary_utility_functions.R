@@ -34,7 +34,6 @@ n_pcnt <- function(x, denom) {
 #' @param est.scale Character. Effect scale ("hr" or "1/hr").
 #' @param treat.name Character. Name of treatment variable.
 #' @return List with subgroup data frames and treatment variable name.
-#' @keywords internal
 #' @export
 
 prepare_subgroup_data <- function(df, SG_flag, est.scale, treat.name) {
@@ -190,7 +189,6 @@ rmst_calculation <- function(df,tte.name = "tte",event.name = "event",treat.name
 #' @param return_medians Logical. Use medians or RMST.
 #' @param N Integer. Total sample size.
 #' @return Character vector of results.
-#' @keywords internal
 #' @export
 
 analyze_subgroup <- function(df_sub, outcome.name, event.name, treat.name,
@@ -349,7 +347,6 @@ SG_tab_estimates <- function(df, SG_flag, outcome.name = "tte", event.name = "ev
 #'                    list(df.analysis = df.analysis, grf_cuts = grf_cuts)))
 #' }
 #'
-#' @keywords internal
 #' @export
 
 filter_call_args <- function(source_args, target_func, override_args = NULL) {

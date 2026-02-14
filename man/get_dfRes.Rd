@@ -41,4 +41,3 @@ Data.table with confidence intervals and estimates.
 \description{
 Calculates confidence intervals and bias-corrected estimates for bootstrap results.
 }
-\keyword{internal}

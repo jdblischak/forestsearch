@@ -130,6 +130,7 @@ pkgdown::deploy_to_branch()
 
 # Preview without building everything
 pkgdown::build_reference()
+
 pkgdown::preview_site()
 
 

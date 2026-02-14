@@ -19,4 +19,3 @@ An R formula object for Cox regression.
 \description{
 Constructs a Cox model formula from variable names.
 }
-\keyword{internal}

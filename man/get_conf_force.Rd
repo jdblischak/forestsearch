@@ -19,4 +19,3 @@ Character vector of cut expressions.
 \description{
 For each variable in \code{conf.force.names}, returns cut expressions if continuous.
 }
-\keyword{internal}

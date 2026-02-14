@@ -64,7 +64,6 @@ cut_var <- function(x){
 #' @param conf.force.names Character vector of variable names.
 #' @param cont.cutoff Integer. Cutoff for continuous.
 #' @return Character vector of cut expressions.
-#' @keywords internal
 #' @export
 
 get_conf_force <- function(df, conf.force.names, cont.cutoff = 4) {
@@ -149,7 +148,6 @@ if (!requireNamespace("survival", quietly = TRUE)) stop("Package 'survival' is r
 #' @param x Character vector.
 #' @param lassokeep Character vector of selected variables.
 #' @return Filtered character vector or NULL.
-#' @keywords internal
 #' @export
 
 filter_by_lassokeep <- function(x, lassokeep) {
@@ -172,7 +170,6 @@ filter_by_lassokeep <- function(x, lassokeep) {
 #' @param expr Character string of the cut expression.
 #' @param df Data frame.
 #' @return Character string with evaluated value.
-#' @keywords internal
 #' @export
 
 process_conf_force_expr <- function(expr, df) {
@@ -364,7 +361,6 @@ one.zero <- function(x) 1L - x
 #' 2. Repeated evaluation on dataframe
 #' 3. Redundant uniqueness checks
 #'
-#' @keywords internal
 #' @export
 
 evaluate_cuts_once <- function(confs, df, details = FALSE) {

@@ -17,4 +17,3 @@ List with HR and SE for each subgroup.
 \description{
 Fits Cox models for two subgroups defined by treatment recommendation.
 }
-\keyword{internal}
