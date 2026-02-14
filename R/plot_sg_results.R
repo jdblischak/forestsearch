@@ -507,6 +507,7 @@ compute_sg_summary <- function(
     stringsAsFactors = FALSE,
     row.names = NULL
   )
+}
 
 
 # =============================================================================
