@@ -544,7 +544,7 @@ results_alt <- foreach(
     fs_params = fs_params,
     verbose = TRUE,
     debug = FALSE,
-    verbose_n = 3  # Only print first 3 simulations
+    verbose_n = 1  # Only print first 1 simulations
   )
 }
 
@@ -588,7 +588,7 @@ results_null <- foreach(
     run_grf = TRUE,
     fs_params = fs_params,
     verbose = TRUE,
-    verbose_n = 3  # Only print first 3 simulations
+    verbose_n = 1  # Only print first 1 simulations
 
   )
 }
