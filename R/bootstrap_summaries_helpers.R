@@ -848,7 +848,9 @@ summarize_factor_presence_robust <- function(results,
   }
 
   # Extract base factors and count
-  base_factors <- sapply(all_factors, extract_base_factor, USE.NAMES = FALSE)
+  base_factors <- vapply(all_factors, extract_base_factor, character(1),
+                         USE.NAMES = FALSE)
+
   base_factor_counts <- table(base_factors)
 
   base_factor_summary <- data.frame(
@@ -877,9 +879,10 @@ summarize_factor_presence_robust <- function(results,
   ]
 
   if (nrow(specific_factor_summary) > 0) {
-    specific_factor_summary$Base_Factor <- sapply(
+    specific_factor_summary$Base_Factor <- vapply(
       specific_factor_summary$Factor_Definition,
-      extract_base_factor
+      extract_base_factor,
+      character(1)
     )
     specific_factor_summary <- specific_factor_summary[
       order(specific_factor_summary$Base_Factor, -specific_factor_summary$Count),
