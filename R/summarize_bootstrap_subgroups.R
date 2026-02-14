@@ -215,9 +215,9 @@ summarize_bootstrap_subgroups <- function(results,
 
     # Distribution string
     k_dist <- paste(
-      sapply(sort(unique(k_vals)), function(k) {
+      vapply(sort(unique(k_vals)), function(k) {
         sprintf("K=%d: %d (%.1f%%)", k, sum(k_vals == k), 100 * mean(k_vals == k))
-      }),
+      }, character(1)),
       collapse = "; "
     )
 
