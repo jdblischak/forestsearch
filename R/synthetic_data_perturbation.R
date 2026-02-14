@@ -508,14 +508,18 @@ generate_bootstrap_with_noise <- function(data,
 
   # Auto-detect variable types if not specified
   if (is.null(continuous_vars)) {
-    continuous_vars <- names(data)[sapply(data, is.numeric)]
+    continuous_vars <- names(data)[vapply(data, is.numeric, logical(1))]
     # Remove id variable if present
     continuous_vars <- setdiff(continuous_vars, id_var)
   }
 
   if (is.null(cat_vars)) {
-    cat_vars <- names(data)[sapply(data, function(x) is.factor(x) || is.logical(x) ||
-                                     (is.numeric(x) && length(unique(x)) <= 10))]
+
+    cat_vars <- names(data)[vapply(data, function(x) {
+      is.factor(x) || is.logical(x) ||
+        (is.numeric(x) && length(unique(x)) <= 10L)
+    }, logical(1))]
+
     # Remove any vars already in continuous_vars and id_var
     cat_vars <- setdiff(cat_vars, c(continuous_vars, id_var))
   }
