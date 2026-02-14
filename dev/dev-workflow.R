@@ -130,6 +130,12 @@ pkgdown::deploy_to_branch()
 #https://larry-leon.github.io/forestsearch
 
 
+# Preview without building everything
+pkgdown::build_reference()
+pkgdown::preview_site()
+
+
+
 # =============================================================================
 # pkgdown Deployment Notes for forestsearch
 # =============================================================================

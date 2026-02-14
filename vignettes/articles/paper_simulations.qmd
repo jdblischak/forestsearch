@@ -1506,7 +1506,7 @@ visual conventions used by `build_classification_table()`.
 
 ## Table B1: Classification Rates (Table 4 of Leon et al.) {#sec-ref-table4}
 
-```{r ref-table4-nonoise, eval=TRUE}
+```{r ref-table4-nonoise, eval=TRUE, echo = FALSE}
 #| label: ref-table4-nonoise
 #| tbl-cap: >
 #|   Reference classification rates from Leon et al. (2024) Table 4 ---
@@ -1595,7 +1595,7 @@ render_reference_table(
 )
 ```
 
-```{r ref-table4-noise, eval=TRUE}
+```{r ref-table4-noise, eval=TRUE, echo = FALSE}
 #| label: ref-table4-noise
 #| tbl-cap: >
 #|   Reference classification rates from Leon et al. (2024) Table 4 ---
@@ -1691,7 +1691,7 @@ per subgroup:
 Bias metrics use three reference points: oracle, double-dagger, and dagger
 (see Leon et al. Sections 4--5 for definitions).
 
-```{r ref-table5, eval=TRUE}
+```{r ref-table5, eval=TRUE, echo = FALSE}
 #| label: ref-table5
 #| tbl-cap: >
 #|   Reference estimation properties from Leon et al. (2024) Table 5 ---

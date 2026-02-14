@@ -50,7 +50,6 @@
 #'   n = 150,
 #'   seed = 456
 #' )
-#' @keywords internal
 #' @export
 
 generate_bootstrap_synthetic <- function(data,
@@ -354,7 +353,6 @@ detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = 
 #' @param noise_level Noise level for perturbation
 #'
 #' @return Synthetic GBSG dataset
-#' @keywords internal
 #' @export
 
 generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0.1) {
@@ -472,12 +470,10 @@ generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0
 #' \code{\link[base]{sample}} for bootstrap sampling,
 #' \code{\link[stats]{rnorm}} for noise generation
 #'
-#' @keywords internal
-#' @export
 #' @importFrom stats rnorm sd
-#'
-#' @author Your Name
 #' @keywords datagen bootstrap simulation
+#' @export
+
 generate_bootstrap_with_noise <- function(data,
                                           n = NULL,
                                           continuous_vars = NULL,
