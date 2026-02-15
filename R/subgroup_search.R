@@ -271,7 +271,6 @@ calculate_max_combinations <- function(L, maxk) {
 #' @param maxk Integer. Maximum number of factors in a combination.
 #' @return List with \code{max_count} (total combinations) and \code{indices_list} (indices for each k).
 #' @importFrom utils combn
-#' @keywords internal
 #' @export
 
 get_combinations_info <- function(L, maxk) {
@@ -299,7 +298,6 @@ get_combinations_info <- function(L, maxk) {
 #' @param zz Matrix or data frame of subgroup factor indicators.
 #' @param covs.in Numeric vector indicating which factors are selected (1 = included).
 #' @return Numeric vector of subgroup membership (1/0).
-#' @keywords internal
 #' @export
 
 get_subgroup_membership <- function(zz, covs.in) {
@@ -323,7 +321,6 @@ get_subgroup_membership <- function(zz, covs.in) {
 #' @param counts_3factor Integer. Number of three-factor combinations.
 #' @param index_3factor Matrix of indices for three-factor combinations.
 #' @return Numeric vector indicating selected factors (1 = included, 0 = not included).
-#' @keywords internal
 #' @export
 
 get_covs_in <- function(kk, maxk, L,
