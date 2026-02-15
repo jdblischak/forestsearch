@@ -122,6 +122,7 @@ pkgdown::check_pkgdown()
 
 # USING THIS
 # Build locally, then push docs/ to gh-pages branch
+
 pkgdown::build_site()
 
 # note: deploy_to_branch calls build_site(), so only run here if deploying
@@ -136,7 +137,20 @@ pkgdown::build_reference()
 
 pkgdown::preview_site()
 
+# Build single article for quick preview
+#pkgdown::build_article("getting-started")
 
+pkgdown::build_article("forestsearch")
+
+pkgdown::build_article("articles/methodology")
+
+pkgdown::build_article("articles/treatment_effect_definitions")
+
+
+pkgdown::build_article(
+  "articles/treatment_effect_definitions",
+  quiet = FALSE
+)
 
 # =============================================================================
 # pkgdown Deployment Notes for forestsearch

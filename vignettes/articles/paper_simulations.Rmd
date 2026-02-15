@@ -2,24 +2,20 @@
 title: "Simulation Studies for Evaluating ForestSearch Performance"
 subtitle: "Operating Characteristics and Power Analysis"
 author: "ForestSearch Package"
-date: today
-format:
-  html:
-    self-contained: true
+date: "`r Sys.Date()`"
+output:
+  html_document:
     toc: true
-    toc-depth: 3
-    code-fold: true
-    code-summary: "Show code"
-    number-sections: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: hide
     theme: cosmo
-    highlight-style: github
-execute:
-  warning: false
-  message: false
-  eval: true
+    highlight: tango
+    fig_width: 9
+    fig_height: 6
 vignette: >
   %\VignetteIndexEntry{Simulation Studies for Evaluating ForestSearch Performance}
-  %\VignetteEngine{quarto::html}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
@@ -32,6 +28,20 @@ knitr::opts_chunk$set(
   fig.width = 9,
   fig.height = 6
 )
+
+# Bootstrap 5 code-folding hook for pkgdown compatibility
+# Usage: add `echo=FALSE, code_fold=TRUE` to any chunk header
+knitr::knit_hooks$set(code_fold = function(before, options, envir) {
+  if (!before && isTRUE(options$code_fold)) {
+    id <- gsub("[^a-zA-Z0-9]", "", options$label)
+    code_lines <- knitr::knit_code$get(options$label)
+    code_text  <- htmltools::htmlEscape(paste(code_lines, collapse = "\n"))
+    sprintf(
+      '<p><a class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" href="#collapse-%s" role="button" aria-expanded="false" aria-controls="collapse-%s"><i class="bi bi-code-slash"></i> Code</a></p>\n<div class="collapse" id="collapse-%s"><div class="card card-body p-0"><pre class="r"><code class="hljs">%s</code></pre></div></div>',
+      id, id, id, code_text
+    )
+  }
+})
 ```
 
 # Introduction
@@ -628,11 +638,7 @@ timings$summarize_null <- proc.time()[3] - t0
 The function `compute_detection_probability()` provides an analytical approximation
 based on asymptotic normal theory:
 
-```{r theoretical-detection-rates}
-
-#| label: theoretical-power
-#| fig-width: 8
-#| fig-height: 6
+```{r theoretical-detection-rates, fig.width=8, fig.height=6}
 
 # =============================================================================
 # Theoretical Detection Probability Analysis
@@ -1110,7 +1116,7 @@ save_simulation_results(
 Tracking wall-clock time for every stage of a simulation study is essential
 for planning larger experiments and for reporting reproducibility information.
 
-```{r timing-summary}
+```{r timing-summary, echo=FALSE, code_fold=TRUE}
 # Finalize total vignette time
 timings$total <- (proc.time() - t_vignette_start)["elapsed"]
 
@@ -1506,11 +1512,9 @@ visual conventions used by `build_classification_table()`.
 
 ## Table B1: Classification Rates (Table 4 of Leon et al.) {#sec-ref-table4}
 
-```{r ref-table4-nonoise, eval=TRUE, echo = FALSE}
-#| label: ref-table4-nonoise
-#| tbl-cap: >
-#|   Reference classification rates from Leon et al. (2024) Table 4 ---
-#|   Analysis without additional noise factors.
+```{r ref-table4-nonoise, eval=TRUE, echo=FALSE, code_fold=TRUE}
+# Reference classification rates from Leon et al. (2024) Table 4 ---
+# Analysis without additional noise factors.
 
 # ── Digitized data from Tables.tex (no-noise panel) ─────────────────────
 ref_class_nonoise <- data.frame(
@@ -1595,11 +1599,9 @@ render_reference_table(
 )
 ```
 
-```{r ref-table4-noise, eval=TRUE, echo = FALSE}
-#| label: ref-table4-noise
-#| tbl-cap: >
-#|   Reference classification rates from Leon et al. (2024) Table 4 ---
-#|   Analysis with additional noise factors.
+```{r ref-table4-noise, eval=TRUE, echo=FALSE, code_fold=TRUE}
+# Reference classification rates from Leon et al. (2024) Table 4 ---
+# Analysis with additional noise factors.
 
 # ── Digitized data from Tables.tex (noise panel) ────────────────────────
 ref_class_noise <- data.frame(
@@ -1691,11 +1693,9 @@ per subgroup:
 Bias metrics use three reference points: oracle, double-dagger, and dagger
 (see Leon et al. Sections 4--5 for definitions).
 
-```{r ref-table5, eval=TRUE, echo = FALSE}
-#| label: ref-table5
-#| tbl-cap: >
-#|   Reference estimation properties from Leon et al. (2024) Table 5 ---
-#|   FSlg method, 1,000 simulations, B=300 bootstraps.
+```{r ref-table5, eval=TRUE, echo=FALSE, code_fold=TRUE}
+# Reference estimation properties from Leon et al. (2024) Table 5 ---
+# FSlg method, 1,000 simulations, B=300 bootstraps.
 
 # ── Digitized data from Tables.tex (estimation table) ───────────────────
 ref_est <- data.frame(

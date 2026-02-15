@@ -43,6 +43,8 @@ navbar:
         - text: "---"
         - text: Methodology
           href: articles/methodology.html
+        - text: Treatment Effect Definitions
+          href: articles/treatment_effect_definitions.html
         - text: Simulation Studies
           href: articles/paper_simulations.html
     news:
@@ -382,6 +384,13 @@ articles:
     desc: Technical details on the statistical methods
     contents:
       - "articles/methodology"
+
+  - title: Treatment Effect Definitions
+    desc: >
+      Definitions and computation of marginal HR, average hazard ratio
+      (AHR), and controlled direct effect (CDE) estimands.
+    contents:
+      - "articles/treatment_effect_definitions"
 
   - title: Simulation Studies
     desc: Operating characteristics and published benchmarks

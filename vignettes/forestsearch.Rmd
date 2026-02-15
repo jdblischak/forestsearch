@@ -3,20 +3,20 @@ title: "Exploratory Subgroup Identification with ForestSearch"
 subtitle: "German Breast Cancer Study Group (GBSG) Analysis"
 author: "Larry F. León"
 date: "`r Sys.Date()`"
-toc: true
-number-sections: true
-toc-depth: 3
-format: 
-  html:
-    self-contained: true
-    code-fold: true
-    code-summary: "Show code"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    code_folding: hide
     theme: cosmo
-    highlight-style: github
-execute:
-  warning: false
-  message: false
-  eval: true
+    highlight: tango
+    fig_width: 8
+    fig_height: 6
+vignette: >
+  %\VignetteIndexEntry{Exploratory Subgroup Identification with ForestSearch}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -31,6 +31,20 @@ knitr::opts_chunk$set(
   fig.width = 8,
   fig.height = 6
 )
+
+# Bootstrap 5 code-folding hook for pkgdown compatibility
+# Usage: add `echo=FALSE, code_fold=TRUE` to any chunk header
+knitr::knit_hooks$set(code_fold = function(before, options, envir) {
+  if (!before && isTRUE(options$code_fold)) {
+    id <- gsub("[^a-zA-Z0-9]", "", options$label)
+    code_lines <- knitr::knit_code$get(options$label)
+    code_text  <- htmltools::htmlEscape(paste(code_lines, collapse = "\n"))
+    sprintf(
+      '<p><a class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" href="#collapse-%s" role="button" aria-expanded="false" aria-controls="collapse-%s"><i class="bi bi-code-slash"></i> Code</a></p>\n<div class="collapse" id="collapse-%s"><div class="card card-body p-0"><pre class="r"><code class="hljs">%s</code></pre></div></div>',
+      id, id, id, code_text
+    )
+  }
+})
 
 # Initialize timing
 timings <- list()
@@ -390,8 +404,7 @@ summaries$table
 
 ## Kaplan-Meier by Identified Subgroups
 
-```{r fs-results_figure, fig.width=10, fig.height=7}
-#| fig-cap: "Kaplan-Meier survival curves by identified subgroup"
+```{r fs-results_figure, fig.width=10, fig.height=7, fig.cap="Kaplan-Meier survival curves by identified subgroup"}
 
  km_result <- plot_sg_weighted_km(
    fs.est = fs,
@@ -532,10 +545,7 @@ tables$metrics_table
 The forest plot summarizes treatment effects across the ITT population, 
 reference subgroups, and identified subgroups with cross-validation metrics.
 
-```{r forest-plot}
-#| fig-width: 18
-#| fig-height: 12
-#| fig-cap: "Subgroup forest plot including identified subgroups"
+```{r forest-plot, fig.width=18, fig.height=12, fig.cap="Subgroup forest plot including identified subgroups"}
 
 
 # Define reference subgroups for comparison
@@ -679,7 +689,7 @@ patients may not benefit is consistent with:
 
 ## Computational Timing
 
-```{r timing-summary}
+```{r timing-summary, echo=FALSE, code_fold=TRUE}
 timings$total <- (proc.time() - t_vignette_start)["elapsed"]
 
 timing_df <- data.frame(
