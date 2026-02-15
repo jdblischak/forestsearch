@@ -145,7 +145,6 @@ get_dfpred <- function(df.predict, sg.harm, version = 1) {
 #' # [1] FALSE FALSE  TRUE  TRUE
 #' }
 #'
-#' @keywords internal
 #' @export
 evaluate_comparison <- function(expr, df) {
 
