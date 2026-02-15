@@ -239,7 +239,7 @@ find_k_inter_for_target_hr <- function(target_hr_harm,
 #' sensitivity_results <- sensitivity_analysis_k_inter(
 #'   k_inter_range = c(-2, 2),
 #'   n_points = 11,
-#'   data = gbsg,
+#'   data = survival::gbsg,
 #'   continuous_vars = c("age", "er", "pgr"),
 #'   factor_vars = c("meno", "grade"),
 #'   outcome_var = "rfstime",
@@ -299,10 +299,10 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
       subgroup_size = dgm$subgroup_info$size
     ))
 
-    setTxtProgressBar(pb, i)
+    if (interactive()) setTxtProgressBar(pb, i)
   }
 
-  close(pb)
+  if (interactive()) close(pb)
 
   if (plot) {
     # Create visualization
