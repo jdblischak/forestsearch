@@ -15,12 +15,10 @@
 #' @return A data frame with synthetic data
 #'
 #' @examples
+#' \donttest{
 #' # Example 1: Using with GBSG dataset
-#' library(survival)
-#' data(cancer)
-#'
 #' synth_gbsg <- generate_bootstrap_synthetic(
-#'   data = gbsg,
+#'   data = survival::gbsg,
 #'   continuous_vars = c("age", "size", "nodes", "pgr", "er", "rfstime"),
 #'   cat_vars = c("meno", "hormon", "status"),
 #'   ordinal_vars = c("grade"),
@@ -50,8 +48,8 @@
 #'   n = 150,
 #'   seed = 456
 #' )
-#' @export
-
+#' }
+#'@export
 generate_bootstrap_synthetic <- function(data,
                                          continuous_vars,
                                          cat_vars,

@@ -284,6 +284,9 @@ cox_ahr_cde_analysis <- function(
     dir.create(output_dir, recursive = TRUE)
   }
 
+  oldpar <- par(no.readonly = TRUE)
+  on.exit(par(oldpar), add = TRUE)
+
   # Set up plot layout based on style
   if (plot_style == "combined") {
     par(mfrow = c(2, 2), mar = c(4, 4, 3, 2))
@@ -469,9 +472,6 @@ cox_ahr_cde_analysis <- function(
     dev.off()
     if (verbose) cat("\nPlots saved to:", filename, "\n")
   }
-
-  # Reset par
-  par(mfrow = c(1, 1))
 
   # ===========================================================================
   # Step 5: Compile and Return Results
