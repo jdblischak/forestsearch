@@ -193,7 +193,6 @@
 #' @importFrom foreach foreach
 #' @importFrom data.table data.table
 #' @importFrom doFuture %dofuture%
-#' @keywords internal
 #' @export
 bootstrap_results <- function(fs.est, df_boot_analysis, cox.formula.boot,
                               nb_boots, show_three, H_obs, Hc_obs,
