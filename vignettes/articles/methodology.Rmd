@@ -29,7 +29,9 @@ knitr::opts_chunk$set(
   echo = TRUE,
   message = FALSE,
   warning = FALSE,
-  fig.align = "center"
+  fig.align = "center",
+  fig.width = 8,
+  fig.height = 6
 )
 
 # Bootstrap 5 code-folding hook for pkgdown compatibility
@@ -303,7 +305,7 @@ digraph ForestSearch {
 
   A -> B -> C -> D -> E -> F
 }
-")
+", width = 500, height = 600)
 ```
 
 ## Asymptotic Considerations {#sec-asymptotics}
@@ -343,7 +345,7 @@ The following is based on Monte Carlo simulations. The package also contains
 a numerical integration implementation that is illustrated in the simulation
 vignette materials.
 
-```{r power-approximation, fig.cap="Approximate probability of finding H via ForestSearch"}
+```{r power-approximation, fig.cap="Approximate probability of finding H via ForestSearch", echo = FALSE, code_fold = TRUE}
 
 # Power approximation function
 approx_power <- function(hr, n_subgroup, cens_rate = 0.45) {
