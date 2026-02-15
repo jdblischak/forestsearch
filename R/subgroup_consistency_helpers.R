@@ -22,7 +22,6 @@
 #' @return None. Sets up parallel backend as side effect.
 #'
 #' @importFrom future plan multisession multicore sequential
-#' @keywords internal
 #' @export
 setup_parallel_SGcons <- function(parallel_args = list(
     plan = "multisession",
@@ -85,7 +84,6 @@ setup_parallel_SGcons <- function(parallel_args = list(
 #'
 #' @return Named numeric vector with elements: estimate, lower, upper.
 #'
-#' @keywords internal
 #' @export
 wilson_ci <- function(x, n, conf.level = 0.95) {
   if (n == 0) {
@@ -119,7 +117,6 @@ wilson_ci <- function(x, n, conf.level = 0.95) {
 #'
 #' @return Character. One of "continue", "pass", or "fail".
 #'
-#' @keywords internal
 #' @export
 early_stop_decision <- function(n_success, n_total, threshold,
                                 conf.level = 0.95, min_samples = 20) {
@@ -156,7 +153,6 @@ early_stop_decision <- function(n_success, n_total, threshold,
 #' @return Numeric. Estimated hazard ratio, or NA if model fails.
 #'
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 get_split_hr_fast <- function(df, cox_init = 0) {
   if (nrow(df) < 2 || sum(df$Event) < 2) {
@@ -195,7 +191,6 @@ get_split_hr_fast <- function(df, cox_init = 0) {
 #'
 #' @return Numeric. 1 if both splits meet threshold, 0 if not, NA if error.
 #'
-#' @keywords internal
 #' @export
 run_single_consistency_split <- function(df.x, N.x, hr.consistency, cox_init = 0) {
 
@@ -310,7 +305,6 @@ FS_labels <- function(Qsg, confs_labels) {
 #' @param sg_focus Sorting focus: "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG".
 #' @return A sorted data.table.
 #' @importFrom data.table setorder
-#' @keywords internal
 #' @export
 sort_subgroups <- function(result_new, sg_focus) {
   if (sg_focus == "hr") data.table::setorder(result_new, -Pcons, -hr, K)
@@ -352,7 +346,6 @@ sort_subgroups_preview <- function(result_new, sg_focus) {
 #' @return List with sg.harm, sg.harm_label, df_flag, sg.harm.id.
 #'
 #' @keywords internal
-#' @export
 extract_subgroup <- function(df, top_result, index.Z, names.Z, confs_labels) {
   m <- as.integer(top_result$m)
   indexm <- as.numeric(unlist(index.Z[m, ]))
@@ -435,7 +428,6 @@ plot_subgroup <- function(df.sub, df.subC, by.risk, confs_labels, this.1_label, 
 #' @return List with results, subgroup definition, labels, flags, and group id.
 #'
 #' @importFrom data.table copy
-#' @keywords internal
 #' @export
 sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
                                details = FALSE, plot.sg = FALSE,
@@ -576,7 +568,6 @@ remove_redundant_subgroups <- function(found.hrs) {
 #'
 #' @importFrom data.table data.table
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 evaluate_subgroup_consistency <- function(
     m,
@@ -769,7 +760,6 @@ evaluate_subgroup_consistency <- function(
 #'
 #' @importFrom data.table data.table as.data.table
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 evaluate_consistency_twostage <- function(
     m,
