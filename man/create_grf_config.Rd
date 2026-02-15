@@ -40,4 +40,3 @@ Create GRF configuration object
 \details{
 Creates a configuration object to organize GRF parameters
 }
-\keyword{internal}

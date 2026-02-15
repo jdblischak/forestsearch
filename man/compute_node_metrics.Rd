@@ -23,4 +23,3 @@ Data frame with node metrics
 \description{
 Aggregates scores by leaf node and calculates treatment effect differences
 }
-\keyword{internal}

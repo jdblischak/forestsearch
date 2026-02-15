@@ -27,4 +27,3 @@ Causal survival forest object
 \description{
 Wrapper function to fit GRF causal survival forest with appropriate settings
 }
-\keyword{internal}

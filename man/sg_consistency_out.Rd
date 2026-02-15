@@ -41,4 +41,3 @@ List with results, subgroup definition, labels, flags, and group id.
 \description{
 Returns the top subgroup(s) and recommended treatment flags.
 }
-\keyword{internal}
