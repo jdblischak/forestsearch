@@ -15,7 +15,6 @@
 #' @param maxdepth Integer. Maximum tree depth
 #' @param seedit Integer. Random seed
 #' @return List with configuration parameters
-#' @keywords internal
 #' @export
 
 create_grf_config <- function(frac.tau, n.min, dmin.grf, RCT,
@@ -46,7 +45,6 @@ create_grf_config <- function(frac.tau, n.min, dmin.grf, RCT,
 #' @param RCT Logical. Is this RCT data?
 #' @param seedit Integer. Random seed
 #' @return Causal survival forest object
-#' @keywords internal
 #' @export
 
 fit_causal_forest <- function(X, Y, W, D, tau.rmst, RCT, seedit) {
@@ -86,7 +84,6 @@ fit_causal_forest <- function(X, Y, W, D, tau.rmst, RCT, seedit) {
 #' @param n.min Integer. Minimum subgroup size
 #' @return Data frame with node metrics
 #' @importFrom stats aggregate
-#' @keywords internal
 #' @export
 
 compute_node_metrics <- function(data, dr.scores, tree, X, n.min) {
@@ -122,7 +119,6 @@ compute_node_metrics <- function(data, dr.scores, tree, X, n.min) {
 #' @param n.min Integer. Minimum subgroup size
 #' @return List with trees and combined values
 #' @importFrom policytree policy_tree
-#' @keywords internal
 #' @export
 
 fit_policy_trees <- function(X, data, dr.scores, maxdepth, n.min) {
@@ -155,7 +151,6 @@ fit_policy_trees <- function(X, data, dr.scores, maxdepth, n.min) {
 #' @param dmin.grf Numeric. Minimum difference threshold
 #' @param n.max Integer. Maximum allowed subgroup size (total sample size)
 #' @return Data frame row with best subgroup or NULL if none found
-#' @keywords internal
 #' @export
 
 select_best_subgroup <- function(values, sg.criterion, dmin.grf, n.max) {
@@ -232,7 +227,6 @@ extract_tree_cuts <- function(tree) {
 #' @param tree Policy tree object
 #' @param leaf_node Integer. Leaf node identifier
 #' @return Character string with split expression or NULL
-#' @keywords internal
 #' @export
 
 find_leaf_split <- function(tree, leaf_node) {
@@ -365,7 +359,6 @@ result$selected_depth <- selected_depth
 #' @param X Matrix. Covariate matrix
 #' @return Data frame with added predict.node and treat.recommend columns
 #' @keywords internal
-#' @export
 
 assign_subgroup_membership <- function(data, best_subgroup, trees, X) {
   depth <- best_subgroup$depth
@@ -521,7 +514,6 @@ create_null_result <- function(data, values, trees, config) {
 #' @param best_subgroup Data frame row. Selected subgroup (or NULL)
 #' @param sg_harm_id Character. Subgroup definition (or NULL)
 #' @param tree_cuts List. Cut information
-#' @keywords internal
 #' @export
 
 print_grf_details <- function(config, values, best_subgroup, sg_harm_id, tree_cuts = NULL) {
@@ -564,7 +556,6 @@ print_grf_details <- function(config, values, best_subgroup, sg_harm_id, tree_cu
 #' @param D Numeric vector. Event indicator
 #' @param n.min Integer. Minimum subgroup size
 #' @return Logical. TRUE if data is valid, FALSE with warning otherwise
-#' @keywords internal
 #' @export
 
 validate_grf_data <- function(W, D, n.min) {
