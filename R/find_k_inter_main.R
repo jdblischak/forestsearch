@@ -81,7 +81,6 @@
 #' @keywords survival simulation AFT interaction calibration
 #' @import survival
 #' @importFrom stats uniroot optim quantile
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 
 find_k_inter_for_target_hr <- function(target_hr_harm,
@@ -255,8 +254,9 @@ find_k_inter_for_target_hr <- function(target_hr_harm,
 #' print(sensitivity_results)
 #' }
 #'
-#' @export
 #' @importFrom graphics par plot lines abline legend grid text
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @export
 sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
                                          n_points = 21,
                                          plot = TRUE,
