@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Treatment Effect Definitions — ForestSearch GT Tables Preview</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    max-width: 1120px;
+    margin: 40px auto;
+    padding: 0 24px;
+    background: #fafbfc;
+    color: #333;
+    line-height: 1.6;
+  }
+  h1 {
+    color: #2C3E50;
+    border-bottom: 3px solid #2C3E50;
+    padding-bottom: 12px;
+    font-size: 1.6em;
+  }
+  h2 {
+    color: #34495E;
+    margin-top: 44px;
+    font-size: 1.25em;
+  }
+  .subtitle {
+    color: #666;
+    font-size: 0.95em;
+    margin-top: -8px;
+    margin-bottom: 24px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 16px 0 28px;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  thead th {
+    background: #2C3E50;
+    color: #fff;
+    font-weight: 700;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 2px solid #1a252f;
+  }
+  thead th:first-child { min-width: 220px; }
+  .group-header td {
+    background: #F0F4F8;
+    font-weight: 700;
+    font-size: 12.5px;
+    padding: 8px 14px;
+    border-top: 1px solid #B0BEC5;
+    border-bottom: 1px solid #B0BEC5;
+    color: #2C3E50;
+  }
+  tbody td {
+    padding: 7px 14px;
+    border-bottom: 1px solid #ECEFF1;
+    vertical-align: top;
+  }
+  tbody td:first-child {
+    font-weight: 600;
+    color: #2C3E50;
+  }
+  .highlight-green { background: #E8F4E8; }
+  .highlight-yellow { background: #FFF8E1; }
+  .section-border td { border-bottom: 2px solid #B0BEC5; }
+  code, .mono {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    background: #f5f5f5;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  .source-note {
+    font-size: 11px;
+    color: #888;
+    padding: 8px 14px;
+    border-top: 1px solid #ddd;
+    background: #fafafa;
+  }
+  .table-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: #2C3E50;
+    margin-bottom: 2px;
+  }
+  .table-subtitle {
+    font-size: 12.5px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Treatment Effect Definitions in ForestSearch</h1>
+<p class="subtitle">
+  Publication-quality summary tables for the three treatment effect measures
+  implemented in the ForestSearch package: Marginal HR, Average Hazard Ratio (AHR),
+  and Controlled Direct Effect (CDE).
+</p>
+
+<!-- ================================================================ -->
+<!-- TABLE 1: COMPREHENSIVE COMPARISON                                -->
+<!-- ================================================================ -->
+
+<h2>Table 1: Comprehensive Comparison</h2>
+<div class="table-title">Comparison of Treatment Effect Definitions</div>
+<div class="table-subtitle">Marginal HR, Average Hazard Ratio, and Controlled Direct Effect</div>
+
+<table>
+<thead>
+  <tr>
+    <th></th>
+    <th>Marginal HR</th>
+    <th>AHR</th>
+    <th>CDE</th>
+  </tr>
+</thead>
+<tbody>
+  <!-- Definition Group -->
+  <tr class="group-header"><td colspan="4">Definition</td></tr>
+  <tr>
+    <td>Formal name</td>
+    <td>Marginal (causal) hazard ratio</td>
+    <td>Average hazard ratio</td>
+    <td>Controlled direct effect (hazard ratio)</td>
+  </tr>
+  <tr>
+    <td>Notation</td>
+    <td>HR<sub>marg</sub>(S)</td>
+    <td>AHR(S)</td>
+    <td>CDE(S)</td>
+  </tr>
+  <tr class="section-border">
+    <td>Formula (subgroup S)</td>
+    <td>exp(&beta;<sub>Cox</sub>) from stacked PO Cox model</td>
+    <td>exp( mean(loghr_po<sub>i</sub>) ) for i &in; S</td>
+    <td>mean(exp(&theta;<sub>1,i</sub>)) / mean(exp(&theta;<sub>0,i</sub>))</td>
+  </tr>
+
+  <!-- Statistical Properties Group -->
+  <tr class="group-header"><td colspan="4">Statistical Properties</td></tr>
+  <tr>
+    <td>Averaging scale</td>
+    <td>Hazard ratio (Cox partial likelihood)</td>
+    <td>Log-hazard (then exponentiated)</td>
+    <td>Hazard (natural scale ratio)</td>
+  </tr>
+  <tr class="highlight-green">
+    <td>Depends on &epsilon;<sub>i</sub></td>
+    <td>Yes</td>
+    <td>No</td>
+    <td>No</td>
+  </tr>
+  <tr class="highlight-green">
+    <td>Reproducible across seeds</td>
+    <td>No (Monte Carlo variability)</td>
+    <td>Yes (deterministic)</td>
+    <td>Yes (deterministic)</td>
+  </tr>
+  <tr>
+    <td>Accounts for covariate heterogeneity</td>
+    <td>Averaged out (population-level)</td>
+    <td>Geometric mean preserves individual effects</td>
+    <td>Ratio of mean hazards preserves scale</td>
+  </tr>
+  <tr class="section-border">
+    <td>Sensitive to outlier hazard contributions</td>
+    <td>No (rank-based)</td>
+    <td>Moderate (log scale dampens extremes)</td>
+    <td>Yes (exponential scale amplifies large values)</td>
+  </tr>
+
+  <!-- Computation Group -->
+  <tr class="group-header"><td colspan="4">Computation</td></tr>
+  <tr>
+    <td>Standard estimation method</td>
+    <td>Cox PH on stacked potential outcomes</td>
+    <td>Arithmetic mean of individual log HRs</td>
+    <td>Ratio of average exponentiated log-hazards</td>
+  </tr>
+  <tr>
+    <td>Primary ForestSearch use</td>
+    <td>Validation of DGM causal structure</td>
+    <td>Primary estimand for subgroup characterization</td>
+    <td>Complementary biomarker-threshold analysis</td>
+  </tr>
+  <tr class="section-border">
+    <td>Key package variable(s)</td>
+    <td><code>hr_causal</code>, <code>hr_H_true</code>, <code>hr_Hc_true</code></td>
+    <td><code>loghr_po</code>, <code>AHR</code>, <code>AHR_H_true</code>, <code>AHR_Hc_true</code></td>
+    <td><code>theta_0</code>, <code>theta_1</code>, <code>cde_results</code></td>
+  </tr>
+
+  <!-- Interpretation Group -->
+  <tr class="group-header"><td colspan="4">Interpretation &amp; Use</td></tr>
+  <tr>
+    <td>Key package function(s)</td>
+    <td><code>calculate_hazard_ratios()</code>, <code>create_gbsg_dgm()</code></td>
+    <td><code>cox_ahr_cde_analysis()</code>, <code>plot_subgroup_effects()</code></td>
+    <td><code>cox_ahr_cde_analysis()</code>, <code>plot_subgroup_effects()</code></td>
+  </tr>
+  <tr>
+    <td>Interpretation</td>
+    <td>Population-average HR as estimated by Cox regression on potential outcomes</td>
+    <td>Geometric mean of individual causal hazard ratios across subjects</td>
+    <td>Ratio of average hazard contributions under treatment vs. control</td>
+  </tr>
+</tbody>
+</table>
+<div class="source-note">
+  Based on the potential outcomes framework within the ForestSearch AFT data-generating mechanism.
+  See Le&oacute;n et al. (2024), <em>Statistics in Medicine</em>.
+</div>
+
+
+<!-- ================================================================ -->
+<!-- TABLE 2: COMPUTATION PIPELINE                                    -->
+<!-- ================================================================ -->
+
+<h2>Table 2: Computation Pipeline</h2>
+<div class="table-title">Treatment Effect Computation Pipeline</div>
+<div class="table-subtitle">From AFT model fit to subgroup-level estimands</div>
+
+<table>
+<thead>
+  <tr>
+    <th style="min-width:180px;">Step</th>
+    <th>Mathematical Formula</th>
+    <th>R Implementation</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>1. AFT model</td>
+    <td>log(T<sub>i</sub>) = &mu; + X<sub>i</sub>&prime; &gamma; + &sigma; &middot; &epsilon;<sub>i</sub></td>
+    <td class="mono">survreg(Surv(y, event) ~ ..., dist = "weibull")</td>
+  </tr>
+  <tr>
+    <td>2. Hazard-scale transform</td>
+    <td>&beta;<sub>0</sub> = &minus;&gamma; / &sigma;</td>
+    <td class="mono">b0 &lt;- -gamma / tau</td>
+  </tr>
+  <tr>
+    <td>3. Individual log-hazards</td>
+    <td>&theta;<sub>i</sub>(a) = X<sub>i</sub>(a)&prime; &beta;<sub>0</sub></td>
+    <td class="mono">theta_0 &lt;- X_control %*% b0<br>theta_1 &lt;- X_treat %*% b0</td>
+  </tr>
+  <tr>
+    <td>4. Individual causal log HR</td>
+    <td>loghr_po<sub>i</sub> = &theta;<sub>i</sub>(1) &minus; &theta;<sub>i</sub>(0)</td>
+    <td class="mono">loghr_po &lt;- theta_1 - theta_0</td>
+  </tr>
+  <tr class="highlight-yellow">
+    <td>5a. AHR (subgroup S)</td>
+    <td>AHR(S) = exp( mean(loghr_po<sub>i</sub>), i &in; S )</td>
+    <td class="mono">exp(mean(df$loghr_po[idx]))</td>
+  </tr>
+  <tr class="highlight-yellow">
+    <td>5b. CDE (subgroup S)</td>
+    <td>CDE(S) = mean(exp(&theta;<sub>1,i</sub>)) / mean(exp(&theta;<sub>0,i</sub>))</td>
+    <td class="mono">mean(exp(df$theta_1[idx])) /<br>&nbsp;&nbsp;mean(exp(df$theta_0[idx]))</td>
+  </tr>
+  <tr class="highlight-yellow">
+    <td>5c. Marginal HR (subgroup S)</td>
+    <td>HR<sub>marg</sub>(S): exp(&beta;) from coxph() on stacked PO data</td>
+    <td class="mono">exp(coxph(Surv(time, event) ~<br>&nbsp;&nbsp;treat, data = df_stacked)$coef)</td>
+  </tr>
+  <tr>
+    <td>6. Theoretical HR (harm)</td>
+    <td>HR(H) = exp( &beta;<sub>0</sub>[treat] + &beta;<sub>0</sub>[zh] )</td>
+    <td class="mono">exp(b0["treat"] + b0["zh"])</td>
+  </tr>
+</tbody>
+</table>
+
+</body>
+</html>

@@ -53,7 +53,7 @@ the k_inter range. If plot = TRUE, it creates a 4-panel visualization showing:
 sensitivity_results <- sensitivity_analysis_k_inter(
   k_inter_range = c(-2, 2),
   n_points = 11,
-  data = gbsg,
+  data = survival::gbsg,
   continuous_vars = c("age", "er", "pgr"),
   factor_vars = c("meno", "grade"),
   outcome_var = "rfstime",

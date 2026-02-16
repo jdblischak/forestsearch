@@ -23,4 +23,3 @@ List with trees and combined values
 \description{
 Fits policy trees of depths 1 through maxdepth and computes metrics
 }
-\keyword{internal}

@@ -54,8 +54,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' library(survival)
-#' data(cancer)
+#' gbsg <- survival::gbsg
 #'
 #' # Find k_inter for target HR = 2.0 in harm subgroup
 #' result <- find_k_inter_for_target_hr(
@@ -82,7 +81,6 @@
 #' @keywords survival simulation AFT interaction calibration
 #' @import survival
 #' @importFrom stats uniroot optim quantile
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 
 find_k_inter_for_target_hr <- function(target_hr_harm,
@@ -240,7 +238,7 @@ find_k_inter_for_target_hr <- function(target_hr_harm,
 #' sensitivity_results <- sensitivity_analysis_k_inter(
 #'   k_inter_range = c(-2, 2),
 #'   n_points = 11,
-#'   data = gbsg,
+#'   data = survival::gbsg,
 #'   continuous_vars = c("age", "er", "pgr"),
 #'   factor_vars = c("meno", "grade"),
 #'   outcome_var = "rfstime",
@@ -256,8 +254,9 @@ find_k_inter_for_target_hr <- function(target_hr_harm,
 #' print(sensitivity_results)
 #' }
 #'
-#' @export
 #' @importFrom graphics par plot lines abline legend grid text
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @export
 sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
                                          n_points = 21,
                                          plot = TRUE,
@@ -280,8 +279,10 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
     subgroup_size = numeric()
   )
 
-  cat("Running sensitivity analysis...\n")
-  pb <- txtProgressBar(min = 0, max = n_points, style = 3)
+  if (interactive()) {
+    message("Running sensitivity analysis...")
+    pb <- txtProgressBar(min = 0, max = n_points, style = 3)
+  }
 
   for (i in seq_along(k_inter_vals)) {
     dgm <- generate_aft_dgm_flex(
@@ -298,10 +299,10 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
       subgroup_size = dgm$subgroup_info$size
     ))
 
-    setTxtProgressBar(pb, i)
+    if (interactive()) setTxtProgressBar(pb, i)
   }
 
-  close(pb)
+  if (interactive()) close(pb)
 
   if (plot) {
     # Create visualization
@@ -341,7 +342,7 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
     key_results <- results[key_indices, ]
     text(0.5, 0.9, "Key Values", cex = 1.2, font = 2)
     text(0.5, 0.8, paste("k_inter: HR_harm / HR_no_harm"), cex = 0.9)
-    for (i in 1:nrow(key_results)) {
+    for (i in seq_len(nrow(key_results))) {
       text(0.5, 0.7 - i*0.07,
            sprintf("%.1f: %.2f / %.2f",
                    key_results$k_inter[i],
@@ -385,9 +386,7 @@ sensitivity_analysis_k_inter <- function(k_inter_range = c(-5, 5),
 #'
 #' @examples
 #' \dontrun{
-#' library(survival)
-#' data(cancer)
-#'
+#' gbsg <- survival::gbsg
 #' # Find ER cutpoint for 12.5% subgroup
 #' result <- find_quantile_for_proportion(
 #'   data = gbsg,

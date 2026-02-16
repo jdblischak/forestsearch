@@ -20,4 +20,3 @@ print_grf_details(config, values, best_subgroup, sg_harm_id, tree_cuts = NULL)
 \description{
 Displays detailed information about the GRF analysis
 }
-\keyword{internal}

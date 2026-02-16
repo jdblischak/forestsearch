@@ -17,4 +17,3 @@ Numeric vector of subgroup membership (1/0).
 \description{
 Returns a vector indicating subgroup membership (1 if all selected factors are present, 0 otherwise).
 }
-\keyword{internal}

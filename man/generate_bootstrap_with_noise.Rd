@@ -116,10 +116,6 @@ synthetic_list <- lapply(1:10, function(i) {
 \code{\link[base]{sample}} for bootstrap sampling,
 \code{\link[stats]{rnorm}} for noise generation
 }
-\author{
-Your Name
-}
 \keyword{bootstrap}
 \keyword{datagen}
-\keyword{internal}
 \keyword{simulation}

@@ -11,7 +11,6 @@
 #' @param est.loghr Logical. Is estimate on log(HR) scale?
 #' @return List with estimate and standard error.
 #' @importFrom survival coxph
-#' @keywords internal
 #' @export
 get_Cox_sg <- function(df_sg, cox.formula, est.loghr = TRUE, cox_initial = log(1)) {
 
@@ -56,7 +55,6 @@ get_Cox_sg <- function(df_sg, cox.formula, est.loghr = TRUE, cox_initial = log(1
 #' @param event.name Character. Name of event indicator variable.
 #' @param treat.name Character. Name of treatment variable.
 #' @return An R formula object for Cox regression.
-#' @keywords internal
 #' @export
 
 build_cox_formula <- function(outcome.name, event.name, treat.name) {
@@ -71,7 +69,6 @@ build_cox_formula <- function(outcome.name, event.name, treat.name) {
 #' @param df Data frame.
 #' @param formula Cox model formula.
 #' @return List with HR and SE for each subgroup.
-#' @keywords internal
 #' @export
 
 fit_cox_models <- function(df, formula) {

@@ -47,9 +47,7 @@ specific subgroup size regardless of the data distribution.
 }
 \examples{
 \dontrun{
-library(survival)
-data(cancer)
-
+gbsg <- survival::gbsg
 # Find ER cutpoint for 12.5\% subgroup
 result <- find_quantile_for_proportion(
   data = gbsg,

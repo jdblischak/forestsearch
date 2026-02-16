@@ -21,4 +21,3 @@ List with subgroup data frames and treatment variable name.
 \description{
 Splits a data frame into two subgroups based on a flag and treatment scale.
 }
-\keyword{internal}

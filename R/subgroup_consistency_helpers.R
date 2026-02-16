@@ -22,7 +22,6 @@
 #' @return None. Sets up parallel backend as side effect.
 #'
 #' @importFrom future plan multisession multicore sequential
-#' @keywords internal
 #' @export
 setup_parallel_SGcons <- function(parallel_args = list(
     plan = "multisession",
@@ -85,7 +84,6 @@ setup_parallel_SGcons <- function(parallel_args = list(
 #'
 #' @return Named numeric vector with elements: estimate, lower, upper.
 #'
-#' @keywords internal
 #' @export
 wilson_ci <- function(x, n, conf.level = 0.95) {
   if (n == 0) {
@@ -119,7 +117,6 @@ wilson_ci <- function(x, n, conf.level = 0.95) {
 #'
 #' @return Character. One of "continue", "pass", or "fail".
 #'
-#' @keywords internal
 #' @export
 early_stop_decision <- function(n_success, n_total, threshold,
                                 conf.level = 0.95, min_samples = 20) {
@@ -156,7 +153,6 @@ early_stop_decision <- function(n_success, n_total, threshold,
 #' @return Numeric. Estimated hazard ratio, or NA if model fails.
 #'
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 get_split_hr_fast <- function(df, cox_init = 0) {
   if (nrow(df) < 2 || sum(df$Event) < 2) {
@@ -195,7 +191,6 @@ get_split_hr_fast <- function(df, cox_init = 0) {
 #'
 #' @return Numeric. 1 if both splits meet threshold, 0 if not, NA if error.
 #'
-#' @keywords internal
 #' @export
 run_single_consistency_split <- function(df.x, N.x, hr.consistency, cox_init = 0) {
 
@@ -240,15 +235,15 @@ run_single_consistency_split <- function(df.x, N.x, hr.consistency, cox_init = 0
 #' mapping. Supports both full format ("q1.1", "q3.0") and short format
 #' ("q1", "q3"). Handles vector input via recursion.
 #'
-#' @param Qsg Character. Factor code in format "q<index>.<action>" or
-#'   "q<index>". For the full format, action 0 = NOT (complement),
+#' @param Qsg Character. Factor code in format `"q<index>.<action>"` or
+#'   `"q<index>"`. For the full format, action 0 = NOT (complement),
 #'   action 1 = IN (member). Short format defaults to action 1.
 #'   Can also be a character vector for vectorized input.
 #' @param confs_labels Character vector. Labels for each factor, indexed by
 #'   factor number.
 #'
 #' @return Character. Human-readable label wrapped in braces, e.g.,
-#'   "\{age <= 50\}" or "!\{age <= 50\}" for complement. Returns the
+#'   `"{age <= 50}"` or `"!{age <= 50}"` for complement. Returns the
 #'   original code if no match is found.
 #'
 #' @examples
@@ -310,7 +305,6 @@ FS_labels <- function(Qsg, confs_labels) {
 #' @param sg_focus Sorting focus: "hr", "hrMaxSG", "maxSG", "hrMinSG", "minSG".
 #' @return A sorted data.table.
 #' @importFrom data.table setorder
-#' @keywords internal
 #' @export
 sort_subgroups <- function(result_new, sg_focus) {
   if (sg_focus == "hr") data.table::setorder(result_new, -Pcons, -hr, K)
@@ -352,12 +346,11 @@ sort_subgroups_preview <- function(result_new, sg_focus) {
 #' @return List with sg.harm, sg.harm_label, df_flag, sg.harm.id.
 #'
 #' @keywords internal
-#' @export
 extract_subgroup <- function(df, top_result, index.Z, names.Z, confs_labels) {
   m <- as.integer(top_result$m)
   indexm <- as.numeric(unlist(index.Z[m, ]))
   sg.harm <- names.Z[indexm == 1]
-  sg.harm_label <- sapply(sg.harm, function(q) FS_labels(q, confs_labels))
+  sg.harm_label <- vapply(sg.harm, function(q) FS_labels(q, confs_labels), character(1))
 
   # Create membership flag
   df_temp <- data.table::as.data.table(df)
@@ -435,7 +428,6 @@ plot_subgroup <- function(df.sub, df.subC, by.risk, confs_labels, this.1_label, 
 #' @return List with results, subgroup definition, labels, flags, and group id.
 #'
 #' @importFrom data.table copy
-#' @keywords internal
 #' @export
 sg_consistency_out <- function(df, result_new, sg_focus, index.Z, names.Z,
                                details = FALSE, plot.sg = FALSE,
@@ -576,7 +568,6 @@ remove_redundant_subgroups <- function(found.hrs) {
 #'
 #' @importFrom data.table data.table
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 evaluate_subgroup_consistency <- function(
     m,
@@ -621,7 +612,7 @@ evaluate_subgroup_consistency <- function(
   }
 
   # Convert to labels
-  this.m_label <- sapply(this.m, function(q) FS_labels(q, confs_labels))
+  this.m_label <- vapply(this.m, function(q) FS_labels(q, confs_labels), character(1))
 
   # -------------------------------------------------------------------------
   # SECTION 3: IDENTIFY SUBGROUP MEMBERS
@@ -769,7 +760,6 @@ evaluate_subgroup_consistency <- function(
 #'
 #' @importFrom data.table data.table as.data.table
 #' @importFrom survival coxph Surv
-#' @keywords internal
 #' @export
 evaluate_consistency_twostage <- function(
     m,
@@ -897,7 +887,7 @@ evaluate_consistency_twostage <- function(
     return(NULL)
   }
 
-  this.m_label <- sapply(this.m, function(q) FS_labels(q, confs_labels))
+  this.m_label <- vapply(this.m, function(q) FS_labels(q, confs_labels), character(1))
 
   # ---------------------------------------------------------------------------
   # Identify subgroup members

@@ -17,4 +17,3 @@ A sorted data.table.
 \description{
 Sorts a data.table of subgroup results according to the specified focus.
 }
-\keyword{internal}

@@ -19,4 +19,3 @@ Synthetic GBSG dataset
 \description{
 Generate Synthetic GBSG Data using Generalized Bootstrap
 }
-\keyword{internal}

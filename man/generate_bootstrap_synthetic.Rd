@@ -46,12 +46,10 @@ A data frame with synthetic data
 Generate Synthetic Data using Bootstrap with Perturbation
 }
 \examples{
+\donttest{
 # Example 1: Using with GBSG dataset
-library(survival)
-data(cancer)
-
 synth_gbsg <- generate_bootstrap_synthetic(
-  data = gbsg,
+  data = survival::gbsg,
   continuous_vars = c("age", "size", "nodes", "pgr", "er", "rfstime"),
   cat_vars = c("meno", "hormon", "status"),
   ordinal_vars = c("grade"),
@@ -82,4 +80,4 @@ synth_data <- generate_bootstrap_synthetic(
   seed = 456
 )
 }
-\keyword{internal}
+}

@@ -19,4 +19,3 @@ Logical. TRUE if data is valid, FALSE with warning otherwise
 \description{
 Checks that input data meets requirements for GRF analysis
 }
-\keyword{internal}

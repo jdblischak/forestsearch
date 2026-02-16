@@ -21,4 +21,3 @@ Data frame row with best subgroup or NULL if none found
 \description{
 Identifies the optimal subgroup according to the specified criterion
 }
-\keyword{internal}

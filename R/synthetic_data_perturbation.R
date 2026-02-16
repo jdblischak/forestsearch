@@ -15,12 +15,10 @@
 #' @return A data frame with synthetic data
 #'
 #' @examples
+#' \donttest{
 #' # Example 1: Using with GBSG dataset
-#' library(survival)
-#' data(cancer)
-#'
 #' synth_gbsg <- generate_bootstrap_synthetic(
-#'   data = gbsg,
+#'   data = survival::gbsg,
 #'   continuous_vars = c("age", "size", "nodes", "pgr", "er", "rfstime"),
 #'   cat_vars = c("meno", "hormon", "status"),
 #'   ordinal_vars = c("grade"),
@@ -50,9 +48,8 @@
 #'   n = 150,
 #'   seed = 456
 #' )
-#' @keywords internal
-#' @export
-
+#' }
+#'@export
 generate_bootstrap_synthetic <- function(data,
                                          continuous_vars,
                                          cat_vars,
@@ -354,7 +351,6 @@ detect_variable_types <- function(data, max_unique_for_cat = 10, exclude_vars = 
 #' @param noise_level Noise level for perturbation
 #'
 #' @return Synthetic GBSG dataset
-#' @keywords internal
 #' @export
 
 generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0.1) {
@@ -472,12 +468,10 @@ generate_gbsg_bootstrap_general <- function(n = 686, seed = 123, noise_level = 0
 #' \code{\link[base]{sample}} for bootstrap sampling,
 #' \code{\link[stats]{rnorm}} for noise generation
 #'
-#' @keywords internal
-#' @export
 #' @importFrom stats rnorm sd
-#'
-#' @author Your Name
 #' @keywords datagen bootstrap simulation
+#' @export
+
 generate_bootstrap_with_noise <- function(data,
                                           n = NULL,
                                           continuous_vars = NULL,
@@ -512,14 +506,18 @@ generate_bootstrap_with_noise <- function(data,
 
   # Auto-detect variable types if not specified
   if (is.null(continuous_vars)) {
-    continuous_vars <- names(data)[sapply(data, is.numeric)]
+    continuous_vars <- names(data)[vapply(data, is.numeric, logical(1))]
     # Remove id variable if present
     continuous_vars <- setdiff(continuous_vars, id_var)
   }
 
   if (is.null(cat_vars)) {
-    cat_vars <- names(data)[sapply(data, function(x) is.factor(x) || is.logical(x) ||
-                                     (is.numeric(x) && length(unique(x)) <= 10))]
+
+    cat_vars <- names(data)[vapply(data, function(x) {
+      is.factor(x) || is.logical(x) ||
+        (is.numeric(x) && length(unique(x)) <= 10L)
+    }, logical(1))]
+
     # Remove any vars already in continuous_vars and id_var
     cat_vars <- setdiff(cat_vars, c(continuous_vars, id_var))
   }

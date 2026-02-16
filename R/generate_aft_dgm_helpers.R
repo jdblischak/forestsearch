@@ -925,17 +925,17 @@ compare_multiple_survreg <- function(...,
   }
 
   # Check that all inputs are survreg objects
-  if(!all(sapply(models, function(x) inherits(x, "survreg")))) {
+  if (!all(vapply(models, inherits, logical(1), what = "survreg"))) {
     stop("All inputs must be survreg model objects")
   }
 
   # Auto-generate names if not provided
   if(is.null(model_names)) {
-    model_names <- sapply(models, function(x) {
+    model_names <- vapply(models, function(x) {
       dist_name <- x$dist
-      if(is.list(dist_name)) dist_name <- dist_name$name
-      return(paste0(dist_name, "_model"))
-    })
+      if (is.list(dist_name)) dist_name <- dist_name$name
+      paste0(dist_name, "_model")
+    }, character(1))
   } else if(length(model_names) != n_models) {
     stop("Number of model names must match number of models")
   }

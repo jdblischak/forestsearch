@@ -17,4 +17,3 @@ Character string with split expression or NULL
 \description{
 Identifies the split point that creates a given leaf node
 }
-\keyword{internal}

@@ -85,6 +85,10 @@ devtools::install()
 # Run these before CRAN submission
 devtools::check(cran = TRUE)     # Full CRAN validation
 
+# corrupt .rdb cached.  Force remove it
+# from terminal
+rm -rf /home/larryleon/R/x86_64-pc-linux-gnu-library/4.5/forestsearch
+# restart R (Session -> Restart R)
 
 # Retain dev/working locally
 # Remove from Git's index only (keeps local files intact)
@@ -92,18 +96,15 @@ devtools::check(cran = TRUE)     # Full CRAN validation
 # Then commit
 #git add .gitignore
 
-echo "dev/working/" >> .gitignore
-
-git rm -r --cached dev/working/
-
-git add .gitignore
-git commit -m "Stop tracking dev/working/, keep locally"
+# echo "dev/working/" >> .gitignore
+# git rm -r --cached dev/working/
+# git add .gitignore
+# git commit -m "Stop tracking dev/working/, keep locally"
 
 # End prior flow
 
 dir.create("vignettes/articles", recursive = TRUE, showWarnings = FALSE)
 usethis::use_build_ignore("vignettes/articles")
-
 
 pkgdown::check_pkgdown()
 
@@ -121,6 +122,7 @@ pkgdown::check_pkgdown()
 
 # USING THIS
 # Build locally, then push docs/ to gh-pages branch
+
 pkgdown::build_site()
 
 # note: deploy_to_branch calls build_site(), so only run here if deploying
@@ -129,6 +131,25 @@ pkgdown::deploy_to_branch()
 
 #https://larry-leon.github.io/forestsearch
 
+# Preview without building everything
+pkgdown::build_reference()
+
+pkgdown::preview_site()
+
+# Build single article for quick preview
+#pkgdown::build_article("getting-started")
+
+pkgdown::build_article("forestsearch")
+
+pkgdown::build_article("articles/methodology")
+
+pkgdown::build_article("articles/treatment_effect_definitions")
+
+
+pkgdown::build_article(
+  "articles/treatment_effect_definitions",
+  quiet = FALSE
+)
 
 # =============================================================================
 # pkgdown Deployment Notes for forestsearch
