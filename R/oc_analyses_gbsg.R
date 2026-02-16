@@ -261,6 +261,10 @@ extract_fs_estimates <- function(
     hr.H.hat = NA_real_,
     hr.Hc.true = NA_real_,
     hr.Hc.hat = NA_real_,
+    ahr.H.true = NA_real_,
+    ahr.Hc.true = NA_real_,
+    ahr.H.hat = NA_real_,
+    ahr.Hc.hat = NA_real_,
     hr.itt = NA_real_,
     hr.adj.itt = NA_real_,
     ppv = NA_real_,
@@ -358,6 +362,12 @@ extract_fs_estimates <- function(
     }, error = function(e) NA_real_)
   }
 
+  # AHR in identified subgroups (from loghr_po)
+  if ("loghr_po" %in% names(df)) {
+    out$ahr.H.hat <- compute_ahr(df, df$sg_hat)
+    out$ahr.Hc.hat <- compute_ahr(df, 1L - df$sg_hat)
+  }
+
   if (verbose) {
     message(sprintf("  [%s] HR estimates: H = %.3f, Hc = %.3f",
                     analysis,
@@ -400,6 +410,12 @@ extract_fs_estimates <- function(
           data = subset(df, flag.harm == 0)
         )$coefficients)
       }, error = function(e) NA_real_)
+    }
+
+    # AHR in true subgroups (from loghr_po)
+    if ("loghr_po" %in% names(df)) {
+      out$ahr.H.true <- compute_ahr(df, df$flag.harm)
+      out$ahr.Hc.true <- compute_ahr(df, 1L - df$flag.harm)
     }
   }
 
@@ -593,10 +609,15 @@ extract_grf_estimates <- function(
     size.H = NA_integer_,
     size.Hc = nrow(df),
     # Cox-based HRs
-    hr.H.true = NA_integer_,
+    hr.H.true = NA_real_,
     hr.H.hat = NA_real_,
-    hr.Hc.true = NA_integer_,
+    hr.Hc.true = NA_real_,
     hr.Hc.hat = NA_real_,
+    # AHR metrics
+    ahr.H.true = NA_real_,
+    ahr.Hc.true = NA_real_,
+    ahr.H.hat = NA_real_,
+    ahr.Hc.hat = NA_real_,
     hr.itt = NA_real_,
     hr.adj.itt = NA_real_,
     # Classification metrics
@@ -756,19 +777,19 @@ extract_grf_estimates <- function(
   # -------------------------------------------------------------------------
   # Compute AHR estimates
   # -------------------------------------------------------------------------
-  # if ("loghr_po" %in% names(df)) {
-  #   if ("id" %in% names(grf_data) && "id" %in% names(df)) {
-  #     df_merged <- merge(df[, c("id", "loghr_po")],
-  #                       grf_data[, c("id", "sg_hat")],
-  #                       by = "id", all.y = TRUE)
-  #     out$ahr.H.hat <- compute_ahr(df_merged, df_merged$sg_hat)
-  #     out$ahr.Hc.hat <- compute_ahr(df_merged, 1L - df_merged$sg_hat)
-  #   } else if (nrow(df) == nrow(grf_data)) {
-  #     df$sg_hat <- harm_indicator
-  #     out$ahr.H.hat <- compute_ahr(df, df$sg_hat)
-  #     out$ahr.Hc.hat <- compute_ahr(df, 1L - df$sg_hat)
-  #   }
-  # }
+  if ("loghr_po" %in% names(df)) {
+    if ("id" %in% names(grf_data) && "id" %in% names(df)) {
+      df_merged <- merge(df[, c("id", "loghr_po")],
+                        grf_data[, c("id", "sg_hat")],
+                        by = "id", all.y = TRUE)
+      out$ahr.H.hat <- compute_ahr(df_merged, df_merged$sg_hat)
+      out$ahr.Hc.hat <- compute_ahr(df_merged, 1L - df_merged$sg_hat)
+    } else if (nrow(df) == nrow(grf_data)) {
+      df$sg_hat <- harm_indicator
+      out$ahr.H.hat <- compute_ahr(df, df$sg_hat)
+      out$ahr.Hc.hat <- compute_ahr(df, 1L - df$sg_hat)
+    }
+  }
 
   # -------------------------------------------------------------------------
   # Classification metrics
@@ -803,6 +824,12 @@ extract_grf_estimates <- function(
         message(sprintf("  [%s] Classification: Sens = %.3f, Spec = %.3f, PPV = %.3f, NPV = %.3f",
                         analysis, out$sens, out$spec, out$ppv, out$npv))
       }
+    }
+
+    # AHR in true subgroups (from loghr_po)
+    if ("loghr_po" %in% names(df)) {
+      out$ahr.H.true <- compute_ahr(df, df$flag.harm)
+      out$ahr.Hc.true <- compute_ahr(df, 1L - df$flag.harm)
     }
   }
 
@@ -1381,12 +1408,12 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
     hr_Hc_hat <- round(mean(res_found$hr.Hc.hat, na.rm = TRUE), digits_hr)
 
   #   # AHR estimates (aligned)
-  #   ahr_H_hat <- if ("ahr.H.hat" %in% names(res_found)) {
-  #     round(mean(res_found$ahr.H.hat, na.rm = TRUE), digits_hr)
-  #   } else NA
-  #   ahr_Hc_hat <- if ("ahr.Hc.hat" %in% names(res_found)) {
-  #     round(mean(res_found$ahr.Hc.hat, na.rm = TRUE), digits_hr)
-  #   } else NA
+    ahr_H_hat <- if ("ahr.H.hat" %in% names(res_found)) {
+      round(mean(res_found$ahr.H.hat, na.rm = TRUE), digits_hr)
+    } else NA
+    ahr_Hc_hat <- if ("ahr.Hc.hat" %in% names(res_found)) {
+      round(mean(res_found$ahr.Hc.hat, na.rm = TRUE), digits_hr)
+    } else NA
    } else {
      hr_H_true <- hr_H_hat <- hr_Hc_true <- hr_Hc_hat <- NA
    }
