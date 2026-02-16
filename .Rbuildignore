@@ -1,6 +1,8 @@
 
 ^vignettes/results$
 
+^vignettes/\.RData$
+^vignettes/\.quarto$
 
 # Development files and directories
 ^dev$
