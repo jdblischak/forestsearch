@@ -1379,13 +1379,17 @@ summarize_simulation_results <- function(
 #' @keywords internal
 summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 
-  # Classification metrics
+  # ---------------------------------------------------------------------------
+  # Classification metrics (all replicates)
+  # ---------------------------------------------------------------------------
   class_cols <- c("any.H", "sens", "spec", "ppv", "npv")
   class_cols <- intersect(class_cols, names(result))
   class_means <- sapply(result[, class_cols, with = FALSE], mean, na.rm = TRUE)
   class_means <- round(class_means, digits)
 
-  # Subgroup sizes (only when found)
+  # ---------------------------------------------------------------------------
+  # Subgroup sizes (H: conditional on detection; Hc: all replicates)
+  # ---------------------------------------------------------------------------
   res_found <- subset(result, any.H == 1)
 
   if (nrow(res_found) > 0) {
@@ -1400,25 +1404,37 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
   min_Hc <- round(min(result$size.Hc, na.rm = TRUE), 0)
   max_Hc <- round(max(result$size.Hc, na.rm = TRUE), 0)
 
-  # HR estimates (only when found)
+  # ---------------------------------------------------------------------------
+  # HR and AHR estimates (conditional on detection)
+  # ---------------------------------------------------------------------------
   if (nrow(res_found) > 0) {
+    # Cox-based HRs
     hr_H_true <- round(mean(res_found$hr.H.true, na.rm = TRUE), digits_hr)
     hr_H_hat <- round(mean(res_found$hr.H.hat, na.rm = TRUE), digits_hr)
     hr_Hc_true <- round(mean(res_found$hr.Hc.true, na.rm = TRUE), digits_hr)
     hr_Hc_hat <- round(mean(res_found$hr.Hc.hat, na.rm = TRUE), digits_hr)
 
-  #   # AHR estimates (aligned)
+    # AHR estimates (true subgroup and identified subgroup)
+    ahr_H_true <- if ("ahr.H.true" %in% names(res_found)) {
+      round(mean(res_found$ahr.H.true, na.rm = TRUE), digits_hr)
+    } else NA
+    ahr_Hc_true <- if ("ahr.Hc.true" %in% names(res_found)) {
+      round(mean(res_found$ahr.Hc.true, na.rm = TRUE), digits_hr)
+    } else NA
     ahr_H_hat <- if ("ahr.H.hat" %in% names(res_found)) {
       round(mean(res_found$ahr.H.hat, na.rm = TRUE), digits_hr)
     } else NA
     ahr_Hc_hat <- if ("ahr.Hc.hat" %in% names(res_found)) {
       round(mean(res_found$ahr.Hc.hat, na.rm = TRUE), digits_hr)
     } else NA
-   } else {
-     hr_H_true <- hr_H_hat <- hr_Hc_true <- hr_Hc_hat <- NA
-   }
+  } else {
+    hr_H_true <- hr_H_hat <- hr_Hc_true <- hr_Hc_hat <- NA
+    ahr_H_true <- ahr_Hc_true <- ahr_H_hat <- ahr_Hc_hat <- NA
+  }
 
-  # Overall HR estimates (all simulations)
+  # ---------------------------------------------------------------------------
+  # Unconditional estimates (all replicates)
+  # ---------------------------------------------------------------------------
   hr_H_true_all <- round(mean(result$hr.H.true, na.rm = TRUE), digits_hr)
   hr_Hc_true_all <- round(mean(result$hr.Hc.true, na.rm = TRUE), digits_hr)
   hr_itt <- round(mean(result$hr.itt, na.rm = TRUE), digits_hr)
@@ -1426,19 +1442,33 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
     round(mean(result$hr.adj.itt, na.rm = TRUE), digits_hr)
   } else NA
 
-  # Combine
+  # AHR unconditional (all replicates)
+  ahr_H_true_all <- if ("ahr.H.true" %in% names(result)) {
+    round(mean(result$ahr.H.true, na.rm = TRUE), digits_hr)
+  } else NA
+  ahr_Hc_true_all <- if ("ahr.Hc.true" %in% names(result)) {
+    round(mean(result$ahr.Hc.true, na.rm = TRUE), digits_hr)
+  } else NA
+
+  # ---------------------------------------------------------------------------
+  # Combine into output data frame
+  # ---------------------------------------------------------------------------
   values <- c(
     class_means,
     avg_H, min_H, max_H, avg_Hc, min_Hc, max_Hc,
     hr_H_true, hr_H_hat, hr_Hc_true, hr_Hc_hat,
-    hr_H_true_all, hr_Hc_true_all, hr_itt, hr_adj_itt
+    hr_H_true_all, hr_Hc_true_all, hr_itt, hr_adj_itt,
+    ahr_H_true, ahr_H_hat, ahr_Hc_true, ahr_Hc_hat,
+    ahr_H_true_all, ahr_Hc_true_all
   )
 
   row_names <- c(
     names(class_means),
     "Avg(#H)", "minH", "maxH", "Avg(#Hc)", "minHc", "maxHc",
     "hat(H*)", "hat(hat[H])", "hat(Hc*)", "hat(hat[Hc])",
-    "hat(H*)all", "hat(Hc*)all", "hat(ITT)", "hat(ITTadj)"
+    "hat(H*)all", "hat(Hc*)all", "hat(ITT)", "hat(ITTadj)",
+    "ahr(H*)", "ahr(hat[H])", "ahr(Hc*)", "ahr(hat[Hc])",
+    "ahr(H*)all", "ahr(Hc*)all"
   )
 
   out <- data.frame(value = values, stringsAsFactors = FALSE)
