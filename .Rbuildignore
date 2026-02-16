@@ -1,11 +1,9 @@
 
 ^vignettes/results$
 
-^dev/private$
 
 # Development files and directories
 ^dev$
-^vignettes$
 ^.*\.Rproj$
 ^\.Rproj\.user$
 
@@ -19,7 +17,6 @@
 
 # Documentation source
 ^README\.Rmd$
-^NEWS\.md$
 ^cran-comments\.md$
 
 # Other common exclusions
