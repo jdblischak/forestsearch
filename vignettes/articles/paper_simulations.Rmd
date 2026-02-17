@@ -595,7 +595,7 @@ cat("Using", n_workers, "parallel workers\n")
 ```{r define-params}
 # Simulation settings
 sim_config_alt <- list(
-  n_sims = 1000,          # Number of simulations (use 500-1000 for final)
+  n_sims = 2000,          # Number of simulations (use 500-1000 for final)
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -603,7 +603,7 @@ sim_config_alt <- list(
 )
 
 sim_config_null <- list(
-  n_sims = 1000,          # More simulations for Type I error estimation
+  n_sims = 10000,          # More simulations for Type I error estimation
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -1623,6 +1623,10 @@ build_classification_table(
 
 ### Table 2: Estimation Properties
 
+Not run (duplicate of above).
+
+Detailed calculations follow.  
+
 ```{r appendix-table2}
 # ── Build estimation table for the preferred analysis method ──────────────
 # Uses the alternative-hypothesis results where subgroups are identified.
@@ -1638,6 +1642,264 @@ build_estimation_table(
   title   = "Estimation Properties for Identified Subgroup"
 )
 ```
+
+# Detailed Summary: How `build_estimation_table()` Calculates Results
+## `R/simulation_tables.R`
+
+---
+
+## Purpose
+
+`build_estimation_table()` produces a gt table summarizing how well
+ForestSearch (or GRF) estimates the treatment-effect hazard ratio in the
+identified subgroup (Ĥ) and its complement (Ĥᶜ). It reports average
+estimate, variability, range, and relative bias versus DGM truth for up to
+six estimators across two row-groups.
+
+---
+
+## Input Requirements
+
+| Argument           | Role                                                                 |
+|--------------------|----------------------------------------------------------------------|
+| `results`          | `data.table` from `run_simulation_analysis()`, one row per sim × method |
+| `dgm`              | DGM object carrying true parameter values                            |
+| `analysis_method`  | Which method to filter on (e.g., `"FS"`, `"FSlg"`, `"GRF"`)         |
+| `n_boots`          | Optional; if non-NULL, shown in subtitle                             |
+| `digits`           | Rounding precision for all displayed numbers                         |
+| `font_size`        | Pixel size for gt rendering                                          |
+
+---
+
+## Step-by-Step Calculation Pipeline
+
+### 1. Filter to Estimable Realizations
+
+```r
+res <- as.data.table(results)
+res <- res[analysis == analysis_method]   # keep only the requested method
+res_found <- res[any.H == 1]             # keep only sims that found a subgroup
+n_estimable <- nrow(res_found)
+```
+
+Only simulations where the algorithm **identified a subgroup** (`any.H == 1`)
+contribute to estimation summaries. If `n_estimable == 0`, the function
+returns `NULL` with a message.
+
+### 2. Extract True Values from the DGM
+
+**Alternative hypothesis DGM** (`model = "alt"`):
+
+| True value       | Source                        | Description                              |
+|------------------|-------------------------------|------------------------------------------|
+| `theta_H_true`   | `dgm$hr_H_true`              | Cox-based HR in the true harm subgroup   |
+| `theta_Hc_true`  | `dgm$hr_Hc_true`             | Cox-based HR in the true complement      |
+| `ahr_H_true`     | `get_dgm_hr(dgm, "ahr_H")`   | AHR in the true harm subgroup            |
+| `ahr_Hc_true`    | `get_dgm_hr(dgm, "ahr_Hc")`  | AHR in the true complement               |
+
+**Null hypothesis DGM** (`model = "null"`):
+
+Under the null, `hr_H_true` is `NA` because no true subgroup exists. The
+function detects this via:
+
+```r
+is_null <- (dgm$model_type == "null") ||
+           (is.na(theta_H_true) && !is.na(theta_Hc_true))
+```
+
+When `is_null` is `TRUE`, all NA true values are backfilled with the
+**overall (causal) HR**, which is the uniform true value for any subset:
+
+```r
+hr_overall  <- get_dgm_hr(dgm, "hr_overall")  # tries hazard_ratios$overall
+if (is.na(hr_overall)) hr_overall <- dgm$hr_causal  # fallback to direct field
+
+theta_H_true  <- hr_overall   # e.g., 0.72
+theta_Hc_true <- hr_overall   # same value under the null
+```
+
+The same logic applies for AHR via `get_dgm_hr(dgm, "ahr")` / `dgm$AHR`.
+
+### 3. Compute Per-Estimator Summary Statistics
+
+The core computation is handled by the `make_est_row()` helper:
+
+```r
+make_est_row <- function(estimates, true_val, label) {
+  est <- estimates[!is.na(estimates)]   # drop any NA estimates
+  if (length(est) == 0) return(NULL)
+
+  avg_est  <- mean(est)
+  sd_est   <- sd(est)
+  min_est  <- min(est)
+  max_est  <- max(est)
+  rel_bias <- 100 * (avg_est - true_val) / true_val
+
+  data.frame(
+    Estimator    = label,
+    Avg          = round(avg_est, digits),
+    SD           = round(sd_est, digits),
+    Min          = round(min_est, digits),
+    Max          = round(max_est, digits),
+    `Rel Bias (%)` = round(rel_bias, digits)
+  )
+}
+```
+
+**Key formula — Relative Bias**:
+
+```
+Rel Bias (%) = 100 × (mean(θ̂) − θ_true) / θ_true
+```
+
+This is the **percentage by which the average estimate overshoots or
+undershoots the DGM truth**. Positive values indicate upward bias (common
+for naive Cox HR in data-driven subgroups due to selection bias).
+
+### 4. Assemble Rows by Subgroup
+
+The function builds up to **three rows per subgroup** (H and Hᶜ), each
+conditional on the corresponding column existing in `res_found`:
+
+#### Rows for Ĥ (identified harm subgroup)
+
+| Row label              | Source column    | True value      | When included                        |
+|------------------------|------------------|-----------------|--------------------------------------|
+| `theta-hat(H-hat)`    | `hr.H.hat`       | `theta_H_true`  | Always (if column exists)            |
+| `theta-hat*(H-hat)`   | `hr.H.bc`        | `theta_H_true`  | Only if bootstrap bias correction ran |
+| `ahr-hat(H-hat)`      | `ahr.H.hat`      | `ahr_H_true`    | Only if AHR columns exist AND `ahr_H_true` is non-NA |
+
+#### Rows for Ĥᶜ (identified complement)
+
+| Row label              | Source column    | True value       | When included                        |
+|------------------------|------------------|------------------|--------------------------------------|
+| `theta-hat(Hc-hat)`   | `hr.Hc.hat`      | `theta_Hc_true`  | Always (if column exists)            |
+| `theta-hat*(Hc-hat)`  | `hr.Hc.bc`       | `theta_Hc_true`  | Only if bootstrap bias correction ran |
+| `ahr-hat(Hc-hat)`     | `ahr.Hc.hat`     | `ahr_Hc_true`    | Only if AHR columns exist AND `ahr_Hc_true` is non-NA |
+
+**What each estimator represents**:
+
+- **θ̂(Ĥ)** = Naive Cox HR fitted in the *identified* (data-driven)
+  subgroup. Subject to selection bias because the same data that selected Ĥ
+  is used to estimate the HR in Ĥ.
+
+- **θ̂\*(Ĥ)** = Bootstrap bias-corrected Cox HR. Uses infinitesimal
+  jackknife / bootstrap resampling to estimate and subtract the selection
+  bias, yielding a less optimistic (more accurate) estimate.
+
+- **âhr(Ĥ)** = Average Hazard Ratio computed as `exp(mean(loghr_po))` over
+  patients in Ĥ. This is a marginal (population-averaged) estimand rather
+  than the conditional Cox HR, so it is less sensitive to covariate
+  imbalance within the identified subgroup.
+
+### 5. Attach Row-Group Headers
+
+Each subgroup block gets a descriptive Unicode header that encodes the
+ground truth and sample characteristics:
+
+**H header**: `"H: 18 estimable, avg |H| = 90, θ̂(H) = 2.0, âhr(H) = 1.85"`
+
+Built by `build_H_label(n_estimable, avg_size_H, theta_H_true, ahr_H_true)`.
+
+**Hᶜ header**: `"Hᶜ: avg |Hᶜ| = 610, θ̂(Hᶜ) = 0.65, âhr(Hᶜ) = 0.68"`
+
+Built by `build_Hc_label(avg_size_Hc, theta_Hc_true, ahr_Hc_true)`.
+
+The AHR portion is conditionally appended only when `ahr_*_true` is non-NA.
+
+### 6. Apply Unicode Labels
+
+Plain-text estimator keys are replaced with Unicode mathematical notation
+*before* creating the gt object, via a `label_map` lookup:
+
+| Plain-text key          | Unicode label  | Rendered as |
+|-------------------------|----------------|-------------|
+| `theta-hat(H-hat)`     | `θ̂(Ĥ)`         | θ̂(Ĥ)       |
+| `theta-hat*(H-hat)`    | `θ̂*(Ĥ)`        | θ̂*(Ĥ)      |
+| `ahr-hat(H-hat)`       | `âhr(Ĥ)`       | âhr(Ĥ)      |
+| `theta-hat(Hc-hat)`    | `θ̂(Ĥᶜ)`        | θ̂(Ĥᶜ)      |
+| `theta-hat*(Hc-hat)`   | `θ̂*(Ĥᶜ)`       | θ̂*(Ĥᶜ)     |
+| `ahr-hat(Hc-hat)`      | `âhr(Ĥᶜ)`      | âhr(Ĥᶜ)     |
+
+This avoids HTML tags (which gt strips) and `fmt_markdown` / `text_transform`
+(which can corrupt row-group rendering).
+
+### 7. Render gt Table
+
+The final gt table uses:
+
+- `groupname_col = "Subgroup"` — creates the two row-group sections
+- Conditional subtitle with or without bootstrap count
+- Uniform `font_size` across body cells, row-group headers, and table-level
+  font size
+
+---
+
+## Example Output Structure
+
+For an alternative-hypothesis simulation with 18/20 detections, bootstrap
+correction, and AHR columns present:
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ Estimation Properties                                                │
+│ FS: 18 estimable realizations                                        │
+├──────────────────────────────────────────────────────────────────────┤
+│ H: 18 estimable, avg |H| = 90, θ̂(H) = 2.0, âhr(H) = 1.85         │
+│──────────────────────────────────────────────────────────────────────│
+│          │  Avg  │  SD   │  Min  │  Max  │ Rel Bias (%)             │
+│ θ̂(Ĥ)    │ 2.18  │ 0.53  │ 1.40  │ 6.08  │  9.2                    │
+│ θ̂*(Ĥ)   │ 1.80  │ 0.48  │ 1.07  │ 4.82  │ -10.0                   │
+│ âhr(Ĥ)   │ 1.92  │ 0.41  │ 1.25  │ 4.10  │  3.8                    │
+├──────────────────────────────────────────────────────────────────────┤
+│ Hᶜ: avg |Hᶜ| = 610, θ̂(Hᶜ) = 0.65, âhr(Hᶜ) = 0.68               │
+│──────────────────────────────────────────────────────────────────────│
+│          │  Avg  │  SD   │  Min  │  Max  │ Rel Bias (%)             │
+│ θ̂(Ĥᶜ)   │ 0.65  │ 0.08  │ 0.44  │ 0.90  │ -0.3                    │
+│ θ̂*(Ĥᶜ)  │ 0.66  │ 0.08  │ 0.45  │ 0.92  │  1.4                    │
+│ âhr(Ĥᶜ)  │ 0.69  │ 0.07  │ 0.50  │ 0.88  │  1.5                    │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+Under the **null hypothesis** the same structure applies, but:
+- True values for both H and Hᶜ are the overall causal HR (e.g., 0.72)
+- `n_estimable` is typically small (e.g., 2/20 = 10% false detection rate)
+- The naive θ̂(Ĥ) shows large positive bias (selection effect)
+- The complement θ̂(Ĥᶜ) shows the mirror effect (slightly below truth)
+
+---
+
+## Column-to-Calculation Mapping
+
+| Output column    | Calculation                                    |
+|------------------|------------------------------------------------|
+| **Avg**          | `mean(estimates)`                              |
+| **SD**           | `sd(estimates)` (empirical, across sims)       |
+| **Min**          | `min(estimates)`                               |
+| **Max**          | `max(estimates)`                               |
+| **Rel Bias (%)** | `100 * (mean(estimates) - true_val) / true_val` |
+
+All calculations use only non-NA values from `res_found$<column>`.
+
+---
+
+## Source Columns in Simulation Results
+
+These columns are produced by `run_simulation_analysis()`:
+
+| Column        | Description                                              |
+|---------------|----------------------------------------------------------|
+| `any.H`       | Binary: 1 = subgroup identified, 0 = not                |
+| `hr.H.hat`    | Naive Cox HR in the identified subgroup Ĥ               |
+| `hr.Hc.hat`   | Naive Cox HR in the complement Ĥᶜ                      |
+| `hr.H.bc`     | Bootstrap bias-corrected HR in Ĥ (when bootstraps ran)  |
+| `hr.Hc.bc`    | Bootstrap bias-corrected HR in Ĥᶜ (when bootstraps ran) |
+| `ahr.H.hat`   | AHR = exp(mean(loghr_po)) in Ĥ                         |
+| `ahr.Hc.hat`  | AHR = exp(mean(loghr_po)) in Ĥᶜ                        |
+| `size.H`      | Number of patients in identified subgroup                |
+| `size.Hc`     | Number of patients in complement                         |
+| `analysis`     | Method label: "FS", "FSlg", or "GRF"                   |
+
 
 ### Producing Multi-Scenario Tables (Full Replication)
 

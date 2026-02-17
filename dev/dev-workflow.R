@@ -81,7 +81,6 @@ devtools::clean_dll()
 
 devtools::install(quick = TRUE)
 
-
 # Run these before CRAN submission
 devtools::check(cran = TRUE)     # Full CRAN validation
 
@@ -144,7 +143,6 @@ pkgdown::build_article("forestsearch")
 pkgdown::build_article("articles/methodology")
 
 pkgdown::build_article("articles/treatment_effect_definitions")
-
 
 pkgdown::build_article("articles/paper_simulations")
 
