@@ -48,7 +48,12 @@ knitr::knit_hooks$set(code_fold = function(before, options, envir) {
 
 This vignette demonstrates how to conduct simulation studies to evaluate the
 performance of ForestSearch for identifying subgroups with differential treatment
-effects. The simulation framework allows you to:
+effects. 
+
+We describe a simulation framework with a detailed example that reproduces (essentially) 
+simulation results presented in Leon et al. (2024).  
+
+The simulation framework allows you to:
 
 - Generate synthetic clinical trial data with known treatment effect heterogeneity
 - Evaluate subgroup identification rates (power)
@@ -63,9 +68,7 @@ effects. The simulation framework allows you to:
 3. **Run Analyses**: Apply ForestSearch (and optionally GRF) to each dataset
 4. **Summarize Results**: Aggregate operating characteristics across simulations
 
-## Key Updates in This Version
-
-The simulation framework has been aligned with `generate_aft_dgm_flex()` methodology:
+The simulation framework is based on the `generate_aft_dgm_flex()` methodology:
 
 | Feature | Description |
 |---------|-------------|
@@ -590,7 +593,9 @@ plan(multisession, workers = n_workers)
 cat("Using", n_workers, "parallel workers\n")
 ```
 
+
 ## Define Simulation Parameters
+
 
 ```{r define-params}
 # Simulation settings
