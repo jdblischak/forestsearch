@@ -10,7 +10,8 @@ build_estimation_table(
   analysis_method = "FSlg",
   n_boots = 300,
   digits = 2,
-  title = "Estimation Properties"
+  title = "Estimation Properties",
+  font_size = 12
 )
 }
 \arguments{
@@ -19,7 +20,7 @@ from \code{\link{run_simulation_analysis}}, optionally enriched with
 bootstrap bias-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}).}
 
 \item{dgm}{DGM object. Used for true parameter values (\code{hr_H_true},
-\code{hr_Hc_true}).}
+\code{hr_Hc_true}, and AHR truth via \code{\link{get_dgm_hr}}).}
 
 \item{analysis_method}{Character. Which analysis method to tabulate
 (e.g., \code{"FSlg"}). Default: \code{"FSlg"}.}
@@ -29,6 +30,9 @@ bootstrap bias-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}).}
 \item{digits}{Integer. Decimal places. Default: 2.}
 
 \item{title}{Character. Table title.}
+
+\item{font_size}{Numeric. Font size in pixels for table text. Default: 12.
+Increase to 14 or 16 for larger display.}
 }
 \value{
 A \code{gt} table object, or \code{NULL} if no estimable
@@ -42,17 +46,25 @@ average estimate, empirical SD, min, max, and relative bias for each
 estimator.
 }
 \details{
+Includes both Cox-based HR and AHR (Average Hazard Ratio from loghr_po)
+estimators when AHR columns are present in the results.
+
 For each subgroup (H and Hc) the function reports:
 \itemize{
 \item \strong{Avg}: Mean of the estimates across estimable simulations.
 \item \strong{SD}: Empirical standard deviation.
 \item \strong{Min / Max}: Range.
-\item \strong{Rel Bias}: Relative bias in percent, \code{100 * (Avg - true) / true}.
+\item \strong{Rel Bias}: Relative bias in percent,
+\code{100 * (Avg - true) / true}.
 }
 
 When bootstrap-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}) are
 present in \code{results}, an additional bias-corrected row
 (\code{"theta-hat*(H)"} or \code{"theta-hat*(Hc)"}) is added per subgroup.
+
+When AHR columns (\code{ahr.H.hat}, \code{ahr.Hc.hat}) are present, AHR
+estimation rows are appended using the DGM's true AHR values for relative
+bias calculation.
 }
 \examples{
 \dontrun{
@@ -66,5 +78,5 @@ build_estimation_table(
 }
 \seealso{
 \code{\link{build_classification_table}},
-\code{\link{format_oc_results}}
+\code{\link{format_oc_results}}, \code{\link{get_dgm_hr}}
 }

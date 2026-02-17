@@ -1491,8 +1491,8 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 #' @param analyses Character vector. Analysis methods to include.
 #'   Default: NULL (all analyses in results)
 #' @param metrics Character vector. Metrics to display. Options include:
-#'   "detection", "classification", "hr_estimates", "subgroup_size", "all".
-#'   Default: "all"
+#'   "detection", "classification", "hr_estimates", "ahr_estimates",
+#'   "subgroup_size", "all". Default: "all"
 #' @param digits Integer. Decimal places for proportions. Default: 3
 #' @param digits_hr Integer. Decimal places for hazard ratios. Default: 3
 #' @param title Character. Table title. Default: "Operating Characteristics Summary"
@@ -1506,7 +1506,9 @@ summarize_single_analysis <- function(result, digits = 2, digits_hr = 3) {
 #' \itemize{
 #'   \item \strong{Detection}: Proportion of simulations finding a subgroup (any.H)
 #'   \item \strong{Classification}: Sen, spec, PPV, NPV
-#'   \item \strong{HR Estimates}: Mean hazard ratios in H and Hc subgroups
+#'   \item \strong{HR Estimates}: Mean Cox hazard ratios in H and Hc subgroups
+#'   \item \strong{AHR Estimates}: Mean average hazard ratios (from loghr_po)
+#'     in true and identified subgroups
 #'   \item \strong{Subgroup Size}: Average, min, max sizes
 #' }
 #'
@@ -1565,6 +1567,24 @@ format_oc_results <- function(
       size_H_mean <- size_H_min <- size_H_max <- NA
     }
 
+    # AHR estimates (conditional on detection)
+    if (nrow(res_found) > 0) {
+      ahr_H_true <- if ("ahr.H.true" %in% names(res_found)) {
+        mean(res_found$ahr.H.true, na.rm = TRUE)
+      } else NA
+      ahr_Hc_true <- if ("ahr.Hc.true" %in% names(res_found)) {
+        mean(res_found$ahr.Hc.true, na.rm = TRUE)
+      } else NA
+      ahr_H_hat <- if ("ahr.H.hat" %in% names(res_found)) {
+        mean(res_found$ahr.H.hat, na.rm = TRUE)
+      } else NA
+      ahr_Hc_hat <- if ("ahr.Hc.hat" %in% names(res_found)) {
+        mean(res_found$ahr.Hc.hat, na.rm = TRUE)
+      } else NA
+    } else {
+      ahr_H_true <- ahr_Hc_true <- ahr_H_hat <- ahr_Hc_hat <- NA
+    }
+
     # ITT estimate (all simulations)
     hr_itt <- mean(res$hr.itt, na.rm = TRUE)
 
@@ -1581,6 +1601,10 @@ format_oc_results <- function(
       HR_H_true = hr_H_true,
       HR_Hc_true = hr_Hc_true,
       HR_ITT = hr_itt,
+      AHR_H_true = ahr_H_true,
+      AHR_Hc_true = ahr_Hc_true,
+      AHR_H_hat = ahr_H_hat,
+      AHR_Hc_hat = ahr_Hc_hat,
       Size_H_mean = size_H_mean,
       Size_H_min = size_H_min,
       Size_H_max = size_H_max,
@@ -1600,11 +1624,18 @@ format_oc_results <- function(
       cols_to_keep <- c(cols_to_keep, "Sen", "Spec", "PPV", "NPV")
     }
     if ("hr_estimates" %in% metrics) {
-      cols_to_keep <- c(cols_to_keep, "HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT")
+      cols_to_keep <- c(cols_to_keep, "HR_H_hat", "HR_Hc_hat",
+                        "HR_H_true", "HR_Hc_true", "HR_ITT")
+    }
+    if ("ahr_estimates" %in% metrics) {
+      cols_to_keep <- c(cols_to_keep, "AHR_H_true", "AHR_Hc_true",
+                        "AHR_H_hat", "AHR_Hc_hat")
     }
     if ("subgroup_size" %in% metrics) {
       cols_to_keep <- c(cols_to_keep, "Size_H_mean", "Size_H_min", "Size_H_max")
     }
+    # Only keep columns that exist (AHR may be all-NA and still present)
+    cols_to_keep <- intersect(cols_to_keep, names(summary_df))
     summary_df <- summary_df[, cols_to_keep, drop = FALSE]
   }
 
@@ -1619,9 +1650,6 @@ format_oc_results <- function(
       subtitle = subtitle
     )
 
-    # Format numeric columns
-    numeric_cols <- setdiff(names(summary_df), c("Analysis", "N_sims"))
-
     # Proportion columns (0-1 scale)
     prop_cols <- intersect(c("Detection", "Sen", "Spec", "PPV", "NPV"),
                            names(summary_df))
@@ -1633,13 +1661,26 @@ format_oc_results <- function(
       )
     }
 
-    # HR columns
-    hr_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT"),
+    # Cox HR columns
+    hr_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true",
+                           "HR_Hc_true", "HR_ITT"),
                          names(summary_df))
     if (length(hr_cols) > 0) {
       gt_table <- gt::fmt_number(
         gt_table,
         columns = gt::all_of(hr_cols),
+        decimals = digits_hr
+      )
+    }
+
+    # AHR columns
+    ahr_cols <- intersect(c("AHR_H_true", "AHR_Hc_true",
+                            "AHR_H_hat", "AHR_Hc_hat"),
+                          names(summary_df))
+    if (length(ahr_cols) > 0) {
+      gt_table <- gt::fmt_number(
+        gt_table,
+        columns = gt::all_of(ahr_cols),
         decimals = digits_hr
       )
     }
@@ -1655,12 +1696,43 @@ format_oc_results <- function(
       )
     }
 
-    # Rename columns for display
-    gt_table <- gt::cols_label(
-      gt_table,
+    # Rename columns for display using math notation (pure Unicode)
+    # Precomposed: \u0124 = Ĥ, \u00e2 = â; Combining: \u03b8\u0302 = θ̂
+    # Modifier letter: \u1D9C = ᶜ (small superscript c for complement)
+
+    label_list <- list(
       Analysis = "Method",
-      N_sims = "N Sims"
+      N_sims   = "N Sims"
     )
+
+    # HR column labels (conditional on existence)
+    hr_label_map <- list(
+      HR_H_hat   = "\u03b8\u0302(\u0124)",
+      HR_Hc_hat  = "\u03b8\u0302(\u0124\u1D9C)",
+      HR_H_true  = "\u03b8\u0302(H*)",
+      HR_Hc_true = "\u03b8\u0302(H\u1D9C*)",
+      HR_ITT     = "\u03b8\u0302(ITT)"
+    )
+    for (col_nm in names(hr_label_map)) {
+      if (col_nm %in% names(summary_df)) {
+        label_list[[col_nm]] <- hr_label_map[[col_nm]]
+      }
+    }
+
+    # AHR column labels (conditional on existence)
+    ahr_label_map <- list(
+      AHR_H_true  = "\u00e2hr(H*)",
+      AHR_Hc_true = "\u00e2hr(H\u1D9C*)",
+      AHR_H_hat   = "\u00e2hr(\u0124)",
+      AHR_Hc_hat  = "\u00e2hr(\u0124\u1D9C)"
+    )
+    for (col_nm in names(ahr_label_map)) {
+      if (col_nm %in% names(summary_df)) {
+        label_list[[col_nm]] <- ahr_label_map[[col_nm]]
+      }
+    }
+
+    gt_table <- gt::cols_label(gt_table, .list = label_list)
 
     # Add column spanners
     if ("all" %in% metrics || "classification" %in% metrics) {
@@ -1675,13 +1747,27 @@ format_oc_results <- function(
     }
 
     if ("all" %in% metrics || "hr_estimates" %in% metrics) {
-      hr_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true", "HR_Hc_true", "HR_ITT"),
-                           names(summary_df))
-      if (length(hr_cols) > 0) {
+      hr_span_cols <- intersect(c("HR_H_hat", "HR_Hc_hat", "HR_H_true",
+                                  "HR_Hc_true", "HR_ITT"),
+                                names(summary_df))
+      if (length(hr_span_cols) > 0) {
         gt_table <- gt::tab_spanner(
           gt_table,
-          label = "Hazard Ratios",
-          columns = gt::all_of(hr_cols)
+          label = "Cox Hazard Ratios",
+          columns = gt::all_of(hr_span_cols)
+        )
+      }
+    }
+
+    if ("all" %in% metrics || "ahr_estimates" %in% metrics) {
+      ahr_span_cols <- intersect(c("AHR_H_true", "AHR_Hc_true",
+                                   "AHR_H_hat", "AHR_Hc_hat"),
+                                 names(summary_df))
+      if (length(ahr_span_cols) > 0) {
+        gt_table <- gt::tab_spanner(
+          gt_table,
+          label = "Average Hazard Ratios",
+          columns = gt::all_of(ahr_span_cols)
         )
       }
     }

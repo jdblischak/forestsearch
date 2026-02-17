@@ -23,8 +23,8 @@ format_oc_results(
 Default: NULL (all analyses in results)}
 
 \item{metrics}{Character vector. Metrics to display. Options include:
-"detection", "classification", "hr_estimates", "subgroup_size", "all".
-Default: "all"}
+"detection", "classification", "hr_estimates", "ahr_estimates",
+"subgroup_size", "all". Default: "all"}
 
 \item{digits}{Integer. Decimal places for proportions. Default: 3}
 
@@ -47,7 +47,9 @@ The function summarizes simulation results across multiple metrics:
 \itemize{
 \item \strong{Detection}: Proportion of simulations finding a subgroup (any.H)
 \item \strong{Classification}: Sen, spec, PPV, NPV
-\item \strong{HR Estimates}: Mean hazard ratios in H and Hc subgroups
+\item \strong{HR Estimates}: Mean Cox hazard ratios in H and Hc subgroups
+\item \strong{AHR Estimates}: Mean average hazard ratios (from loghr_po)
+in true and identified subgroups
 \item \strong{Subgroup Size}: Average, min, max sizes
 }
 }

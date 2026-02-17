@@ -79,7 +79,7 @@ devtools::check()
 
 devtools::clean_dll()
 
-devtools::install()
+devtools::install(quick = TRUE)
 
 
 # Run these before CRAN submission
@@ -144,6 +144,8 @@ pkgdown::build_article("forestsearch")
 pkgdown::build_article("articles/methodology")
 
 pkgdown::build_article("articles/treatment_effect_definitions")
+
+pkgdown::build_article("articles/paper_simulations")
 
 
 pkgdown::build_article(

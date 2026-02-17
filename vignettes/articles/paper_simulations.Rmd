@@ -57,16 +57,6 @@ effects. The simulation framework allows you to:
 - Estimate Type I error under null hypothesis
 - Track and summarize computational timings across simulations
 
-## Simulation Framework Overview
-
-The simulation workflow consists of four main steps:
-
-```{mermaid}
-flowchart LR
-    A[Create DGM] --> B[Simulate Trials]
-    B --> C[Run Analyses]
-    C --> D[Summarize Results]
-```
 
 1. **Create DGM**: Define a data generating mechanism with specified treatment effects
 2. **Simulate Trials**: Generate multiple simulated datasets
@@ -103,6 +93,154 @@ library(doFuture)
 library(future)
 
 ```
+
+## Simulation Workflow Overview {#sec-workflow-overview}
+
+This section outlines the end-to-end workflow for evaluating ForestSearch
+performance via simulation. Each step is described below the workflow diagram,
+with cross-references to the corresponding vignette sections.
+
+```{r sim-workflow-diagram, echo=FALSE, fig.cap="Four-stage simulation workflow for evaluating subgroup identification performance.", fig.height=2.0, fig.width=9}
+if (requireNamespace("DiagrammeR", quietly = TRUE)) {
+  DiagrammeR::grViz("
+  digraph workflow {
+    graph [rankdir = LR, bgcolor = transparent, nodesep = 0.8]
+    node  [shape = box, style = 'rounded,filled', fillcolor = '#e3f2fd',
+           fontname = 'Helvetica', fontsize = 12, penwidth = 1.2,
+           width = 1.8, height = 0.6]
+    edge  [color = '#555555', penwidth = 1.5, arrowsize = 0.8]
+
+    A [label = '1. Create DGM']
+    B [label = '2. Simulate Trials']
+    C [label = '3. Run Analyses']
+    D [label = '4. Summarize OCs']
+
+    A -> B -> C -> D
+  }
+  ")
+}
+```
+
+### Step 1: Create a Data Generating Mechanism (DGM)
+
+The DGM defines the ground truth for the simulation. Building on the GBSG
+breast cancer dataset as a covariate template, `create_gbsg_dgm()` fits an
+Accelerated Failure Time (AFT) model with Weibull baseline hazard and
+generates a super-population of potential outcomes.
+
+Key decisions at this stage:
+
+- **Hypothesis**: `model = "alt"` introduces treatment effect heterogeneity
+  (harm subgroup H vs. benefit complement H^c^); `model = "null"` imposes a
+  uniform treatment effect so that no true subgroup exists (for type-I error
+  evaluation).
+- **Effect size**: The `k_inter` parameter scales the treatment-by-covariate
+  interaction. Rather than setting it manually, use `calibrate_k_inter()` to
+  find the value that achieves a target HR in the harm subgroup, calibrated
+  either to the Cox HR (`use_ahr = FALSE`) or to the average hazard ratio
+  (`use_ahr = TRUE`).
+- **Subgroup definition**: By default, H = {low estrogen receptor AND
+  premenopausal} (z1 = 1 & z3 = 1), covering roughly 13% of the
+  super-population.
+- **Censoring**: Weibull or uniform censoring, optionally adjusted via
+  `muC_adj` to control the overall event rate.
+
+The resulting DGM object stores the super-population, true hazard ratios
+(both Cox-based and AHR), individual-level potential outcomes (`loghr_po`),
+and all model parameters needed for downstream simulation.
+
+### Step 2: Simulate Clinical Trials
+
+`simulate_from_gbsg_dgm()` draws random samples from the super-population to
+create synthetic trial datasets. Each simulated trial:
+
+- Samples *n* patients (e.g., 700) with 1:1 randomisation.
+- Generates survival times from the AFT model using the DGM parameters.
+- Applies censoring (Weibull or uniform, with optional `muC_adj` adjustment)
+  and administrative censoring at `max_follow`.
+- Carries forward the true subgroup indicator `flag.harm` and individual
+  `loghr_po` for evaluation.
+
+Because ForestSearch uses random-split consistency evaluation, each simulated
+trial is an independent replicate of the full analysis pipeline.
+
+### Step 3: Run Analyses on Each Trial
+
+`run_simulation_analysis()` wraps the ForestSearch algorithm (and optionally
+GRF) and returns a one-row-per-method summary for each replicate. A typical
+call enables one or more methods:
+
+| Method | Flag | Description |
+|--------|------|-------------|
+| FS (LASSO only) | `run_fs = TRUE` | ForestSearch with LASSO-selected candidates |
+| FSlg | `run_fs = TRUE, use_grf = TRUE` | LASSO + GRF candidates combined |
+| GRF | `run_grf = TRUE` | Standalone GRF subgroup search |
+
+For each method the function records whether a subgroup was identified
+(`any.H`), its composition (`sens`, `spec`, `ppv`, `npv`), hazard ratio
+estimates (`hr.H.hat`, `hr.Hc.hat`), AHR estimates (`ahr.H.hat`,
+`ahr.Hc.hat`), subgroup size, and timing.
+
+The simulation loop is parallelised via `foreach` / `doFuture` (see
+[Setting Up Parallel Processing](#setup-parallel)):
+
+```r
+results_alt <- foreach(
+  sim = 1:n_sims,
+  .combine = rbind,
+  .options.future = list(packages = c("forestsearch", "survival", "data.table"),
+                         seed = TRUE)
+) %dofuture% {
+  run_simulation_analysis(sim_id = sim, dgm = dgm_calibrated, ...)
+}
+```
+
+### Step 4: Summarise Operating Characteristics
+
+Three complementary summary functions distil the raw simulation output into
+interpretable results:
+
+`format_oc_results()` produces a gt table of operating characteristics
+(detection rate, sensitivity, specificity, PPV, NPV, and mean HR estimates)
+across all analysis methods, with selectable metric groups (`"detection"`,
+`"classification"`, `"hr_estimates"`, `"ahr_estimates"`, `"subgroup_size"`,
+or `"all"`).
+
+`build_estimation_table()` focuses on estimation bias: for each estimator
+(naive Cox HR, bias-corrected HR, AHR) in both H and H^c^, it reports the
+mean, SD, range, and relative bias versus the DGM truth.
+
+`build_classification_table()` assembles detection and classification rates
+across multiple DGM scenarios (e.g., null and alternative) in a single
+table, facilitating comparison with the published benchmarks in Leon et al.
+(2024).
+
+Additionally, `interpret_estimation_table()` generates a templated narrative
+paragraph that auto-populates with the numerical results, suitable for
+direct inclusion in reports via `results = "asis"`.
+
+### Putting It Together
+
+The sections that follow implement each step in detail.  A compact version
+of the full workflow (excluding diagnostics) is:
+
+```r
+# Step 1: Create and calibrate DGM
+k_inter <- calibrate_k_inter(target_hr_harm = 2.0, use_ahr = FALSE)
+dgm     <- create_gbsg_dgm(model = "alt", k_inter = k_inter)
+
+# Step 2 + 3: Simulate and analyse in parallel
+results <- foreach(sim = 1:500, .combine = rbind) %dofuture% {
+  run_simulation_analysis(sim_id = sim, dgm = dgm, n_sample = 700,
+                          run_fs = TRUE, run_grf = TRUE, fs_params = fs_params)
+}
+
+# Step 4: Summarise
+format_oc_results(results, metrics = "all")
+build_estimation_table(results, dgm, analysis_method = "FS")
+interpret_estimation_table(results, dgm, scenario = "alt")
+```
+
 
 ## Initializing the Timing Framework {#sec-timing-init}
 
@@ -433,7 +571,7 @@ create_summary_table(
   table_title = "Characteristics by Treatment Arm",
   vars_continuous = c("z1", "z2", "size", "z3", "z4", "z5"),
   vars_categorical = c("flag.harm", "grade3"),
-  font_size = 12
+  font_size = 14
 )
 ```
 
@@ -465,7 +603,7 @@ sim_config_alt <- list(
 )
 
 sim_config_null <- list(
-  n_sims = 1000,          # More simulations for Type I error estimation
+  n_sims = 5000,          # More simulations for Type I error estimation
   n_sample = 700,         # Sample size per trial
   max_follow = 84,        # Maximum follow-up (months)
   seed_base = 8316951,
@@ -610,27 +748,132 @@ cat("Completed in", round(runtime_null, 1), "minutes\n")
 
 # Summarizing Results
 
-## Operating Characteristics Summary
+## Operating Characteristics Summary Under HTEs
 
 ```{r summarize-alt}
 t0 <- proc.time()[3]
 
-# Summarize alternative hypothesis results
-summary_alt <- summarize_simulation_results(results_alt)
-print(summary_alt)
+format_oc_results(results_alt, metrics = c("detection","classification","ahr_estimates"), digits = 2, digits_hr = 2)
+
+# Check for AHR columns in results
+ahr_cols <- grep("ahr", names(results_alt), value = TRUE)
+cat("AHR columns in results:", paste(ahr_cols, collapse = ", "), "\n\n")
+
+if (length(ahr_cols) > 0) {
+  # Summarize AHR estimates
+  results_found <- results_alt[results_alt$any.H == 1 & results_alt$analysis == "FS", ]
+  
+  if (nrow(results_found) > 0 && "ahr.H.hat" %in% names(results_found)) {
+    cat("AHR estimates (when subgroup found):\n")
+    cat("  Mean AHR(H) estimated:", round(mean(results_found$ahr.H.hat, na.rm = TRUE), 3), "\n")
+    cat("  Mean AHR(Hc) estimated:", round(mean(results_found$ahr.Hc.hat, na.rm = TRUE), 3), "\n")
+    cat("  True AHR(H):", round(dgm_calibrated$AHR_H_true, 3), "\n")
+    cat("  True AHR(Hc):", round(dgm_calibrated$AHR_Hc_true, 3), "\n")
+  }
+}
+
+build_estimation_table(
+  results = results_alt,
+  dgm = dgm_calibrated,
+  analysis_method = "FS",
+  font_size = 18
+)
 
 timings$summarize_alt <- proc.time()[3] - t0
+
 ```
+
+### Interpretation of estimated treatment effects
+
+```{r interpretation-alt, results="asis"}
+interpret_estimation_table(
+  results_alt, dgm_calibrated,
+  analysis_method = "FS",
+  scenario = "alt"
+)
+```
+
+## Operating Characteristics Under NULL (no HTEs)
 
 ```{r summarize-null}
 t0 <- proc.time()[3]
 
-# Summarize null hypothesis results
-summary_null <- summarize_simulation_results(results_null)
-print(summary_null)
+format_oc_results(results_null, metrics = c("detection","classification","ahr_estimates"), digits = 2, digits_hr = 2)
+
+# Check for AHR columns in results
+ahr_cols <- grep("ahr", names(results_null), value = TRUE)
+cat("AHR columns in results:", paste(ahr_cols, collapse = ", "), "\n\n")
+
+if (length(ahr_cols) > 0) {
+  # Summarize AHR estimates
+  results_found <- results_null[results_null$any.H == 1 & results_null$analysis == "FS", ]
+  
+  if (nrow(results_found) > 0 && "ahr.H.hat" %in% names(results_found)) {
+    cat("AHR estimates (when subgroup found):\n")
+    cat("  Mean AHR(H) estimated:", round(mean(results_found$ahr.H.hat, na.rm = TRUE), 3), "\n")
+    cat("  Mean AHR(Hc) estimated:", round(mean(results_found$ahr.Hc.hat, na.rm = TRUE), 3), "\n")
+    cat("  True AHR(H):", round(dgm_null$AHR_H_true, 3), "\n")
+    cat("  True AHR(Hc):", round(dgm_null$AHR_Hc_true, 3), "\n")
+  }
+}
+
+build_estimation_table(
+  results = results_null,
+  dgm = dgm_null,
+  analysis_method = "FS",
+  font_size = 18
+)
 
 timings$summarize_null <- proc.time()[3] - t0
+
 ```
+
+
+### Interpretation of estimated treatment effects
+
+```{r interpretation-null, results="asis"}
+interpret_estimation_table(
+  results_null, dgm_null,
+  analysis_method = "FS",
+  scenario = "null"
+)
+```
+
+
+### Classification Rate Details
+
+```{r appendix-table1-earlier}
+# ── Assemble scenario list from the current vignette results ─────────────
+scenario_list <- list(
+  null = list(
+    results    = results_null,
+    label      = "M",
+    n_sample   = sim_config_null$n_sample,
+    dgm        = dgm_null,
+    hypothesis = "null"
+  ),
+  alt = list(
+    results    = results_alt,
+    label      = "M",
+    n_sample   = sim_config_alt$n_sample,
+    dgm        = dgm_calibrated,
+    hypothesis = "alt"
+  )
+)
+
+# ── Build and display the classification table ───────────────────────────
+build_classification_table(
+  scenario_results = scenario_list,
+  analyses = sort(unique(c(
+    unique(results_null$analysis),
+    unique(results_alt$analysis)
+  ))),
+  digits = 2,
+  title = "Subgroup Identification and Classification Rates",
+  n_sims = sim_config_alt$n_sims
+)
+```
+
 
 # Theoretical Subgroup Detection Rate Approximation
 
@@ -781,43 +1024,6 @@ legend(
 )
 ```
 
-## AHR Metrics in Results (New)
-
-The aligned analysis functions now compute AHR estimates in addition to Cox-based HRs:
-
-```{r ahr-metrics}
-# Check for AHR columns in results
-ahr_cols <- grep("ahr", names(results_alt), value = TRUE)
-cat("AHR columns in results:", paste(ahr_cols, collapse = ", "), "\n\n")
-
-if (length(ahr_cols) > 0) {
-  # Summarize AHR estimates
-  results_found <- results_alt[results_alt$any.H == 1, ]
-  
-  if (nrow(results_found) > 0 && "ahr.H.hat" %in% names(results_found)) {
-    cat("AHR estimates (when subgroup found):\n")
-    cat("  Mean AHR(H) estimated:", round(mean(results_found$ahr.H.hat, na.rm = TRUE), 3), "\n")
-    cat("  Mean AHR(Hc) estimated:", round(mean(results_found$ahr.Hc.hat, na.rm = TRUE), 3), "\n")
-    cat("  True AHR(H):", round(dgm_calibrated$AHR_H_true, 3), "\n")
-    cat("  True AHR(Hc):", round(dgm_calibrated$AHR_Hc_true, 3), "\n")
-  }
-}
-```
-
-## Formatted Tables
-
-```{r format-tables}
-# Format operating characteristics for H1
-format_oc_results(
-  results = results_alt,
-  title = "Operating Characteristics (Alternative Hypothesis)",
-  subtitle = sprintf("n = %d, %d simulations, HR(H) = %.2f",
-                     sim_config_alt$n_sample,
-                     sim_config_alt$n_sims,
-                     dgm_calibrated$hr_H_true),
-  use_gt = TRUE
-)
-```
 
 ```{r format-null-tables}
 # Format operating characteristics for H0
@@ -1380,7 +1586,9 @@ each.
 
 ### Table 1: Classification Rates
 
-```{r appendix-table1}
+This is a repeat from above (do not run)
+
+```{r appendix-table1, eval = FALSE}
 # ── Assemble scenario list from the current vignette results ─────────────
 scenario_list <- list(
   null = list(

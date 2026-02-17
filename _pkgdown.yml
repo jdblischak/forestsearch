@@ -314,6 +314,7 @@ reference:
       - format_oc_results
       - build_classification_table
       - build_estimation_table
+      - interpret_estimation_table
       - render_reference_table
       - compute_detection_probability
       - generate_detection_curve

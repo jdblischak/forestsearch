@@ -223,6 +223,7 @@ utils::globalVariables(c(
   "ahr.H.hat", "ahr.Hc.hat",
   "Group",
   "Scenario",
+  "Estimator",
 
 # ============================================================================
 # MRCT simulation variables (from mrct_simulation.R)

@@ -91,7 +91,7 @@ build_classification_table <- function(
 
   rows_list <- list()
 
- for (sc_name in names(scenario_results)) {
+  for (sc_name in names(scenario_results)) {
     sc  <- scenario_results[[sc_name]]
     res <- data.table::as.data.table(sc$results)
     dgm <- sc$dgm
@@ -142,7 +142,7 @@ build_classification_table <- function(
 
         val <- switch(
           metric,
-          "any(H)"  = mean(r$any.H, na.rm = TRUE),
+          "any(H)"   = mean(r$any.H, na.rm = TRUE),
           "sens(H)"  = mean(r$sens, na.rm = TRUE),
           "sens(Hc)" = mean(r$spec, na.rm = TRUE),
           "ppv(H)"   = mean(r$ppv, na.rm = TRUE),
@@ -233,16 +233,21 @@ build_classification_table <- function(
 #' average estimate, empirical SD, min, max, and relative bias for each
 #' estimator.
 #'
+#' Includes both Cox-based HR and AHR (Average Hazard Ratio from loghr_po)
+#' estimators when AHR columns are present in the results.
+#'
 #' @param results \code{data.table} or \code{data.frame}. Simulation results
 #'   from \code{\link{run_simulation_analysis}}, optionally enriched with
 #'   bootstrap bias-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}).
 #' @param dgm DGM object. Used for true parameter values (\code{hr_H_true},
-#'   \code{hr_Hc_true}).
+#'   \code{hr_Hc_true}, and AHR truth via \code{\link{get_dgm_hr}}).
 #' @param analysis_method Character. Which analysis method to tabulate
 #'   (e.g., \code{"FSlg"}). Default: \code{"FSlg"}.
 #' @param n_boots Integer. Number of bootstraps (for subtitle). Default: 300.
 #' @param digits Integer. Decimal places. Default: 2.
 #' @param title Character. Table title.
+#' @param font_size Numeric. Font size in pixels for table text. Default: 12.
+#'   Increase to 14 or 16 for larger display.
 #'
 #' @return A \code{gt} table object, or \code{NULL} if no estimable
 #'   realizations exist.
@@ -253,12 +258,17 @@ build_classification_table <- function(
 #'   \item \strong{Avg}: Mean of the estimates across estimable simulations.
 #'   \item \strong{SD}: Empirical standard deviation.
 #'   \item \strong{Min / Max}: Range.
-#'   \item \strong{Rel Bias}: Relative bias in percent, \code{100 * (Avg - true) / true}.
+#'   \item \strong{Rel Bias}: Relative bias in percent,
+#'     \code{100 * (Avg - true) / true}.
 #' }
 #'
 #' When bootstrap-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}) are
 #' present in \code{results}, an additional bias-corrected row
 #' (\code{"theta-hat*(H)"} or \code{"theta-hat*(Hc)"}) is added per subgroup.
+#'
+#' When AHR columns (\code{ahr.H.hat}, \code{ahr.Hc.hat}) are present, AHR
+#' estimation rows are appended using the DGM's true AHR values for relative
+#' bias calculation.
 #'
 #' @examples
 #' \dontrun{
@@ -270,9 +280,10 @@ build_classification_table <- function(
 #' }
 #'
 #' @seealso \code{\link{build_classification_table}},
-#'   \code{\link{format_oc_results}}
+#'   \code{\link{format_oc_results}}, \code{\link{get_dgm_hr}}
 #'
 #' @importFrom data.table as.data.table rbindlist
+#' @importFrom stats sd
 #' @importFrom gt gt tab_header cols_label tab_style cell_text tab_options px
 #'   cells_body cells_row_groups
 #' @export
@@ -282,7 +293,8 @@ build_estimation_table <- function(
     analysis_method = "FSlg",
     n_boots = 300,
     digits = 2,
-    title = "Estimation Properties"
+    title = "Estimation Properties",
+    font_size = 12
 ) {
 
   res <- data.table::as.data.table(results)
@@ -304,15 +316,79 @@ build_estimation_table <- function(
   theta_Hc_true <- dgm$hr_Hc_true
   avg_size_H    <- round(mean(res_found$size.H, na.rm = TRUE), 0)
 
+  # True AHR values (via backward-compatible helper)
+  ahr_H_true  <- get_dgm_hr(dgm, "ahr_H")
+  ahr_Hc_true <- get_dgm_hr(dgm, "ahr_Hc")
+
+  # Under the null DGM, hr_H_true is NA (no true subgroup). Fall back to
+  # the overall (causal) HR which is the uniform value for any subset.
+  is_null <- (!is.null(dgm$model_type) && dgm$model_type == "null") ||
+    (is.na(theta_H_true) && !is.na(theta_Hc_true))
+
+  if (is_null) {
+    hr_overall <- get_dgm_hr(dgm, "hr_overall")
+    if (is.na(hr_overall)) hr_overall <- dgm$hr_causal
+    if (!is.null(hr_overall) && !is.na(hr_overall)) {
+      if (is.na(theta_H_true))  theta_H_true  <- hr_overall
+      if (is.na(theta_Hc_true)) theta_Hc_true <- hr_overall
+    }
+    ahr_overall <- get_dgm_hr(dgm, "ahr")
+    if (is.na(ahr_overall)) ahr_overall <- dgm$AHR
+    if (!is.null(ahr_overall) && !is.na(ahr_overall)) {
+      if (is.na(ahr_H_true))  ahr_H_true  <- ahr_overall
+      if (is.na(ahr_Hc_true)) ahr_Hc_true <- ahr_overall
+    }
+  }
+
+  # ── Math notation (pure Unicode) ─────────────────────────────────────────
+  # All labels use Unicode characters only — no HTML tags. This avoids:
+  #   (a) gt stripping <sup>/<sub> tags from cell values
+  #   (b) text_transform on cells_row_groups() corrupting table HTML
+  #   (c) fmt_markdown not rendering inline HTML
+  #
+  # Precomposed: \u0124 = Ĥ, \u00e2 = â (well-centered hats)
+  # Combining:   \u03b8\u0302 = θ̂ (best available; alignment depends on font)
+  # Subscript:   \u1D9C = ᶜ (modifier letter small c, for complement)
+
+  label_map <- list(
+    "theta-hat(H-hat)"   = "\u03b8\u0302(\u0124)",
+    "theta-hat*(H-hat)"  = "\u03b8\u0302*(\u0124)",
+    "ahr-hat(H-hat)"     = "\u00e2hr(\u0124)",
+    "theta-hat(Hc-hat)"  = "\u03b8\u0302(\u0124\u1D9C)",
+    "theta-hat*(Hc-hat)" = "\u03b8\u0302*(\u0124\u1D9C)",
+    "ahr-hat(Hc-hat)"    = "\u00e2hr(\u0124\u1D9C)"
+  )
+
+  # Row-group header builders (pure Unicode)
+  build_H_label <- function(n_est, avg_sz, theta_true, ahr_true) {
+    ahr_part <- if (!is.na(ahr_true)) {
+      sprintf(", \u00e2hr(H) = %s", round(ahr_true, 2))
+    } else ""
+    sprintf(
+      "H: %d estimable, avg |H| = %d, \u03b8\u0302(H) = %s%s",
+      n_est, avg_sz, round(theta_true, 2), ahr_part
+    )
+  }
+
+  build_Hc_label <- function(avg_sz_Hc, theta_true, ahr_true) {
+    ahr_part <- if (!is.na(ahr_true)) {
+      sprintf(", \u00e2hr(H\u1D9C) = %s", round(ahr_true, 2))
+    } else ""
+    sprintf(
+      "H\u1D9C: avg |H\u1D9C| = %d, \u03b8\u0302(H\u1D9C) = %s%s",
+      avg_sz_Hc, round(theta_true, 2), ahr_part
+    )
+  }
+
   # ── Helper: compute one estimation row ────────────────────────────────────
   make_est_row <- function(estimates, true_val, label) {
     est <- estimates[!is.na(estimates)]
     if (length(est) == 0) return(NULL)
 
-    avg_est <- mean(est)
-    sd_est  <- sd(est)
-    min_est <- min(est)
-    max_est <- max(est)
+    avg_est  <- mean(est)
+    sd_est   <- stats::sd(est)
+    min_est  <- min(est)
+    max_est  <- max(est)
     rel_bias <- 100 * (avg_est - true_val) / true_val
 
     data.frame(
@@ -330,30 +406,48 @@ build_estimation_table <- function(
   # ── Rows for H (harm subgroup) ────────────────────────────────────────────
   rows_H <- list()
 
+  # Cox HR (identified subgroup)
   if ("hr.H.hat" %in% names(res_found)) {
-    rows_H[[1]] <- make_est_row(
+    rows_H[[length(rows_H) + 1]] <- make_est_row(
       res_found$hr.H.hat, theta_H_true, "theta-hat(H-hat)"
     )
   }
 
+  # Cox HR (bias-corrected)
   if ("hr.H.bc" %in% names(res_found)) {
     rows_H[[length(rows_H) + 1]] <- make_est_row(
       res_found$hr.H.bc, theta_H_true, "theta-hat*(H-hat)"
     )
   }
 
+  # AHR (identified subgroup)
+  if ("ahr.H.hat" %in% names(res_found) && !is.na(ahr_H_true)) {
+    rows_H[[length(rows_H) + 1]] <- make_est_row(
+      res_found$ahr.H.hat, ahr_H_true, "ahr-hat(H-hat)"
+    )
+  }
+
   # ── Rows for Hc (complement) ──────────────────────────────────────────────
   rows_Hc <- list()
 
+  # Cox HR (identified complement)
   if ("hr.Hc.hat" %in% names(res_found)) {
-    rows_Hc[[1]] <- make_est_row(
+    rows_Hc[[length(rows_Hc) + 1]] <- make_est_row(
       res_found$hr.Hc.hat, theta_Hc_true, "theta-hat(Hc-hat)"
     )
   }
 
+  # Cox HR (bias-corrected)
   if ("hr.Hc.bc" %in% names(res_found)) {
     rows_Hc[[length(rows_Hc) + 1]] <- make_est_row(
       res_found$hr.Hc.bc, theta_Hc_true, "theta-hat*(Hc-hat)"
+    )
+  }
+
+  # AHR (identified complement)
+  if ("ahr.Hc.hat" %in% names(res_found) && !is.na(ahr_Hc_true)) {
+    rows_Hc[[length(rows_Hc) + 1]] <- make_est_row(
+      res_found$ahr.Hc.hat, ahr_Hc_true, "ahr-hat(Hc-hat)"
     )
   }
 
@@ -366,17 +460,15 @@ build_estimation_table <- function(
   }
 
   if (!is.null(df_H)) {
-    df_H[, Subgroup := sprintf(
-      "H: %d estimable, avg |H| = %d, theta(H) = %s",
-      n_estimable, avg_size_H, round(theta_H_true, 2)
-    )]
+    h_label <- build_H_label(n_estimable, avg_size_H, theta_H_true, ahr_H_true)
+    df_H[, Subgroup := h_label]
   }
   if (!is.null(df_Hc)) {
-    df_Hc[, Subgroup := sprintf(
-      "Hc: avg |Hc| = %d, theta(Hc) = %s",
+    hc_label <- build_Hc_label(
       round(mean(res_found$size.Hc, na.rm = TRUE), 0),
-      round(theta_Hc_true, 2)
-    )]
+      theta_Hc_true, ahr_Hc_true
+    )
+    df_Hc[, Subgroup := hc_label]
   }
 
   table_df <- data.table::rbindlist(list(df_H, df_Hc), fill = TRUE)
@@ -387,6 +479,13 @@ build_estimation_table <- function(
   }
 
   # ── gt table ──────────────────────────────────────────────────────────────
+  # Replace plain-text keys with Unicode labels before creating gt.
+  # No fmt_markdown or text_transform — pure Unicode renders natively.
+
+  for (key in names(label_map)) {
+    table_df[Estimator == key, Estimator := label_map[[key]]]
+  }
+
   gt_tbl <- gt::gt(table_df, groupname_col = "Subgroup") |>
     gt::tab_header(
       title = title,
@@ -397,15 +496,15 @@ build_estimation_table <- function(
     ) |>
     gt::cols_label(Estimator = "") |>
     gt::tab_style(
-      style = gt::cell_text(size = "small"),
+      style = gt::cell_text(size = gt::px(font_size)),
       locations = gt::cells_body()
     ) |>
     gt::tab_style(
-      style = gt::cell_text(weight = "bold", size = "small"),
+      style = gt::cell_text(weight = "bold", size = gt::px(font_size)),
       locations = gt::cells_row_groups()
     ) |>
     gt::tab_options(
-      table.font.size = gt::px(12),
+      table.font.size = gt::px(font_size),
       row_group.padding = gt::px(4)
     )
 
@@ -414,8 +513,326 @@ build_estimation_table <- function(
 
 
 # =============================================================================
-# Render LaTeX Table Data as gt
+# Interpret Estimation Table
 # =============================================================================
+
+#' Generate Narrative Interpretation of Estimation Properties
+#'
+#' Produces a templated text summary of the estimation properties table,
+#' automatically populating numerical results from the simulation output.
+#' Useful for reproducible vignettes where interpretation paragraphs should
+#' update when simulations are re-run.
+#'
+#' @param results Data frame of simulation results (same as for
+#'   \code{\link{build_estimation_table}}).
+#' @param dgm DGM object with true parameter values.
+#' @param analysis_method Character. Which analysis method to summarise.
+#'   Default: \code{"FSlg"}.
+#' @param n_sims Integer. Total number of simulations (for detection rate).
+#'   If \code{NULL} (default), derived from \code{nrow(results)} after
+#'   filtering to the analysis method.
+#' @param n_boots Integer. Number of bootstraps (for narrative). Default: 300.
+#' @param digits Integer. Decimal places for reported values. Default: 2.
+#' @param scenario Character. One of \code{"null"} or \code{"alt"} (default).
+#'   Controls the interpretive framing:
+#'   \itemize{
+#'     \item \code{"null"}: emphasises false-positive rate and selection bias
+#'     \item \code{"alt"}: emphasises power, bias relative to true effect
+#'   }
+#'   If \code{NULL}, inferred from the DGM (\code{hr_H_true == hr_Hc_true}
+#'   implies null).
+#' @param cat Logical. If \code{TRUE} (default), prints the paragraph via
+#'   \code{cat()}. If \code{FALSE}, returns it invisibly as a character string
+#'   (useful for programmatic insertion into Rmd via \code{results = "asis"}).
+#'
+#' @return Invisibly returns the interpretation as a character string.
+#'
+#' @examples
+#' \dontrun{
+#' # In a vignette chunk with results = "asis":
+#' interpret_estimation_table(results_null, dgm_null, scenario = "null")
+#'
+#' # Capture for further processing:
+#' txt <- interpret_estimation_table(results_alt, dgm_alt, cat = FALSE)
+#' }
+#'
+#' @seealso \code{\link{build_estimation_table}},
+#'   \code{\link{format_oc_results}}, \code{\link{get_dgm_hr}}
+#'
+#' @importFrom data.table as.data.table
+#' @importFrom stats sd
+#' @export
+interpret_estimation_table <- function(
+    results,
+    dgm,
+    analysis_method = "FSlg",
+    n_sims = NULL,
+    n_boots = 300,
+    digits = 2,
+    scenario = NULL,
+    cat = TRUE
+) {
+
+  res <- data.table::as.data.table(results)
+
+  if ("analysis" %in% names(res)) {
+    if (is.null(n_sims)) n_sims <- nrow(res[res$analysis == analysis_method, ])
+    res <- res[res$analysis == analysis_method, ]
+  } else {
+    if (is.null(n_sims)) n_sims <- nrow(res)
+  }
+
+  res_found <- res[res$any.H == 1, ]
+  n_estimable <- nrow(res_found)
+
+  if (n_estimable == 0) {
+    txt <- sprintf(
+      "No subgroups were identified in any of the %d simulations under %s, ",
+      n_sims, analysis_method
+    )
+    txt <- paste0(txt, "indicating a 0%% detection rate.")
+    if (isTRUE(cat)) cat(txt, "\n") # nolint
+    return(invisible(txt))
+  }
+
+  # ── True values ───────────────────────────────────────────────────────────
+  # Under the null DGM, hr_H_true is NA because there is no true subgroup.
+  # Fall back to the overall (causal) HR — the uniform true value for any
+
+  # subset under the null.  Try multiple sources for robustness.
+  theta_H_true  <- dgm$hr_H_true
+  theta_Hc_true <- dgm$hr_Hc_true
+  ahr_H_true    <- get_dgm_hr(dgm, "ahr_H")
+  ahr_Hc_true   <- get_dgm_hr(dgm, "ahr_Hc")
+
+  # Overall HR: try several known locations
+  hr_overall <- get_dgm_hr(dgm, "hr_overall")
+  if (is.na(hr_overall)) hr_overall <- dgm$hr_causal
+  if (is.null(hr_overall) || is.na(hr_overall)) hr_overall <- NA_real_
+
+  # Overall AHR: try several known locations
+  ahr_overall <- get_dgm_hr(dgm, "ahr")
+  if (is.na(ahr_overall)) ahr_overall <- dgm$AHR
+  if (is.null(ahr_overall) || is.na(ahr_overall)) ahr_overall <- NA_real_
+
+  # Infer scenario if not supplied
+  if (is.null(scenario)) {
+    if (!is.null(dgm$model_type) && dgm$model_type == "null") {
+      scenario <- "null"
+    } else if (is.na(theta_H_true) && !is.na(theta_Hc_true)) {
+      scenario <- "null"
+    } else if (!is.na(theta_H_true) && !is.na(theta_Hc_true) &&
+               isTRUE(all.equal(theta_H_true, theta_Hc_true))) {
+      scenario <- "null"
+    } else {
+      scenario <- "alt"
+    }
+  }
+  scenario <- match.arg(scenario, c("null", "alt"))
+
+  # Under null: fill NA true values with the overall (uniform) HR
+  if (scenario == "null") {
+    if (is.na(theta_H_true))  theta_H_true  <- hr_overall
+    if (is.na(theta_Hc_true)) theta_Hc_true <- hr_overall
+    if (is.na(ahr_H_true))    ahr_H_true    <- ahr_overall
+    if (is.na(ahr_Hc_true))   ahr_Hc_true   <- ahr_overall
+  }
+
+  # ── Compute summary statistics ────────────────────────────────────────────
+  fmt <- function(x) round(x, digits)
+
+  avg_size_H  <- round(mean(res_found$size.H, na.rm = TRUE), 0)
+  avg_size_Hc <- round(mean(res_found$size.Hc, na.rm = TRUE), 0)
+  detect_rate <- round(100 * n_estimable / n_sims, 1)
+
+  # Cox HR summaries
+  has_hr_H  <- "hr.H.hat" %in% names(res_found)
+  has_hr_Hc <- "hr.Hc.hat" %in% names(res_found)
+  has_hr_bc <- "hr.H.bc" %in% names(res_found)
+
+  if (has_hr_H) {
+    hr_H_vals <- res_found$hr.H.hat[!is.na(res_found$hr.H.hat)]
+    hr_H_avg  <- fmt(mean(hr_H_vals))
+    hr_H_sd   <- fmt(stats::sd(hr_H_vals))
+    hr_H_bias <- if (!is.na(theta_H_true) && theta_H_true != 0) {
+      fmt(100 * (mean(hr_H_vals) - theta_H_true) / theta_H_true)
+    } else NA
+  }
+  if (has_hr_Hc) {
+    hr_Hc_vals <- res_found$hr.Hc.hat[!is.na(res_found$hr.Hc.hat)]
+    hr_Hc_avg  <- fmt(mean(hr_Hc_vals))
+    hr_Hc_sd   <- fmt(stats::sd(hr_Hc_vals))
+    hr_Hc_bias <- if (!is.na(theta_Hc_true) && theta_Hc_true != 0) {
+      fmt(100 * (mean(hr_Hc_vals) - theta_Hc_true) / theta_Hc_true)
+    } else NA
+  }
+  if (has_hr_bc) {
+    hr_bc_vals <- res_found$hr.H.bc[!is.na(res_found$hr.H.bc)]
+    hr_bc_avg  <- fmt(mean(hr_bc_vals))
+    hr_bc_bias <- if (!is.na(theta_H_true) && theta_H_true != 0) {
+      fmt(100 * (mean(hr_bc_vals) - theta_H_true) / theta_H_true)
+    } else NA
+  }
+
+  # AHR summaries
+  has_ahr_H  <- "ahr.H.hat" %in% names(res_found) && !is.na(ahr_H_true)
+  has_ahr_Hc <- "ahr.Hc.hat" %in% names(res_found) && !is.na(ahr_Hc_true)
+
+  if (has_ahr_H) {
+    ahr_H_vals <- res_found$ahr.H.hat[!is.na(res_found$ahr.H.hat)]
+    ahr_H_avg  <- fmt(mean(ahr_H_vals))
+    ahr_H_bias <- if (!is.na(ahr_H_true) && ahr_H_true != 0) {
+      fmt(100 * (mean(ahr_H_vals) - ahr_H_true) / ahr_H_true)
+    } else NA
+  }
+  if (has_ahr_Hc) {
+    ahr_Hc_vals <- res_found$ahr.Hc.hat[!is.na(res_found$ahr.Hc.hat)]
+    ahr_Hc_avg  <- fmt(mean(ahr_Hc_vals))
+    ahr_Hc_bias <- if (!is.na(ahr_Hc_true) && ahr_Hc_true != 0) {
+      fmt(100 * (mean(ahr_Hc_vals) - ahr_Hc_true) / ahr_Hc_true)
+    } else NA
+  }
+
+  # ── Build narrative ───────────────────────────────────────────────────────
+  paras <- character()
+
+  # NA-safe formatter: returns "N/A" for missing values
+  fmt_s <- function(x) if (is.na(x)) "N/A" else as.character(round(x, digits))
+  fmt_pct <- function(x) if (is.na(x)) "N/A" else sprintf("%.1f%%", x)
+
+  # --- Paragraph 1: Detection summary ---
+  true_hr_str <- fmt_s(theta_H_true)
+  if (scenario == "null") {
+    paras[1] <- sprintf(
+      paste0(
+        "Under the null hypothesis (true HR = %s uniformly), ",
+        "%d of %d simulations (%s) identified a subgroup using %s. ",
+        "This low detection rate confirms controlled type-I error. ",
+        "Among those %d false detections, the identified subgroup ",
+        "averaged %d patients."
+      ),
+      true_hr_str, n_estimable, n_sims, fmt_pct(detect_rate),
+      analysis_method, n_estimable, avg_size_H
+    )
+  } else {
+    paras[1] <- sprintf(
+      paste0(
+        "Under the alternative hypothesis (true HR(H) = %s, ",
+        "true HR(Hc) = %s), %d of %d simulations (%s) ",
+        "identified a subgroup using %s. ",
+        "The identified subgroup averaged %d patients ",
+        "(complement: %d)."
+      ),
+      fmt_s(theta_H_true), fmt_s(theta_Hc_true),
+      n_estimable, n_sims, fmt_pct(detect_rate),
+      analysis_method, avg_size_H, avg_size_Hc
+    )
+  }
+
+  # --- Paragraph 2: Cox HR estimates ---
+  if (has_hr_H && has_hr_Hc) {
+    bias_H_str  <- fmt_pct(hr_H_bias)
+    bias_Hc_str <- fmt_pct(hr_Hc_bias)
+
+    if (scenario == "null") {
+      paras[2] <- sprintf(
+        paste0(
+          "The naive Cox HR in the identified subgroup averaged %s ",
+          "(SD = %s), representing %s relative bias above the true ",
+          "value of %s. This upward bias reflects selection: the algorithm ",
+          "identified whichever patients happened to look most like a harm ",
+          "subgroup by chance. In the complement, the Cox HR averaged %s ",
+          "(%s bias), showing the expected mirror effect where removing ",
+          "the worst-looking patients makes the remainder appear modestly ",
+          "better."
+        ),
+        hr_H_avg, hr_H_sd, bias_H_str, true_hr_str,
+        hr_Hc_avg, bias_Hc_str
+      )
+    } else {
+      paras[2] <- sprintf(
+        paste0(
+          "The naive Cox HR in the identified subgroup averaged %s ",
+          "(SD = %s), corresponding to %s relative bias versus the ",
+          "true HR(H) = %s. In the complement, the estimate averaged %s ",
+          "(%s bias vs. true HR(Hc) = %s)."
+        ),
+        hr_H_avg, hr_H_sd, bias_H_str, fmt_s(theta_H_true),
+        hr_Hc_avg, bias_Hc_str, fmt_s(theta_Hc_true)
+      )
+    }
+  }
+
+  # --- Paragraph 3: Bias correction (if available) ---
+  if (has_hr_bc) {
+    bias_bc_str <- fmt_pct(hr_bc_bias)
+    bc_comparison <- if (!is.na(hr_bc_bias) && !is.na(hr_H_bias) &&
+                         abs(hr_bc_bias) < abs(hr_H_bias)) {
+      "substantially reducing bias compared to"
+    } else {
+      "compared to"
+    }
+    paras[length(paras) + 1] <- sprintf(
+      paste0(
+        "After bootstrap bias correction (B = %d), the corrected ",
+        "estimate averaged %s (%s relative bias), ",
+        "%s the naive estimate of %s."
+      ),
+      n_boots, hr_bc_avg, bias_bc_str, bc_comparison, hr_H_avg
+    )
+  }
+
+  # --- Paragraph 4: AHR comparison (if available) ---
+  if (has_ahr_H) {
+    ahr_para <- sprintf(
+      paste0(
+        "The average hazard ratio (AHR) in the identified subgroup ",
+        "averaged %s (%s relative bias vs. true AHR(H) = %s)"
+      ),
+      ahr_H_avg, fmt_pct(ahr_H_bias), fmt_s(ahr_H_true)
+    )
+    if (has_ahr_Hc) {
+      ahr_para <- paste0(ahr_para, sprintf(
+        "; in the complement, %s (%s bias vs. true AHR(Hc) = %s)",
+        ahr_Hc_avg, fmt_pct(ahr_Hc_bias), fmt_s(ahr_Hc_true)
+      ))
+    }
+    if (has_hr_H && !is.na(ahr_H_bias) && !is.na(hr_H_bias) &&
+        abs(ahr_H_bias) < abs(hr_H_bias)) {
+      ahr_para <- paste0(ahr_para,
+        ". The AHR shows attenuated bias relative to the Cox HR, ",
+        "consistent with AHR being a marginal rather than conditional ",
+        "estimand."
+      )
+    } else {
+      ahr_para <- paste0(ahr_para, ".")
+    }
+    paras[length(paras) + 1] <- ahr_para
+  }
+
+  # --- Paragraph 5: Concluding remark ---
+  if (scenario == "null") {
+    paras[length(paras) + 1] <- paste0(
+      "These results underscore that under the null, the few false ",
+      "detections produce highly biased estimates, reinforcing the need ",
+      "for bootstrap bias correction for any subgroup identified by a ",
+      "data-driven search."
+    )
+  } else {
+    if (has_hr_bc) {
+      paras[length(paras) + 1] <- paste0(
+        "Overall, the bias correction meaningfully improves estimation ",
+        "accuracy, and the detection rate reflects the power of the ",
+        "algorithm under this effect size."
+      )
+    }
+  }
+
+  txt <- paste(paras, collapse = "\n\n")
+
+  if (isTRUE(cat)) cat(txt, "\n") # nolint
+  invisible(txt)
+}
 
 #' Render Reference Simulation Table as gt
 #'
