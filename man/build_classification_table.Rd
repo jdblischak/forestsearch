@@ -10,7 +10,8 @@ build_classification_table(
   digits = 2,
   title = "Subgroup Identification and Classification Rates",
   n_sims = NULL,
-  bold_threshold = 0.05
+  bold_threshold = 0.05,
+  font_size = 12
 )
 }
 \arguments{
@@ -39,6 +40,9 @@ values of \code{results$analysis} across scenarios are used.}
 \item{bold_threshold}{Numeric. Type I error threshold above which the
 \code{any(H)} value is shown in bold. Set \code{NULL} to disable.
 Default: 0.05.}
+
+\item{font_size}{Numeric. Font size in pixels for table text. Default: 12.
+Increase to 14 or 16 for larger display.}
 }
 \value{
 A \code{gt} table object.

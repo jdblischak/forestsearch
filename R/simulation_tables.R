@@ -38,6 +38,8 @@
 #' @param bold_threshold Numeric. Type I error threshold above which the
 #'   \code{any(H)} value is shown in bold. Set \code{NULL} to disable.
 #'   Default: 0.05.
+#' @param font_size Numeric. Font size in pixels for table text. Default: 12.
+#'   Increase to 14 or 16 for larger display.
 #'
 #' @return A \code{gt} table object.
 #'
@@ -86,7 +88,8 @@ build_classification_table <- function(
     digits = 2,
     title = "Subgroup Identification and Classification Rates",
     n_sims = NULL,
-    bold_threshold = 0.05
+    bold_threshold = 0.05,
+    font_size = 12
 ) {
 
   rows_list <- list()
@@ -181,15 +184,15 @@ build_classification_table <- function(
     ) |>
     gt::cols_label(Metric = "") |>
     gt::tab_style(
-      style = gt::cell_text(size = "small"),
+      style = gt::cell_text(size = gt::px(font_size)),
       locations = gt::cells_body()
     ) |>
     gt::tab_style(
-      style = gt::cell_text(weight = "bold", size = "small"),
+      style = gt::cell_text(weight = "bold", size = gt::px(font_size)),
       locations = gt::cells_row_groups()
     ) |>
     gt::tab_options(
-      table.font.size = gt::px(12),
+      table.font.size = gt::px(font_size),
       row_group.padding = gt::px(4)
     )
 
@@ -243,7 +246,8 @@ build_classification_table <- function(
 #'   \code{hr_Hc_true}, and AHR truth via \code{\link{get_dgm_hr}}).
 #' @param analysis_method Character. Which analysis method to tabulate
 #'   (e.g., \code{"FSlg"}). Default: \code{"FSlg"}.
-#' @param n_boots Integer. Number of bootstraps (for subtitle). Default: 300.
+#' @param n_boots Integer or \code{NULL}. Number of bootstraps. When non-NULL,
+#'   appended to the subtitle as "(B = n_boots bootstraps)". Default: \code{NULL}.
 #' @param digits Integer. Decimal places. Default: 2.
 #' @param title Character. Table title.
 #' @param font_size Numeric. Font size in pixels for table text. Default: 12.
@@ -291,7 +295,7 @@ build_estimation_table <- function(
     results,
     dgm,
     analysis_method = "FSlg",
-    n_boots = 300,
+    n_boots = NULL,
     digits = 2,
     title = "Estimation Properties",
     font_size = 12
@@ -486,13 +490,16 @@ build_estimation_table <- function(
     table_df[Estimator == key, Estimator := label_map[[key]]]
   }
 
+  # Build subtitle: include bootstrap count only when n_boots is provided
+  sub_txt <- sprintf("%s: %d estimable realizations", analysis_method, n_estimable)
+  if (!is.null(n_boots)) {
+    sub_txt <- paste0(sub_txt, sprintf(" (B = %d bootstraps)", n_boots))
+  }
+
   gt_tbl <- gt::gt(table_df, groupname_col = "Subgroup") |>
     gt::tab_header(
       title = title,
-      subtitle = sprintf(
-        "%s: %d estimable realizations (B = %d bootstraps)",
-        analysis_method, n_estimable, n_boots
-      )
+      subtitle = sub_txt
     ) |>
     gt::cols_label(Estimator = "") |>
     gt::tab_style(

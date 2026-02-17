@@ -8,7 +8,7 @@ build_estimation_table(
   results,
   dgm,
   analysis_method = "FSlg",
-  n_boots = 300,
+  n_boots = NULL,
   digits = 2,
   title = "Estimation Properties",
   font_size = 12
@@ -25,7 +25,8 @@ bootstrap bias-corrected columns (\code{hr.H.bc}, \code{hr.Hc.bc}).}
 \item{analysis_method}{Character. Which analysis method to tabulate
 (e.g., \code{"FSlg"}). Default: \code{"FSlg"}.}
 
-\item{n_boots}{Integer. Number of bootstraps (for subtitle). Default: 300.}
+\item{n_boots}{Integer or \code{NULL}. Number of bootstraps. When non-NULL,
+appended to the subtitle as "(B = n_boots bootstraps)". Default: \code{NULL}.}
 
 \item{digits}{Integer. Decimal places. Default: 2.}
 

@@ -145,6 +145,7 @@ pkgdown::build_article("articles/methodology")
 
 pkgdown::build_article("articles/treatment_effect_definitions")
 
+
 pkgdown::build_article("articles/paper_simulations")
 
 
